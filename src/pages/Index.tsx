@@ -1,10 +1,11 @@
 
 import { useState } from 'react';
-import { Calendar, ChevronLeft, ChevronRight, Upload, BarChart3, Clock, TrendingUp } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Upload, BarChart3, Clock, TrendingUp, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Link } from 'react-router-dom';
 import ScheduleCalendar from '@/components/ScheduleCalendar';
 import HoursWorkedChart from '@/components/HoursWorkedChart';
 import WorkHoursStats from '@/components/WorkHoursStats';
@@ -46,6 +47,12 @@ const Index = () => {
                 <SelectItem value="العربية">العربية</SelectItem>
               </SelectContent>
             </Select>
+            <Link to="/admin">
+              <Button variant="outline" className="flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                Admin Panel
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
