@@ -12,22 +12,60 @@ interface User {
   id: string;
   name: string;
   username: string;
+  password: string;
   role: 'admin' | 'manager' | 'user';
   status: 'Active' | 'Inactive';
   language: string;
+  email: string;
 }
 
 const UsersManagement = () => {
   const [users, setUsers] = useState<User[]>([
-    { id: '1', name: 'John Smith', username: 'admin', role: 'admin', status: 'Active', language: 'English' },
-    { id: '2', name: 'Jane Doe', username: 'jane.doe', role: 'user', status: 'Active', language: 'English' },
-    { id: '3', name: 'Michael Brown', username: 'mike.brown', role: 'manager', status: 'Inactive', language: 'Svenska' },
+    { 
+      id: '1', 
+      name: 'John Doe', 
+      username: 'john.doe', 
+      password: 'worker123',
+      email: 'john.doe@company.com',
+      role: 'user', 
+      status: 'Active', 
+      language: 'English' 
+    },
+    { 
+      id: '2', 
+      name: 'Jane Smith', 
+      username: 'jane.smith', 
+      password: 'worker123',
+      email: 'jane.smith@company.com',
+      role: 'user', 
+      status: 'Active', 
+      language: 'English' 
+    },
+    { 
+      id: '3', 
+      name: 'Demo Worker', 
+      username: 'demo', 
+      password: 'demo123',
+      email: 'demo@company.com',
+      role: 'user', 
+      status: 'Active', 
+      language: 'Svenska' 
+    },
   ]);
 
-  const [newUser, setNewUser] = useState({
+  const [newUser, setNewUser] = useState<{
+    name: string;
+    username: string;
+    password: string;
+    email: string;
+    role: 'admin' | 'manager' | 'user';
+    language: string;
+  }>({
     name: '',
     username: '',
-    role: 'user' as const,
+    password: '',
+    email: '',
+    role: 'user',
     language: 'English'
   });
 
@@ -38,7 +76,7 @@ const UsersManagement = () => {
       status: 'Active'
     };
     setUsers([...users, user]);
-    setNewUser({ name: '', username: '', role: 'user', language: 'English' });
+    setNewUser({ name: '', username: '', password: '', email: '', role: 'user', language: 'English' });
   };
 
   const deleteUser = (id: string) => {
@@ -84,6 +122,18 @@ const UsersManagement = () => {
                     value={newUser.username}
                     onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
                   />
+                  <Input
+                    placeholder="Email"
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Password"
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  />
                   <Select value={newUser.role} onValueChange={(value: 'admin' | 'manager' | 'user') => setNewUser({ ...newUser, role: value })}>
                     <SelectTrigger>
                       <SelectValue />
@@ -120,6 +170,8 @@ const UsersManagement = () => {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Username</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Password</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Language</TableHead>
@@ -130,7 +182,9 @@ const UsersManagement = () => {
               {users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.username}</TableCell>
+                  <TableCell className="font-mono text-sm">{user.username}</TableCell>
+                  <TableCell className="text-sm">{user.email}</TableCell>
+                  <TableCell className="font-mono text-sm">{'*'.repeat(user.password.length)}</TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded text-xs ${
                       user.role === 'admin' ? 'bg-red-100 text-red-800' :

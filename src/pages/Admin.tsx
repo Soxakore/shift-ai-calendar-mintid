@@ -1,17 +1,21 @@
-
 import { useState } from 'react';
-import { Users, Calendar, BarChart3, Settings, Brain, Database } from 'lucide-react';
+import { Users, Calendar, BarChart3, Settings, Brain, Database, ArrowLeft, Building2, Shield, UserCog } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import UsersManagement from '@/components/admin/UsersManagement';
 import ScheduleManagement from '@/components/admin/ScheduleManagement';
 import ReportsManagement from '@/components/admin/ReportsManagement';
 import AISettings from '@/components/admin/AISettings';
 import SystemSettings from '@/components/admin/SystemSettings';
+import OrganizationManagement from '@/components/admin/OrganizationManagement';
+import RoleBasedUIDemo from '@/components/admin/RoleBasedUIDemo';
+import UserAccountManager from '@/components/admin/UserAccountManager';
 
 const Admin = () => {
-  const [currentUser] = useState('admin');
+  const { user, logout } = useAuth();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -19,12 +23,16 @@ const Admin = () => {
       <header className="bg-blue-900 text-white px-4 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
+            <Link to="/" className="flex items-center gap-2 text-white hover:text-blue-200">
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to App</span>
+            </Link>
             <h1 className="text-xl font-bold">WorkFlow AI</h1>
             <span className="text-blue-200">Admin Panel</span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-blue-200">Username: {currentUser}</span>
-            <Button variant="outline" className="text-white border-white hover:bg-blue-800">
+            <span className="text-blue-200">Welcome, {user?.name}</span>
+            <Button variant="outline" className="text-white border-white hover:bg-blue-800" onClick={logout}>
               Logout
             </Button>
           </div>
@@ -33,11 +41,19 @@ const Admin = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto p-4">
-        <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
+        <Tabs defaultValue="organizations" className="w-full">
+          <TabsList className="grid w-full grid-cols-8 mb-6">
+            <TabsTrigger value="organizations" className="flex items-center gap-2">
+              <Building2 className="w-4 h-4" />
+              Organizations
+            </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               Users
+            </TabsTrigger>
+            <TabsTrigger value="accounts" className="flex items-center gap-2">
+              <UserCog className="w-4 h-4" />
+              Accounts
             </TabsTrigger>
             <TabsTrigger value="schedule" className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
@@ -55,10 +71,22 @@ const Admin = () => {
               <Settings className="w-4 h-4" />
               System
             </TabsTrigger>
+            <TabsTrigger value="role-demo" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              Role Demo
+            </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="organizations">
+            <OrganizationManagement />
+          </TabsContent>
 
           <TabsContent value="users">
             <UsersManagement />
+          </TabsContent>
+
+          <TabsContent value="accounts">
+            <UserAccountManager />
           </TabsContent>
 
           <TabsContent value="schedule">
@@ -75,6 +103,10 @@ const Admin = () => {
 
           <TabsContent value="system">
             <SystemSettings />
+          </TabsContent>
+
+          <TabsContent value="role-demo">
+            <RoleBasedUIDemo />
           </TabsContent>
         </Tabs>
       </main>

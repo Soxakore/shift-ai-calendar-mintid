@@ -1,18 +1,24 @@
-
-import { useState } from 'react';
-import { Calendar, ChevronLeft, ChevronRight, Upload, BarChart3, Clock, TrendingUp, Settings } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Calendar, ChevronLeft, ChevronRight, Upload, BarChart3, Clock, TrendingUp, Settings, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import ScheduleCalendar from '@/components/ScheduleCalendar';
 import HoursWorkedChart from '@/components/HoursWorkedChart';
 import WorkHoursStats from '@/components/WorkHoursStats';
+import ImageUpload from '@/components/ImageUpload';
+import TaskManagement from '@/components/TaskManagement';
+import ReportsManagement from '@/components/ReportsManagement';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const Index = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [language, setLanguage] = useState('English');
+  const { user, logout, hasRole } = useAuth();
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     setCurrentDate(prev => {
@@ -47,12 +53,34 @@ const Index = () => {
                 <SelectItem value="العربية">العربية</SelectItem>
               </SelectContent>
             </Select>
-            <Link to="/admin">
-              <Button variant="outline" className="flex items-center gap-2">
-                <Settings className="w-4 h-4" />
-                Admin Panel
-              </Button>
-            </Link>
+            
+            <ThemeToggle />
+            
+            {hasRole('admin') && (
+              <Link to="/admin">
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Settings className="w-4 h-4" />
+                  Admin Panel
+                </Button>
+              </Link>
+            )}
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  {user?.name}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
@@ -76,6 +104,9 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="calendar" className="space-y-6">
+            {/* AI Upload Section */}
+            <ImageUpload />
+            
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Calendar Section */}
               <div className="lg:col-span-2">
@@ -98,10 +129,6 @@ const Index = () => {
                         <ChevronRight className="w-4 h-4" />
                       </Button>
                     </div>
-                    <Button className="flex items-center gap-2">
-                      <Upload className="w-4 h-4" />
-                      Upload image
-                    </Button>
                   </CardHeader>
                   <CardContent>
                     <ScheduleCalendar currentDate={currentDate} />
@@ -118,25 +145,11 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="tasks" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Task Management</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">Task management features coming soon...</p>
-              </CardContent>
-            </Card>
+            <TaskManagement />
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Work Reports</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">Advanced reporting features coming soon...</p>
-              </CardContent>
-            </Card>
+            <ReportsManagement />
           </TabsContent>
         </Tabs>
       </main>
