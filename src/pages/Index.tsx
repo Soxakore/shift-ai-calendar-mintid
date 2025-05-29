@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, BarChart3, Clock, Settings, LogOut, User, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -9,14 +9,25 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import ScheduleCalendar from '@/components/ScheduleCalendar';
-import HoursWorkedChart from '@/components/HoursWorkedChart';
 import WorkHoursStats from '@/components/WorkHoursStats';
 import ImageUpload from '@/components/ImageUpload';
-import TaskManagement from '@/components/TaskManagement';
-import ReportsManagement from '@/components/ReportsManagement';
 import Footer from '@/components/Footer';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import SEOHead from '@/components/SEOHead';
+
+// Lazy loaded components
+import { 
+  LazyScheduleCalendar,
+  LazyHoursWorkedChart,
+  LazyTaskManagement,
+  LazyReportsManagement
+} from '@/components/LazyComponents';
+
+// Analytics imports
+import { trackFeatureUsage, trackScheduleAction, trackTaskAction, trackAuthAction } from '@/lib/analytics';
+// SEO imports
+import { createWebApplicationSchema, createOrganizationSchema, getPageMetadata } from '@/lib/seo';
 
 const Index = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -47,6 +58,9 @@ const Index = () => {
       return newDate;
     });
     
+    // Track calendar navigation
+    trackScheduleAction('view', `month_${direction}`);
+    
     // Show feedback that navigation worked
     const monthName = direction === 'prev' ? 'Previous' : 'Next';
     toast({
@@ -57,6 +71,7 @@ const Index = () => {
 
   const handleLanguageChange = (newLanguage: string) => {
     setLanguage(newLanguage);
+    trackFeatureUsage('language_change', user?.role);
     toast({
       title: "🌐 Language Changed",
       description: `Interface language switched to ${newLanguage}`,
@@ -64,6 +79,7 @@ const Index = () => {
   };
 
   const handleLogout = async () => {
+    trackAuthAction('logout', user?.role);
     await logout();
     toast({
       title: "👋 Logged Out",
@@ -77,6 +93,9 @@ const Index = () => {
       tasks: "Tasks", 
       reports: "Reports"
     };
+    
+    trackFeatureUsage(`tab_${tabValue}`, user?.role);
+    
     toast({
       title: "📂 Tab Switched",
       description: `Switched to ${tabNames[tabValue as keyof typeof tabNames]} view`,
@@ -84,6 +103,7 @@ const Index = () => {
   };
 
   const handleRoleSwitch = () => {
+    trackFeatureUsage('role_switch', user?.role);
     toast({
       title: "🎭 Role Switcher",
       description: "Opening role selection panel...",
@@ -91,6 +111,7 @@ const Index = () => {
   };
 
   const handleAdminPanel = () => {
+    trackFeatureUsage('admin_panel_access', user?.role);
     toast({
       title: "⚙️ Admin Panel",
       description: "Opening administrative dashboard...",
@@ -101,8 +122,22 @@ const Index = () => {
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   };
 
+  const pageMetadata = getPageMetadata('home');
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      <SEOHead
+        title={pageMetadata.title}
+        description={pageMetadata.description}
+        keywords={pageMetadata.keywords}
+        canonicalUrl={pageMetadata.canonical}
+        pageName="home"
+        structuredData={[
+          createWebApplicationSchema(),
+          createOrganizationSchema()
+        ]}
+      />
+      
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-4 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -264,7 +299,9 @@ const Index = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <ScheduleCalendar currentDate={currentDate} />
+                    <Suspense fallback={<LoadingSpinner text="Loading Calendar..." />}>
+                      <LazyScheduleCalendar currentDate={currentDate} />
+                    </Suspense>
                   </CardContent>
                 </Card>
               </div>
@@ -272,17 +309,23 @@ const Index = () => {
               {/* Stats Section */}
               <div className="space-y-6">
                 <WorkHoursStats />
-                <HoursWorkedChart />
+                <Suspense fallback={<LoadingSpinner text="Loading Charts..." />}>
+                  <LazyHoursWorkedChart />
+                </Suspense>
               </div>
             </div>
           </TabsContent>
 
           <TabsContent value="tasks" className="space-y-6">
-            <TaskManagement />
+            <Suspense fallback={<LoadingSpinner text="Loading Task Management..." />}>
+              <LazyTaskManagement />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-6">
-            <ReportsManagement />
+            <Suspense fallback={<LoadingSpinner text="Loading Reports..." />}>
+              <LazyReportsManagement />
+            </Suspense>
           </TabsContent>
         </Tabs>
       </main>

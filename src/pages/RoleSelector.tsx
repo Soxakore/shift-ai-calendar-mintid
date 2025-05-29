@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,12 +11,19 @@ import {
   Info,
   Settings
 } from 'lucide-react';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import SEOHead from '@/components/SEOHead';
 
-// Import all role-specific dashboards
-import SuperAdminDashboard from './SuperAdminDashboard';
-import OrgAdminDashboard from './OrgAdminDashboard';
-import ManagerDashboard from './ManagerDashboard';
-import EmployeeDashboard from './EmployeeDashboard';
+// Use lazy loading for role-specific dashboards
+import { 
+  LazySuperAdminDashboard,
+  LazyOrgAdminDashboard,
+  LazyManagerDashboard,
+  LazyEmployeeDashboard
+} from '@/components/LazyComponents';
+
+// SEO imports
+import { createSoftwareSchema, createFAQSchema, getPageMetadata } from '@/lib/seo';
 
 const RoleSelector = () => {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
@@ -31,7 +38,7 @@ const RoleSelector = () => {
       bgColor: 'bg-red-50 border-red-200',
       textColor: 'text-red-700',
       credentials: { username: 'super.admin', password: 'admin123' },
-      component: SuperAdminDashboard
+      component: LazySuperAdminDashboard
     },
     {
       id: 'org_admin',
@@ -42,7 +49,7 @@ const RoleSelector = () => {
       bgColor: 'bg-blue-50 border-blue-200',
       textColor: 'text-blue-700',
       credentials: { username: 'mc.admin', password: 'mcadmin123' },
-      component: OrgAdminDashboard
+      component: LazyOrgAdminDashboard
     },
     {
       id: 'manager',
@@ -53,7 +60,7 @@ const RoleSelector = () => {
       bgColor: 'bg-green-50 border-green-200',
       textColor: 'text-green-700',
       credentials: { username: 'kitchen.manager', password: 'kitchen123' },
-      component: ManagerDashboard
+      component: LazyManagerDashboard
     },
     {
       id: 'employee',
@@ -64,7 +71,7 @@ const RoleSelector = () => {
       bgColor: 'bg-gray-50 border-gray-200',
       textColor: 'text-gray-700',
       credentials: { username: 'mary.cook', password: 'mary123' },
-      component: EmployeeDashboard
+      component: LazyEmployeeDashboard
     }
   ];
 
@@ -94,15 +101,46 @@ const RoleSelector = () => {
               </div>
             </div>
           </div>
-          <Component />
+          <Suspense fallback={<LoadingSpinner text={`Loading ${role.name} Dashboard...`} />}>
+            <Component />
+          </Suspense>
         </div>
       );
     }
   }
 
   // Default role selector view
+  const pageMetadata = getPageMetadata('roles');
+  
+  const faqData = [
+    {
+      question: "What are the different user roles in MinTid?",
+      answer: "MinTid supports four main roles: Super Administrator (full system access), Organization Admin (single organization management), Manager (department-level access), and Employee (personal information access)."
+    },
+    {
+      question: "How does role-based access control work?",
+      answer: "Each role has specific permissions and sees customized dashboards. Higher-level roles can access more features and data, while maintaining security and privacy for lower-level users."
+    },
+    {
+      question: "Can I switch between different role views?",
+      answer: "Yes, in demo mode you can experience all role perspectives to understand how different users interact with the system."
+    }
+  ];
+  
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEOHead
+        title={pageMetadata.title}
+        description={pageMetadata.description}
+        keywords={pageMetadata.keywords}
+        canonicalUrl={pageMetadata.canonical}
+        pageName="roles"
+        structuredData={[
+          createSoftwareSchema(),
+          createFAQSchema(faqData)
+        ]}
+      />
+      
       {/* Header */}
       <header className="bg-white border-b px-6 py-8">
         <div className="max-w-4xl mx-auto text-center">

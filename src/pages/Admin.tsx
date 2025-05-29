@@ -1,24 +1,42 @@
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { Users, Calendar, BarChart3, Settings, Brain, Database, ArrowLeft, Building2, Shield, UserCog } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import UsersManagement from '@/components/admin/UsersManagement';
 import ScheduleManagement from '@/components/admin/ScheduleManagement';
-import ReportsManagement from '@/components/admin/ReportsManagement';
-import AISettings from '@/components/admin/AISettings';
-import SystemSettings from '@/components/admin/SystemSettings';
-import OrganizationManagement from '@/components/admin/OrganizationManagement';
 import RoleBasedUIDemo from '@/components/admin/RoleBasedUIDemo';
 import UserAccountManager from '@/components/admin/UserAccountManager';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import SEOHead from '@/components/SEOHead';
+
+// Lazy loaded admin components  
+import {
+  LazyUsersManagement,
+  LazyAISettings,
+  LazySystemSettings,
+  LazyOrganizationManagement,
+  LazyAdminReportsManagement
+} from '@/components/LazyComponents';
+
+// SEO imports
+import { createSoftwareSchema, getPageMetadata } from '@/lib/seo';
 
 const Admin = () => {
   const { user, logout } = useAuth();
+  const pageMetadata = getPageMetadata('admin');
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEOHead
+        title={pageMetadata.title}
+        description={pageMetadata.description}
+        keywords={pageMetadata.keywords}
+        canonicalUrl={pageMetadata.canonical}
+        pageName="admin"
+        structuredData={[createSoftwareSchema()]}
+      />
       {/* Header */}
       <header className="bg-blue-900 text-white px-4 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -78,11 +96,15 @@ const Admin = () => {
           </TabsList>
 
           <TabsContent value="organizations">
-            <OrganizationManagement />
+            <Suspense fallback={<LoadingSpinner text="Loading Organization Management..." />}>
+              <LazyOrganizationManagement />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="users">
-            <UsersManagement />
+            <Suspense fallback={<LoadingSpinner text="Loading User Management..." />}>
+              <LazyUsersManagement />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="accounts">
@@ -94,15 +116,21 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="reports">
-            <ReportsManagement />
+            <Suspense fallback={<LoadingSpinner text="Loading Reports..." />}>
+              <LazyAdminReportsManagement />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="ai-settings">
-            <AISettings />
+            <Suspense fallback={<LoadingSpinner text="Loading AI Settings..." />}>
+              <LazyAISettings />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="system">
-            <SystemSettings />
+            <Suspense fallback={<LoadingSpinner text="Loading System Settings..." />}>
+              <LazySystemSettings />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="role-demo">

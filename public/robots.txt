@@ -1,14 +1,14 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
 User-agent: *
 Allow: /
+
+# Important pages
+Sitemap: https://mintid.netlify.app/sitemap.xml
+
+# Disallow admin areas (when implemented)
+Disallow: /admin/
+Disallow: /api/
+
+# Allow all public routes
+Allow: /
+Allow: /role-selector
+Allow: /dashboard/*

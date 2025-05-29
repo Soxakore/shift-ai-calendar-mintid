@@ -14,10 +14,21 @@ import {
   CheckCircle
 } from 'lucide-react';
 import Footer from '@/components/Footer';
+import SEOHead from '@/components/SEOHead';
+import { getPageMetadata } from '@/lib/seo';
 
 const ManagerDashboard = () => {
+  const pageMetadata = getPageMetadata('dashboard');
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      <SEOHead
+        title={pageMetadata.title}
+        description={pageMetadata.description}
+        keywords={pageMetadata.keywords}
+        canonicalUrl={pageMetadata.canonical}
+        pageName="dashboard"
+      />
       {/* Header */}
       <header className="bg-white border-b px-4 sm:px-6 py-4 sticky top-0 z-40">
         <div className="flex items-center justify-between">

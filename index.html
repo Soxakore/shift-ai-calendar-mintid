@@ -4,17 +4,81 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MinTid - Smart Work Schedule Calendar</title>
-    <meta name="description" content="MinTid - Professional work schedule calendar and shift management platform" />
+    <title>MinTid - Smart Work Schedule Calendar | Shift Management Platform</title>
+    <meta name="description" content="MinTid is a professional work schedule calendar and shift management platform. Manage employee schedules, track work hours, and optimize workforce planning with our modern, responsive application." />
+    <meta name="keywords" content="work schedule, shift management, employee scheduling, calendar app, workforce planning, time tracking, staff scheduling" />
     <meta name="author" content="MinTid Team" />
+    <link rel="canonical" href="https://mintid.netlify.app/" />
 
-    <meta property="og:title" content="MinTid - Smart Work Schedule Calendar" />
-    <meta property="og:description" content="Professional work schedule calendar and shift management platform" />
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://mintid.netlify.app/" />
+    <meta property="og:title" content="MinTid - Smart Work Schedule Calendar | Shift Management Platform" />
+    <meta property="og:description" content="Professional work schedule calendar and shift management platform. Manage employee schedules, track work hours, and optimize workforce planning." />
+    <meta property="og:image" content="https://mintid.netlify.app/og-image.jpg" />
+    <meta property="og:site_name" content="MinTid" />
 
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="MinTid - Smart Work Schedule Calendar" />
-    <meta name="twitter:description" content="Professional work schedule calendar and shift management platform" />
+    <meta name="twitter:url" content="https://mintid.netlify.app/" />
+    <meta name="twitter:title" content="MinTid - Smart Work Schedule Calendar | Shift Management Platform" />
+    <meta name="twitter:description" content="Professional work schedule calendar and shift management platform. Manage employee schedules, track work hours, and optimize workforce planning." />
+    <meta name="twitter:image" content="https://mintid.netlify.app/og-image.jpg" />
+
+    <!-- Structured Data - JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "MinTid",
+      "applicationCategory": "BusinessApplication",
+      "description": "Professional work schedule calendar and shift management platform for businesses of all sizes.",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "url": "https://mintid.netlify.app/",
+      "creator": {
+        "@type": "Organization",
+        "name": "MinTid Team"
+      },
+      "features": [
+        "Work Schedule Management",
+        "Shift Planning",
+        "Employee Time Tracking",
+        "Reports and Analytics",
+        "Mobile Responsive Design",
+        "Role-Based Access Control"
+      ]
+    }
+    </script>
+
+    <!-- Google Analytics 4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=%VITE_GA_MEASUREMENT_ID%"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '%VITE_GA_MEASUREMENT_ID%', {
+        page_title: document.title,
+        page_location: window.location.href,
+        content_group1: 'MinTid App'
+      });
+    </script>
+
+    <!-- Preconnect to external domains -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.googletagmanager.com">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="MinTid">
   </head>
 
   <body>
