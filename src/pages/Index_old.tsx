@@ -8,7 +8,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
 import ScheduleCalendar from '@/components/ScheduleCalendar';
 import HoursWorkedChart from '@/components/HoursWorkedChart';
 import WorkHoursStats from '@/components/WorkHoursStats';
@@ -22,19 +21,6 @@ const Index = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [language, setLanguage] = useState('English');
   const { user, logout, hasRole } = useAuth();
-  const { toast } = useToast();
-
-  // Welcome message on component mount
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      toast({
-        title: "Welcome to MinTid! 🎉",
-        description: `Hello ${user?.name || 'User'}! All buttons are fully functional. Try navigating through the calendar and tabs.`,
-      });
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [user?.name, toast]);
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     setCurrentDate(prev => {
@@ -45,55 +31,6 @@ const Index = () => {
         newDate.setMonth(prev.getMonth() + 1);
       }
       return newDate;
-    });
-    
-    // Show feedback that navigation worked
-    const monthName = direction === 'prev' ? 'Previous' : 'Next';
-    toast({
-      title: "📅 Calendar Navigation",
-      description: `${monthName} month loaded successfully!`,
-    });
-  };
-
-  const handleLanguageChange = (newLanguage: string) => {
-    setLanguage(newLanguage);
-    toast({
-      title: "🌐 Language Changed",
-      description: `Interface language switched to ${newLanguage}`,
-    });
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    toast({
-      title: "👋 Logged Out",
-      description: "You have been successfully logged out.",
-    });
-  };
-
-  const handleTabChange = (tabValue: string) => {
-    const tabNames = {
-      calendar: "Calendar",
-      tasks: "Tasks", 
-      reports: "Reports"
-    };
-    toast({
-      title: "📂 Tab Switched",
-      description: `Switched to ${tabNames[tabValue as keyof typeof tabNames]} view`,
-    });
-  };
-
-  const handleRoleSwitch = () => {
-    toast({
-      title: "🎭 Role Switcher",
-      description: "Opening role selection panel...",
-    });
-  };
-
-  const handleAdminPanel = () => {
-    toast({
-      title: "⚙️ Admin Panel",
-      description: "Opening administrative dashboard...",
     });
   };
 
@@ -125,21 +62,19 @@ const Index = () => {
                     <Link 
                       to="/role-selector" 
                       className="block w-full text-left p-3 rounded-lg hover:bg-gray-100 transition-colors"
-                      onClick={handleRoleSwitch}
                     >
                       🎭 Switch Role
                     </Link>
-                    {hasRole('admin') && (
+                    {hasRole(['super_admin', 'org_admin']) && (
                       <Link 
                         to="/admin" 
                         className="block w-full text-left p-3 rounded-lg hover:bg-gray-100 transition-colors"
-                        onClick={handleAdminPanel}
                       >
                         ⚙️ Admin Panel
                       </Link>
                     )}
                     <button 
-                      onClick={handleLogout}
+                      onClick={logout}
                       className="block w-full text-left p-3 rounded-lg hover:bg-gray-100 transition-colors text-red-600"
                     >
                       <LogOut className="w-4 h-4 inline mr-2" />
@@ -160,7 +95,7 @@ const Index = () => {
 
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Language Selector */}
-            <Select value={language} onValueChange={handleLanguageChange}>
+            <Select value={language} onValueChange={setLanguage}>
               <SelectTrigger className="w-20 sm:w-32">
                 <SelectValue />
               </SelectTrigger>
@@ -168,9 +103,6 @@ const Index = () => {
                 <SelectItem value="English">English</SelectItem>
                 <SelectItem value="Spanish">Español</SelectItem>
                 <SelectItem value="French">Français</SelectItem>
-                <SelectItem value="German">Deutsch</SelectItem>
-                <SelectItem value="Swedish">Svenska</SelectItem>
-                <SelectItem value="Arabic">العربية</SelectItem>
               </SelectContent>
             </Select>
             
@@ -179,14 +111,14 @@ const Index = () => {
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-2">
               <Link to="/role-selector">
-                <Button variant="outline" size="sm" onClick={handleRoleSwitch}>
+                <Button variant="outline" size="sm">
                   🎭 Switch Role
                 </Button>
               </Link>
               
-              {hasRole('admin') && (
+              {hasRole(['super_admin', 'org_admin']) && (
                 <Link to="/admin">
-                  <Button variant="outline" size="sm" onClick={handleAdminPanel}>
+                  <Button variant="outline" size="sm">
                     <Settings className="w-4 h-4 mr-2" />
                     Admin
                   </Button>
@@ -203,7 +135,7 @@ const Index = () => {
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
+                  <DropdownMenuItem onClick={logout}>
                     <LogOut className="w-4 h-4 mr-2" />
                     Sign Out
                   </DropdownMenuItem>
@@ -213,30 +145,63 @@ const Index = () => {
           </div>
         </div>
       </header>
+                <SelectItem value="Svenska">Svenska</SelectItem>
+                <SelectItem value="العربية">العربية</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <ThemeToggle />
+            
+            {hasRole('admin') && (
+              <Link to="/admin">
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Settings className="w-4 h-4" />
+                  Admin Panel
+                </Button>
+              </Link>
+            )}
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  {user?.name}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </header>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl mx-auto w-full p-4">
-        <Tabs defaultValue="calendar" className="w-full" onValueChange={handleTabChange}>
+      <main className="max-w-7xl mx-auto p-4">
+        <Tabs defaultValue="calendar" className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="calendar" className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
-              <span className="hidden sm:inline">Calendar</span>
+              Calendar
             </TabsTrigger>
             <TabsTrigger value="tasks" className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
-              <span className="hidden sm:inline">Tasks</span>
+              Tasks
             </TabsTrigger>
             <TabsTrigger value="reports" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
-              <span className="hidden sm:inline">Reports</span>
+              Reports
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="calendar" className="space-y-6">
             {/* AI Upload Section */}
-            <div className="w-full">
-              <ImageUpload />
-            </div>
+            <ImageUpload />
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Calendar Section */}
@@ -248,16 +213,14 @@ const Index = () => {
                         variant="outline"
                         size="icon"
                         onClick={() => navigateMonth('prev')}
-                        className="h-8 w-8"
                       >
                         <ChevronLeft className="w-4 h-4" />
                       </Button>
-                      <h2 className="text-lg sm:text-xl font-semibold">{formatMonth(currentDate)}</h2>
+                      <h2 className="text-xl font-semibold">{formatMonth(currentDate)}</h2>
                       <Button
                         variant="outline"
                         size="icon"
                         onClick={() => navigateMonth('next')}
-                        className="h-8 w-8"
                       >
                         <ChevronRight className="w-4 h-4" />
                       </Button>
@@ -286,9 +249,6 @@ const Index = () => {
           </TabsContent>
         </Tabs>
       </main>
-
-      {/* Footer */}
-      <Footer />
     </div>
   );
 };

@@ -1,73 +1,106 @@
-# Welcome to your Lovable project
+# MinTid - Smart Work Schedule Calendar
 
-## Project info
+A modern, responsive work schedule management application built with React, TypeScript, and Tailwind CSS.
 
-**URL**: https://lovable.dev/projects/2404acfd-8491-462e-85eb-1efbc54ae01e
+## 🌟 Features
 
-## How can I edit this code?
+- **Responsive Design**: Mobile-first approach with full desktop support
+- **Role-Based Access**: Employee, Manager, Org Admin, and Super Admin roles
+- **Schedule Management**: Interactive calendar for shift planning
+- **Task Management**: Create, assign, and track work tasks
+- **Reports & Analytics**: Work hour tracking and performance metrics
+- **Modern UI**: Clean, professional interface with dark/light mode support
+- **Multi-language Support**: Internationalization ready
 
-There are several ways of editing your application.
+## 🚀 Quick Start
 
-**Use Lovable**
+### Prerequisites
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/2404acfd-8491-462e-85eb-1efbc54ae01e) and start prompting.
+- Node.js (version 18 or higher)
+- npm or yarn package manager
 
-Changes made via Lovable will be committed automatically to this repo.
+### Installation
 
-**Use your preferred IDE**
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd mintid-shift-scheduler
+```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+2. Install dependencies:
+```bash
+npm install
+```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+3. Start the development server:
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+4. Open your browser and navigate to `http://localhost:5173`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 🏗️ Building for Production
 
-**Use GitHub Codespaces**
+```bash
+npm run build
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+The built files will be in the `dist` directory.
 
-## What technologies are used for this project?
+## 🌐 Deployment
 
-This project is built with:
+### Netlify Deployment
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+This project is optimized for Netlify deployment:
 
-## How can I deploy this project?
+1. **Automatic Deployment**: Connect your GitHub repository to Netlify
+2. **Build Settings**: 
+   - Build command: `npm run build`
+   - Publish directory: `dist`
+3. **Environment**: Node.js 18+
 
-Simply open [Lovable](https://lovable.dev/projects/2404acfd-8491-462e-85eb-1efbc54ae01e) and click on Share -> Publish.
+### Manual Deployment
 
-## Can I connect a custom domain to my Lovable project?
+1. Build the project:
+```bash
+npm run build
+```
 
-Yes, you can!
+2. Upload the `dist` folder to your hosting provider
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Netlify Configuration
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+The project includes:
+- `netlify.toml` - Netlify configuration file
+- `public/_redirects` - SPA routing support
+- Optimized headers for security and caching
+
+## 📱 Responsive Design
+
+MinTid is built with mobile-first responsive design:
+
+- **Mobile (< 640px)**: Hamburger menu, stacked layouts, touch-optimized buttons
+- **Tablet (640px - 1024px)**: Adaptive grid layouts, compact navigation
+- **Desktop (> 1024px)**: Full feature layout, expanded navigation
+
+## 🛠️ Technology Stack
+
+- **Frontend**: React 18, TypeScript
+- **Styling**: Tailwind CSS, shadcn/ui
+- **Routing**: React Router DOM
+- **State Management**: React hooks
+- **Charts**: Recharts
+- **Icons**: Lucide React
+- **Build Tool**: Vite
+- **Package Manager**: npm
+
+## 📝 Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
+
+---
+
+**MinTid** - Making work schedule management simple and efficient.

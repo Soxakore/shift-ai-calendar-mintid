@@ -20,6 +20,10 @@ import WorkerLogin from "./pages/WorkerLogin";
 import AdminLogin from "./pages/AdminLogin";
 import Register from "./pages/Register";
 import Admin from "./pages/Admin";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import OrgAdminDashboard from "./pages/OrgAdminDashboard";
+import ManagerDashboard from "./pages/ManagerDashboard";
+import EmployeeDashboard from "./pages/EmployeeDashboard";
 import NotFound from "./pages/NotFound";
 
 // Initialize localStorage with sample data
@@ -49,7 +53,14 @@ const AppRoutes = () => {
           path="/"
           element={
             <ProtectedRoute>
-              {/* Role-based dashboard selector - authentication disabled for demo */}
+              <Index />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/role-selector"
+          element={
+            <ProtectedRoute>
               <RoleSelector />
             </ProtectedRoute>
           }
@@ -59,6 +70,38 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <Admin />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/super-admin"
+          element={
+            <ProtectedRoute>
+              <SuperAdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/org-admin"
+          element={
+            <ProtectedRoute>
+              <OrgAdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/manager"
+          element={
+            <ProtectedRoute>
+              <ManagerDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employee"
+          element={
+            <ProtectedRoute>
+              <EmployeeDashboard />
             </ProtectedRoute>
           }
         />

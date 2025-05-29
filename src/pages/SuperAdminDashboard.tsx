@@ -10,37 +10,39 @@ import {
   BarChart3,
   Plus,
   Database,
-  Globe
+  Globe,
+  Calendar
 } from 'lucide-react';
+import Footer from '@/components/Footer';
 
 const SuperAdminDashboard = () => {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b px-6 py-4">
+      <header className="bg-white border-b px-4 sm:px-6 py-4 sticky top-0 z-40">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <Shield className="w-8 h-8 text-red-500" />
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-red-500" />
               <div>
-                <h1 className="text-2xl font-bold">Super Administrator Dashboard</h1>
+                <h1 className="text-lg sm:text-2xl font-bold">MinTid Super Admin Dashboard</h1>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-red-500 text-white">SUPER ADMIN</Badge>
-                  <span className="text-sm text-gray-600">System-wide Access</span>
+                  <Badge className="bg-red-500 text-white text-xs">SUPER ADMIN</Badge>
+                  <span className="text-xs sm:text-sm text-gray-600">System-wide Management</span>
                 </div>
               </div>
             </div>
           </div>
-          <Button variant="outline">
-            <Settings className="w-4 h-4 mr-2" />
-            System Settings
+          <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+            <Settings className="w-4 h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">System </span>Settings
           </Button>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <main className="flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           
           {/* System Overview */}
           <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
@@ -210,6 +212,9 @@ const SuperAdminDashboard = () => {
           </CardContent>
         </Card>
       </main>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 };

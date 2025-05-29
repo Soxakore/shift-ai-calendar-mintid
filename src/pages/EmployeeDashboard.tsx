@@ -13,38 +13,39 @@ import {
   MapPin,
   Bell
 } from 'lucide-react';
+import Footer from '@/components/Footer';
 
 const EmployeeDashboard = () => {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b px-6 py-4">
+      <header className="bg-white border-b px-4 sm:px-6 py-4 sticky top-0 z-40">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <User className="w-8 h-8 text-gray-500" />
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-gray-500" />
               <div>
-                <h1 className="text-2xl font-bold">Welcome, Mary Cook</h1>
+                <h1 className="text-lg sm:text-2xl font-bold">Welcome to MinTid, Mary</h1>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-gray-500 text-white">EMPLOYEE</Badge>
-                  <div className="flex items-center gap-1 text-sm text-gray-600">
+                  <Badge className="bg-gray-500 text-white text-xs">EMPLOYEE</Badge>
+                  <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600">
                     <Utensils className="w-4 h-4" />
-                    Kitchen Department - McDonald's
+                    Kitchen Department
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          <Button variant="outline">
-            <Settings className="w-4 h-4 mr-2" />
-            My Profile
+          <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+            <Settings className="w-4 h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">My </span>Profile
           </Button>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <main className="flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           
           {/* Current Shift */}
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
@@ -294,6 +295,9 @@ const EmployeeDashboard = () => {
           </CardContent>
         </Card>
       </main>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, BarChart3, Clock, Settings, LogOut, User, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -8,7 +8,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
 import ScheduleCalendar from '@/components/ScheduleCalendar';
 import HoursWorkedChart from '@/components/HoursWorkedChart';
 import WorkHoursStats from '@/components/WorkHoursStats';
@@ -22,19 +21,6 @@ const Index = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [language, setLanguage] = useState('English');
   const { user, logout, hasRole } = useAuth();
-  const { toast } = useToast();
-
-  // Welcome message on component mount
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      toast({
-        title: "Welcome to MinTid! 🎉",
-        description: `Hello ${user?.name || 'User'}! All buttons are fully functional. Try navigating through the calendar and tabs.`,
-      });
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [user?.name, toast]);
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     setCurrentDate(prev => {
@@ -45,55 +31,6 @@ const Index = () => {
         newDate.setMonth(prev.getMonth() + 1);
       }
       return newDate;
-    });
-    
-    // Show feedback that navigation worked
-    const monthName = direction === 'prev' ? 'Previous' : 'Next';
-    toast({
-      title: "📅 Calendar Navigation",
-      description: `${monthName} month loaded successfully!`,
-    });
-  };
-
-  const handleLanguageChange = (newLanguage: string) => {
-    setLanguage(newLanguage);
-    toast({
-      title: "🌐 Language Changed",
-      description: `Interface language switched to ${newLanguage}`,
-    });
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    toast({
-      title: "👋 Logged Out",
-      description: "You have been successfully logged out.",
-    });
-  };
-
-  const handleTabChange = (tabValue: string) => {
-    const tabNames = {
-      calendar: "Calendar",
-      tasks: "Tasks", 
-      reports: "Reports"
-    };
-    toast({
-      title: "📂 Tab Switched",
-      description: `Switched to ${tabNames[tabValue as keyof typeof tabNames]} view`,
-    });
-  };
-
-  const handleRoleSwitch = () => {
-    toast({
-      title: "🎭 Role Switcher",
-      description: "Opening role selection panel...",
-    });
-  };
-
-  const handleAdminPanel = () => {
-    toast({
-      title: "⚙️ Admin Panel",
-      description: "Opening administrative dashboard...",
     });
   };
 
@@ -125,21 +62,19 @@ const Index = () => {
                     <Link 
                       to="/role-selector" 
                       className="block w-full text-left p-3 rounded-lg hover:bg-gray-100 transition-colors"
-                      onClick={handleRoleSwitch}
                     >
                       🎭 Switch Role
                     </Link>
-                    {hasRole('admin') && (
+                    {hasRole(['super_admin', 'org_admin']) && (
                       <Link 
                         to="/admin" 
                         className="block w-full text-left p-3 rounded-lg hover:bg-gray-100 transition-colors"
-                        onClick={handleAdminPanel}
                       >
                         ⚙️ Admin Panel
                       </Link>
                     )}
                     <button 
-                      onClick={handleLogout}
+                      onClick={logout}
                       className="block w-full text-left p-3 rounded-lg hover:bg-gray-100 transition-colors text-red-600"
                     >
                       <LogOut className="w-4 h-4 inline mr-2" />
@@ -160,7 +95,7 @@ const Index = () => {
 
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Language Selector */}
-            <Select value={language} onValueChange={handleLanguageChange}>
+            <Select value={language} onValueChange={setLanguage}>
               <SelectTrigger className="w-20 sm:w-32">
                 <SelectValue />
               </SelectTrigger>
@@ -179,14 +114,14 @@ const Index = () => {
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-2">
               <Link to="/role-selector">
-                <Button variant="outline" size="sm" onClick={handleRoleSwitch}>
+                <Button variant="outline" size="sm">
                   🎭 Switch Role
                 </Button>
               </Link>
               
-              {hasRole('admin') && (
+              {hasRole(['super_admin', 'org_admin']) && (
                 <Link to="/admin">
-                  <Button variant="outline" size="sm" onClick={handleAdminPanel}>
+                  <Button variant="outline" size="sm">
                     <Settings className="w-4 h-4 mr-2" />
                     Admin
                   </Button>
@@ -203,7 +138,7 @@ const Index = () => {
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
+                  <DropdownMenuItem onClick={logout}>
                     <LogOut className="w-4 h-4 mr-2" />
                     Sign Out
                   </DropdownMenuItem>
@@ -216,7 +151,7 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl mx-auto w-full p-4">
-        <Tabs defaultValue="calendar" className="w-full" onValueChange={handleTabChange}>
+        <Tabs defaultValue="calendar" className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="calendar" className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
