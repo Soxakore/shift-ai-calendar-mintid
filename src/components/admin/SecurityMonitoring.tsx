@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -288,13 +289,15 @@ export default function SecurityMonitoring() {
             </Card>
           </div>
 
-          {/* Security Alerts */}
+          {/* Security Alerts - Fixed text visibility */}
           {securityEvents.filter(e => e.severity === 'critical' || e.severity === 'high').length > 0 && (
             <Alert className="border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-800">
               <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
-              <AlertDescription className="text-red-800 dark:text-red-200">
-                <strong>High Priority Security Events Detected</strong><br />
-                {securityEvents.filter(e => e.severity === 'critical' || e.severity === 'high').length} critical/high severity events require immediate attention.
+              <AlertDescription className="text-red-900 dark:text-red-100">
+                <strong className="text-red-900 dark:text-red-100">High Priority Security Events Detected</strong><br />
+                <span className="text-red-800 dark:text-red-200">
+                  {securityEvents.filter(e => e.severity === 'critical' || e.severity === 'high').length} critical/high severity events require immediate attention.
+                </span>
               </AlertDescription>
             </Alert>
           )}
@@ -403,3 +406,4 @@ export default function SecurityMonitoring() {
     </div>
   );
 }
+
