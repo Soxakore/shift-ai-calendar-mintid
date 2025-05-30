@@ -43,22 +43,26 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  console.log('SupabaseAuthProvider: Component initializing...');
+
   useEffect(() => {
-    console.log('Setting up auth state listener...');
+    console.log('SupabaseAuthProvider: Setting up auth state listener...');
     
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.email);
+        console.log('SupabaseAuthProvider: Auth state change:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          console.log('SupabaseAuthProvider: User found, fetching profile...');
           // Use setTimeout to prevent auth deadlock
           setTimeout(() => {
             fetchUserProfile(session.user.id);
           }, 0);
         } else {
+          console.log('SupabaseAuthProvider: No user, clearing profile...');
           setProfile(null);
           setLoading(false);
         }
@@ -67,7 +71,7 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
 
     // Then check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check:', session?.user?.email);
+      console.log('SupabaseAuthProvider: Initial session check:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -79,14 +83,14 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
     });
 
     return () => {
-      console.log('Cleaning up auth subscription');
+      console.log('SupabaseAuthProvider: Cleaning up auth subscription');
       subscription.unsubscribe();
     };
   }, []);
 
   const fetchUserProfile = async (userId: string) => {
     try {
-      console.log('Fetching profile for user:', userId);
+      console.log('SupabaseAuthProvider: Fetching profile for user:', userId);
       
       const { data, error } = await supabase
         .from('profiles')
@@ -95,47 +99,48 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         .maybeSingle();
 
       if (error) {
-        console.error('Error fetching profile:', error);
+        console.error('SupabaseAuthProvider: Error fetching profile:', error);
         setProfile(null);
       } else if (data) {
-        console.log('Profile fetched successfully:', data);
+        console.log('SupabaseAuthProvider: Profile fetched successfully:', data);
         const profileData: Profile = {
           ...data,
           user_type: data.user_type as 'super_admin' | 'org_admin' | 'manager' | 'employee'
         };
         setProfile(profileData);
       } else {
-        console.log('No profile found for user:', userId);
+        console.log('SupabaseAuthProvider: No profile found for user:', userId);
         setProfile(null);
       }
     } catch (error) {
-      console.error('Exception fetching profile:', error);
+      console.error('SupabaseAuthProvider: Exception fetching profile:', error);
       setProfile(null);
     } finally {
+      console.log('SupabaseAuthProvider: Setting loading to false');
       setLoading(false);
     }
   };
 
   const signIn = async (username: string, password: string) => {
-    console.log('Sign in attempt for:', username);
+    console.log('SupabaseAuthProvider: Sign in attempt for:', username);
     setLoading(true);
     
     try {
       // Special handling for super admin
       if (username === 'tiktok') {
-        console.log('Super admin login attempt');
+        console.log('SupabaseAuthProvider: Super admin login attempt');
         const { data, error } = await supabase.auth.signInWithPassword({
           email: 'tiktok518@gmail.com',
           password: password,
         });
 
         if (error) {
-          console.error('Super admin login error:', error);
+          console.error('SupabaseAuthProvider: Super admin login error:', error);
           setLoading(false);
           return { success: false, error: 'Invalid super admin credentials' };
         }
 
-        console.log('Super admin login successful');
+        console.log('SupabaseAuthProvider: Super admin login successful');
         return { success: true };
       }
 
@@ -151,20 +156,20 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
           .maybeSingle();
 
         if (profileError) {
-          console.error('Profile lookup error:', profileError);
+          console.error('SupabaseAuthProvider: Profile lookup error:', profileError);
           setLoading(false);
           return { success: false, error: 'Database error occurred' };
         }
 
         if (!profileData) {
-          console.log('No active profile found for username:', username);
+          console.log('SupabaseAuthProvider: No active profile found for username:', username);
           setLoading(false);
           return { success: false, error: 'Invalid username or account is inactive' };
         }
 
         // Construct email
         email = `${username}@${profileData.organization_id || profileData.id}.mintid.local`;
-        console.log('Constructed email for login:', email);
+        console.log('SupabaseAuthProvider: Constructed email for login:', email);
       }
       
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -173,15 +178,15 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
       });
 
       if (error) {
-        console.error('Login error:', error);
+        console.error('SupabaseAuthProvider: Login error:', error);
         setLoading(false);
         return { success: false, error: 'Invalid credentials' };
       }
 
-      console.log('Login successful');
+      console.log('SupabaseAuthProvider: Login successful');
       return { success: true };
     } catch (error) {
-      console.error('Unexpected login error:', error);
+      console.error('SupabaseAuthProvider: Unexpected login error:', error);
       setLoading(false);
       return { success: false, error: 'An unexpected error occurred' };
     }
@@ -190,13 +195,13 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
   const signOut = async () => {
     setLoading(true);
     try {
-      console.log('Signing out...');
+      console.log('SupabaseAuthProvider: Signing out...');
       await supabase.auth.signOut();
       setUser(null);
       setProfile(null);
       setSession(null);
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('SupabaseAuthProvider: Error signing out:', error);
     } finally {
       setLoading(false);
     }
@@ -211,7 +216,7 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
     department_id?: string;
   }) => {
     try {
-      console.log('Creating user:', { ...userData, password: '[HIDDEN]' });
+      console.log('SupabaseAuthProvider: Creating user:', { ...userData, password: '[HIDDEN]' });
       
       // Check if username already exists
       const { data: existingProfile, error: checkError } = await supabase
@@ -221,7 +226,7 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         .maybeSingle();
       
       if (checkError) {
-        console.error('Error checking username:', checkError);
+        console.error('SupabaseAuthProvider: Error checking username:', checkError);
         return { success: false, error: 'Error checking username availability' };
       }
       
@@ -232,7 +237,7 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
       // Generate email for the user
       const email = `${userData.username.trim()}@${userData.organization_id || 'system'}.mintid.local`;
       
-      console.log('Creating auth user with email:', email);
+      console.log('SupabaseAuthProvider: Creating auth user with email:', email);
       
       const { data, error } = await supabase.auth.signUp({
         email: email,
@@ -250,17 +255,25 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
       });
 
       if (error) {
-        console.error('User creation error:', error);
+        console.error('SupabaseAuthProvider: User creation error:', error);
         return { success: false, error: error.message };
       }
 
-      console.log('User created successfully:', data.user?.id);
+      console.log('SupabaseAuthProvider: User created successfully:', data.user?.id);
       return { success: true };
     } catch (error) {
-      console.error('Unexpected error creating user:', error);
+      console.error('SupabaseAuthProvider: Unexpected error creating user:', error);
       return { success: false, error: 'Failed to create user' };
     }
   };
+
+  console.log('SupabaseAuthProvider: Render with state:', {
+    loading,
+    hasUser: !!user,
+    hasProfile: !!profile,
+    userEmail: user?.email,
+    profileType: profile?.user_type
+  });
 
   return (
     <AuthContext.Provider 

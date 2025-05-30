@@ -29,7 +29,7 @@ const queryClient = new QueryClient({
 });
 
 function App() {
-  console.log('App component rendering...');
+  console.log('App: Component rendering...');
   
   return (
     <ErrorBoundary>

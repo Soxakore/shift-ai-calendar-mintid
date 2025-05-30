@@ -13,7 +13,7 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
   const { user, profile, loading } = useSupabaseAuth();
   const location = useLocation();
 
-  console.log('ProtectedRoute Debug:', {
+  console.log('ProtectedRoute: Current state:', {
     loading,
     user: user?.email,
     profile: profile?.user_type,
