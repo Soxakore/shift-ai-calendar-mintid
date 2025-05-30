@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { 
   Shield, 
   Users, 
@@ -33,6 +33,58 @@ interface TwoFactorStats {
   total: number;
 }
 
+interface ConfirmationDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  description: string;
+  emailAddress: string;
+  messageType: string;
+}
+
+const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  description,
+  emailAddress,
+  messageType
+}) => (
+  <Dialog open={isOpen} onOpenChange={onClose}>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>{title}</DialogTitle>
+        <DialogDescription>{description}</DialogDescription>
+      </DialogHeader>
+      <div className="space-y-4">
+        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <Mail className="w-4 h-4 text-blue-600" />
+            <strong>Email Address:</strong>
+          </div>
+          <p className="text-blue-700 dark:text-blue-300">{emailAddress}</p>
+        </div>
+        <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <Send className="w-4 h-4 text-green-600" />
+            <strong>Message Type:</strong>
+          </div>
+          <p className="text-green-700 dark:text-green-300">{messageType}</p>
+        </div>
+      </div>
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>Cancel</Button>
+        <Button onClick={onConfirm} className="bg-blue-600 hover:bg-blue-700">
+          <Send className="w-4 h-4 mr-2" />
+          Send Email
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+);
+
 const TwoFactorManagement = () => {
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [isGeneratingCodes, setIsGeneratingCodes] = useState(false);
@@ -50,6 +102,27 @@ const TwoFactorManagement = () => {
     emailService: true,
     twoFactorService: true,
     backupSystem: false
+  });
+
+  // New state for email validation and confirmation
+  const [isValidatingEmail, setIsValidatingEmail] = useState(false);
+  const [emailValidationResult, setEmailValidationResult] = useState<{
+    isValid: boolean;
+    userInfo?: { display_name: string; user_type: string; organization_id?: string };
+    message: string;
+  } | null>(null);
+  const [confirmationDialog, setConfirmationDialog] = useState<{
+    isOpen: boolean;
+    type: 'password_reset' | 'security_alert';
+    email: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    type: 'password_reset',
+    email: '',
+    message: '',
+    onConfirm: () => {}
   });
 
   const { toast } = useToast();
@@ -176,6 +249,224 @@ const TwoFactorManagement = () => {
     }
   };
 
+  // New function to validate email against database
+  const validateEmailInDatabase = async (email: string) => {
+    if (!email.trim()) {
+      setEmailValidationResult({
+        isValid: false,
+        message: "Please enter an email address"
+      });
+      return;
+    }
+
+    setIsValidatingEmail(true);
+    try {
+      // Check if email exists in profiles (construct email from username if needed)
+      let searchEmail = email.trim();
+      let searchUsername = null;
+
+      // If it doesn't contain @, treat it as username and search by username
+      if (!email.includes('@')) {
+        searchUsername = email.trim();
+        const { data: profileData, error } = await supabase
+          .from('profiles')
+          .select('id, username, display_name, user_type, organization_id')
+          .eq('username', searchUsername)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error validating username:', error);
+          setEmailValidationResult({
+            isValid: false,
+            message: "Database error occurred while validating username"
+          });
+          return;
+        }
+
+        if (!profileData) {
+          setEmailValidationResult({
+            isValid: false,
+            message: `Username "${searchUsername}" not found in database or account is inactive`
+          });
+          return;
+        }
+
+        // Construct email for username
+        searchEmail = `${searchUsername}@${profileData.organization_id || profileData.id}.mintid.local`;
+        setEmailValidationResult({
+          isValid: true,
+          userInfo: {
+            display_name: profileData.display_name,
+            user_type: profileData.user_type,
+            organization_id: profileData.organization_id
+          },
+          message: `✅ Username found: ${profileData.display_name} (${profileData.user_type}). Email will be sent to: ${searchEmail}`
+        });
+      } else {
+        // Direct email validation - check if it matches any constructed email pattern
+        const emailParts = searchEmail.split('@');
+        if (emailParts.length === 2) {
+          const username = emailParts[0];
+          const { data: profileData, error } = await supabase
+            .from('profiles')
+            .select('id, username, display_name, user_type, organization_id')
+            .eq('username', username)
+            .eq('is_active', true)
+            .maybeSingle();
+
+          if (error) {
+            console.error('Error validating email:', error);
+            setEmailValidationResult({
+              isValid: false,
+              message: "Database error occurred while validating email"
+            });
+            return;
+          }
+
+          if (!profileData) {
+            setEmailValidationResult({
+              isValid: false,
+              message: `Email "${searchEmail}" does not match any active user in database`
+            });
+            return;
+          }
+
+          setEmailValidationResult({
+            isValid: true,
+            userInfo: {
+              display_name: profileData.display_name,
+              user_type: profileData.user_type,
+              organization_id: profileData.organization_id
+            },
+            message: `✅ Email valid: ${profileData.display_name} (${profileData.user_type})`
+          });
+        } else {
+          setEmailValidationResult({
+            isValid: false,
+            message: "Invalid email format"
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error validating email:', error);
+      setEmailValidationResult({
+        isValid: false,
+        message: "An error occurred while validating email"
+      });
+    } finally {
+      setIsValidatingEmail(false);
+    }
+  };
+
+  // Enhanced password reset function with confirmation
+  const handleSendPasswordReset = async (email: string) => {
+    if (!emailValidationResult?.isValid) {
+      toast({
+        title: "⚠️ Email Validation Required",
+        description: "Please validate the email address first by clicking the check button.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Show confirmation dialog
+    setConfirmationDialog({
+      isOpen: true,
+      type: 'password_reset',
+      email: email,
+      message: 'Password Reset Instructions',
+      onConfirm: async () => {
+        try {
+          const resetLink = `${window.location.origin}/reset-password?token=sample-token`;
+          
+          const { data, error } = await supabase.functions.invoke('send-email', {
+            body: {
+              type: 'password_reset',
+              to: email,
+              data: {
+                username: emailValidationResult.userInfo?.display_name || 'User',
+                resetLink: resetLink
+              }
+            }
+          });
+
+          if (error) {
+            console.error('Error sending password reset email:', error);
+            toast({
+              title: "❌ Email Error",
+              description: "Failed to send password reset email. Please check the email address.",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "✅ Password Reset Sent",
+              description: `Password reset instructions sent to ${email}.`,
+            });
+          }
+        } catch (error) {
+          console.error('Error sending password reset:', error);
+          toast({
+            title: "❌ Error",
+            description: "Failed to send password reset email.",
+            variant: "destructive"
+          });
+        }
+        setConfirmationDialog(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
+
+  // Enhanced security alert function with confirmation
+  const handleSendSecurityAlert = async (message: string) => {
+    // Show confirmation dialog
+    setConfirmationDialog({
+      isOpen: true,
+      type: 'security_alert',
+      email: adminEmail,
+      message: message,
+      onConfirm: async () => {
+        try {
+          console.log('Sending security alert to:', adminEmail, 'Message:', message);
+          
+          const { data, error } = await supabase.functions.invoke('send-email', {
+            body: {
+              type: 'security_alert',
+              to: adminEmail,
+              data: {
+                username: 'Admin',
+                alertMessage: message
+              }
+            }
+          });
+
+          if (error) {
+            console.error('Error sending security alert:', error);
+            toast({
+              title: "❌ Alert Error",
+              description: `Failed to send security alert to ${adminEmail}. Please check the email address.`,
+              variant: "destructive"
+            });
+          } else {
+            console.log('Security alert sent successfully:', data);
+            toast({
+              title: "✅ Security Alert Sent",
+              description: `Security alert sent successfully to ${adminEmail}.`,
+            });
+          }
+        } catch (error) {
+          console.error('Error sending security alert:', error);
+          toast({
+            title: "❌ Error",
+            description: "Failed to send security alert.",
+            variant: "destructive"
+          });
+        }
+        setConfirmationDialog(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
+
   const handleForce2FAReset = async () => {
     try {
       // Simulate force 2FA reset for selected users
@@ -295,92 +586,6 @@ const TwoFactorManagement = () => {
       toast({
         title: "❌ Error",
         description: "Failed to initiate emergency lockdown. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleSendPasswordReset = async (email: string) => {
-    if (!email) {
-      toast({
-        title: "⚠️ Email Required",
-        description: "Please enter an email address to send password reset.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      const resetLink = `${window.location.origin}/reset-password?token=sample-token`;
-      
-      const { data, error } = await supabase.functions.invoke('send-email', {
-        body: {
-          type: 'password_reset',
-          to: email,
-          data: {
-            username: 'User',
-            resetLink: resetLink
-          }
-        }
-      });
-
-      if (error) {
-        console.error('Error sending password reset email:', error);
-        toast({
-          title: "❌ Email Error",
-          description: "Failed to send password reset email. Please check the email address.",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "✅ Password Reset Sent",
-          description: `Password reset instructions sent to ${email}.`,
-        });
-      }
-    } catch (error) {
-      console.error('Error sending password reset:', error);
-      toast({
-        title: "❌ Error",
-        description: "Failed to send password reset email.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleSendSecurityAlert = async (message: string) => {
-    try {
-      console.log('Sending security alert to:', adminEmail, 'Message:', message);
-      
-      const { data, error } = await supabase.functions.invoke('send-email', {
-        body: {
-          type: 'security_alert',
-          to: adminEmail,
-          data: {
-            username: 'Admin',
-            alertMessage: message
-          }
-        }
-      });
-
-      if (error) {
-        console.error('Error sending security alert:', error);
-        toast({
-          title: "❌ Alert Error",
-          description: `Failed to send security alert to ${adminEmail}. Please check the email address.`,
-          variant: "destructive"
-        });
-      } else {
-        console.log('Security alert sent successfully:', data);
-        toast({
-          title: "✅ Security Alert Sent",
-          description: `Security alert sent successfully to ${adminEmail}.`,
-        });
-      }
-    } catch (error) {
-      console.error('Error sending security alert:', error);
-      toast({
-        title: "❌ Error",
-        description: "Failed to send security alert.",
         variant: "destructive"
       });
     }
@@ -556,7 +761,7 @@ const TwoFactorManagement = () => {
             </CardContent>
           </Card>
 
-          {/* Email Testing Section */}
+          {/* Enhanced Email Testing Section with Validation */}
           <Card className="border-0 shadow-lg">
             <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20">
               <CardTitle className="flex items-center gap-2 text-emerald-900 dark:text-emerald-100">
@@ -564,27 +769,67 @@ const TwoFactorManagement = () => {
                 Email Functions Testing
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardContent className="p-6 space-y-6">
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label className="text-gray-700 dark:text-gray-300">Test Password Reset Email</Label>
                   <div className="flex gap-2">
                     <Input 
-                      placeholder="Enter email address"
+                      placeholder="Enter email or username"
                       value={testEmail}
-                      onChange={(e) => setTestEmail(e.target.value)}
+                      onChange={(e) => {
+                        setTestEmail(e.target.value);
+                        setEmailValidationResult(null); // Reset validation when email changes
+                      }}
                       className="dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
                     />
                     <Button 
-                      onClick={() => handleSendPasswordReset(testEmail)}
+                      onClick={() => validateEmailInDatabase(testEmail)}
+                      disabled={isValidatingEmail}
                       variant="outline"
+                      className="dark:border-gray-600 dark:text-gray-100"
+                    >
+                      {isValidatingEmail ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                      ) : (
+                        <CheckCircle className="w-4 h-4" />
+                      )}
+                    </Button>
+                    <Button 
+                      onClick={() => handleSendPasswordReset(testEmail)}
+                      disabled={!emailValidationResult?.isValid}
                       className="dark:border-gray-600 dark:text-gray-100"
                     >
                       <Send className="w-4 h-4" />
                     </Button>
                   </div>
+                  
+                  {/* Email validation result */}
+                  {emailValidationResult && (
+                    <div className={`p-3 rounded-lg ${
+                      emailValidationResult.isValid 
+                        ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                        : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                    }`}>
+                      <div className="flex items-center gap-2">
+                        {emailValidationResult.isValid ? (
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-red-600" />
+                        )}
+                        <span className={`text-sm ${
+                          emailValidationResult.isValid 
+                            ? 'text-green-700 dark:text-green-300'
+                            : 'text-red-700 dark:text-red-300'
+                        }`}>
+                          {emailValidationResult.message}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Use a real email address (not example.com domains)
+                    Enter username or email address. Click check button to validate against database before sending.
                   </p>
                 </div>
                 
@@ -711,6 +956,20 @@ const TwoFactorManagement = () => {
           </Card>
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={confirmationDialog.isOpen}
+        onClose={() => setConfirmationDialog(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationDialog.onConfirm}
+        title={confirmationDialog.type === 'password_reset' ? 'Confirm Password Reset' : 'Confirm Security Alert'}
+        description={confirmationDialog.type === 'password_reset' 
+          ? 'Are you sure you want to send password reset instructions to this email address?'
+          : 'Are you sure you want to send this security alert?'
+        }
+        emailAddress={confirmationDialog.email}
+        messageType={confirmationDialog.message}
+      />
     </div>
   );
 };
