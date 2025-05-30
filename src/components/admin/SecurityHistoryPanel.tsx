@@ -144,7 +144,23 @@ export default function SecurityHistoryPanel({
         return;
       }
 
-      setAuditLogs(data || []);
+      // Type-safe mapping to handle potential type mismatches
+      const mappedData: AuditLog[] = (data || []).map(item => ({
+        id: item.id,
+        user_id: item.user_id,
+        action_type: item.action_type,
+        target_user_id: item.target_user_id,
+        target_organization_id: item.target_organization_id,
+        ip_address: item.ip_address ? String(item.ip_address) : undefined,
+        user_agent: item.user_agent,
+        location_data: item.location_data,
+        metadata: item.metadata,
+        created_at: item.created_at,
+        profiles: item.profiles,
+        target_profiles: item.target_profiles
+      }));
+
+      setAuditLogs(mappedData);
     } catch (error) {
       console.error('Exception fetching audit logs:', error);
     }
@@ -175,7 +191,22 @@ export default function SecurityHistoryPanel({
         return;
       }
 
-      setSessionLogs(data || []);
+      // Type-safe mapping to handle potential type mismatches
+      const mappedData: SessionLog[] = (data || []).map(item => ({
+        id: item.id,
+        user_id: item.user_id,
+        session_id: item.session_id,
+        action: item.action as 'login' | 'logout' | 'session_refresh',
+        ip_address: item.ip_address ? String(item.ip_address) : undefined,
+        user_agent: item.user_agent,
+        location_data: item.location_data,
+        success: item.success,
+        failure_reason: item.failure_reason,
+        created_at: item.created_at,
+        profiles: item.profiles
+      }));
+
+      setSessionLogs(mappedData);
     } catch (error) {
       console.error('Exception fetching session logs:', error);
     }
@@ -235,21 +266,21 @@ export default function SecurityHistoryPanel({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
+          <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+            <Shield className="h-5 w-5 text-blue-600" />
             Security & Activity History
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-slate-600 dark:text-slate-400">
             View security logs and user activity for monitoring and audit purposes
           </DialogDescription>
         </DialogHeader>
 
         {profile?.user_type === 'super_admin' && (
-          <Alert className="bg-yellow-50 border-yellow-200">
-            <AlertTriangle className="h-4 w-4 text-yellow-600" />
-            <AlertDescription className="text-yellow-800">
+          <Alert className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-700">
+            <AlertTriangle className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800 dark:text-blue-200">
               <strong>Super Admin View:</strong> You can see all security logs across the system.
               {targetUserId && ' Filtered by specific user.'}
               {targetOrgId && ' Filtered by organization.'}
@@ -258,12 +289,12 @@ export default function SecurityHistoryPanel({
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="audit" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-2 bg-slate-100 dark:bg-slate-800">
+            <TabsTrigger value="audit" className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700">
               <History className="h-4 w-4" />
               Audit Logs ({auditLogs.length})
             </TabsTrigger>
-            <TabsTrigger value="sessions" className="flex items-center gap-2">
+            <TabsTrigger value="sessions" className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700">
               <Monitor className="h-4 w-4" />
               Session Logs ({sessionLogs.length})
             </TabsTrigger>
@@ -279,12 +310,12 @@ export default function SecurityHistoryPanel({
             ) : (
               <div className="space-y-3">
                 {auditLogs.map((log) => (
-                  <Card key={log.id} className="p-3">
+                  <Card key={log.id} className="p-3 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3">
                         {getActionIcon(log.action_type)}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium">
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
                             {formatActionDescription(log)}
                           </p>
                           <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
@@ -306,7 +337,7 @@ export default function SecurityHistoryPanel({
                             )}
                           </div>
                           {log.metadata && (
-                            <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
+                            <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-700 rounded text-xs">
                               <strong>Details:</strong> {JSON.stringify(log.metadata, null, 2)}
                             </div>
                           )}
@@ -332,12 +363,12 @@ export default function SecurityHistoryPanel({
             ) : (
               <div className="space-y-3">
                 {sessionLogs.map((log) => (
-                  <Card key={log.id} className="p-3">
+                  <Card key={log.id} className="p-3 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3">
                         {getActionIcon(log.action)}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium">
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
                             {formatSessionDescription(log)}
                           </p>
                           <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
@@ -384,12 +415,12 @@ export default function SecurityHistoryPanel({
           </TabsContent>
         </Tabs>
 
-        <div className="flex justify-between items-center pt-4 border-t">
-          <Button variant="outline" onClick={fetchData} disabled={loading}>
+        <div className="flex justify-between items-center pt-4 border-t border-slate-200 dark:border-slate-700">
+          <Button variant="outline" onClick={fetchData} disabled={loading} className="border-slate-300 dark:border-slate-600">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} className="border-slate-300 dark:border-slate-600">
             <X className="h-4 w-4 mr-2" />
             Close
           </Button>
