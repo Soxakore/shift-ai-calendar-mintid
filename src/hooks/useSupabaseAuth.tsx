@@ -85,7 +85,12 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         console.error('Error fetching profile:', error);
         setProfile(null);
       } else {
-        setProfile(data);
+        // Type assertion to ensure user_type matches our Profile interface
+        const profileData: Profile = {
+          ...data,
+          user_type: data.user_type as 'super_admin' | 'org_admin' | 'manager' | 'employee'
+        };
+        setProfile(profileData);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);

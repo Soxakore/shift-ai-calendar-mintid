@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Eye, EyeOff, UserPlus } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { Calendar, Eye, EyeOff, UserPlus, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -21,7 +21,6 @@ const Register = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -29,58 +28,12 @@ const Register = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.email || !formData.password) {
-      toast({
-        title: "❌ Missing Information",
-        description: "Please fill in all required fields",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: "❌ Password Mismatch",
-        description: "Passwords do not match",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      toast({
-        title: "❌ Password Too Short",
-        description: "Password must be at least 6 characters",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const success = await register(formData.email, formData.password, formData.name);
-      if (success) {
-        toast({
-          title: "✅ Registration Successful",
-          description: "Welcome to MinTid! You are now logged in.",
-        });
-        navigate('/');
-      } else {
-        toast({
-          title: "❌ Registration Failed",
-          description: "An account with this email may already exist",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "❌ Registration Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
+    // Show message that registration is disabled
+    toast({
+      title: "❌ Registration Disabled",
+      description: "User accounts can only be created by administrators. Please contact your admin for access.",
+      variant: "destructive"
+    });
   };
 
   const updateFormData = (field: string, value: string) => {
@@ -99,47 +52,56 @@ const Register = () => {
           <p className="text-gray-600 text-sm sm:text-base">Join Work Schedule Management</p>
         </div>
 
-        {/* Registration Form - Mobile Optimized */}
-        <Card>
+        {/* Registration Disabled Notice */}
+        <Alert className="border-red-200 bg-red-50">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-700">
+            <strong>Registration is disabled.</strong> All user accounts are created and managed by administrators only. 
+            Contact your organization's admin to get access credentials.
+          </AlertDescription>
+        </Alert>
+
+        {/* Registration Form - Disabled */}
+        <Card className="opacity-75">
           <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl text-gray-500">
               <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
-              Create Account
+              Create Account (Disabled)
             </CardTitle>
             <CardDescription className="text-sm">
-              Sign up to start managing your work schedule
+              User registration is handled by administrators
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="name" className="text-sm">Full Name</Label>
+                <Label htmlFor="name" className="text-sm text-gray-500">Full Name</Label>
                 <Input
                   id="name"
                   type="text"
                   value={formData.name}
                   onChange={(e) => updateFormData('name', e.target.value)}
                   placeholder="John Doe"
-                  disabled={loading}
-                  className="mt-1"
+                  disabled={true}
+                  className="mt-1 bg-gray-100"
                 />
               </div>
 
               <div>
-                <Label htmlFor="email" className="text-sm">Email</Label>
+                <Label htmlFor="email" className="text-sm text-gray-500">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => updateFormData('email', e.target.value)}
                   placeholder="john.doe@company.com"
-                  disabled={loading}
-                  className="mt-1"
+                  disabled={true}
+                  className="mt-1 bg-gray-100"
                 />
               </div>
               
               <div>
-                <Label htmlFor="password" className="text-sm">Password</Label>
+                <Label htmlFor="password" className="text-sm text-gray-500">Password</Label>
                 <div className="relative mt-1">
                   <Input
                     id="password"
@@ -147,8 +109,8 @@ const Register = () => {
                     value={formData.password}
                     onChange={(e) => updateFormData('password', e.target.value)}
                     placeholder="••••••••"
-                    disabled={loading}
-                    className="pr-10"
+                    disabled={true}
+                    className="pr-10 bg-gray-100"
                   />
                   <Button
                     type="button"
@@ -156,6 +118,7 @@ const Register = () => {
                     size="sm"
                     className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={true}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </Button>
@@ -163,22 +126,22 @@ const Register = () => {
               </div>
 
               <div>
-                <Label htmlFor="confirmPassword" className="text-sm">Confirm Password</Label>
+                <Label htmlFor="confirmPassword" className="text-sm text-gray-500">Confirm Password</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
                   value={formData.confirmPassword}
                   onChange={(e) => updateFormData('confirmPassword', e.target.value)}
                   placeholder="••••••••"
-                  disabled={loading}
-                  className="mt-1"
+                  disabled={true}
+                  className="mt-1 bg-gray-100"
                 />
               </div>
 
               <div>
-                <Label htmlFor="role" className="text-sm">Role</Label>
-                <Select value={formData.role} onValueChange={(value) => updateFormData('role', value)}>
-                  <SelectTrigger className="mt-1">
+                <Label htmlFor="role" className="text-sm text-gray-500">Role</Label>
+                <Select value={formData.role} onValueChange={(value) => updateFormData('role', value)} disabled={true}>
+                  <SelectTrigger className="mt-1 bg-gray-100">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -191,41 +154,41 @@ const Register = () => {
 
               <Button 
                 type="submit" 
-                className="w-full" 
-                disabled={loading}
+                className="w-full bg-gray-400" 
+                disabled={true}
                 size={isMobile ? "default" : "lg"}
               >
-                {loading ? "Creating Account..." : "Create Account"}
+                Registration Disabled
               </Button>
             </form>
 
             <div className="mt-4 text-center">
               <p className="text-sm text-gray-600">
-                Already have an account?{' '}
-                <Link to="/login" className="text-green-600 hover:underline font-medium">
-                  Sign in
+                Have login credentials?{' '}
+                <Link to="/auth" className="text-green-600 hover:underline font-medium">
+                  Sign in here
                 </Link>
               </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Quick Demo Access - Mobile Optimized */}
+        {/* Admin Contact Info */}
         <Card className="bg-blue-50 border-blue-200">
           <CardContent className="pt-4">
             <h4 className="font-medium text-blue-800 mb-2 text-sm sm:text-base">
-              🚀 Try Before You Register
+              🔐 Need Access?
             </h4>
             <p className="text-xs sm:text-sm text-blue-700 mb-3">
-              Want to see MinTid in action first?
+              Contact your organization administrator to receive your login credentials.
             </p>
-            <Link to="/login">
+            <Link to="/auth">
               <Button 
                 variant="outline" 
                 size="sm" 
                 className="w-full text-blue-700 border-blue-300 hover:bg-blue-100"
               >
-                Explore Demo Accounts
+                Go to Login Page
               </Button>
             </Link>
           </CardContent>

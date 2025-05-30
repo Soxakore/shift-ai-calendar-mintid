@@ -1,81 +1,63 @@
 
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, Eye, EyeOff, LogIn } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useToast } from '@/hooks/use-toast';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { signIn, user, profile } = useSupabaseAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  if (user && profile) {
+    switch (profile.user_type) {
+      case 'super_admin':
+        return <Navigate to="/super-admin" replace />;
+      case 'org_admin':
+        return <Navigate to="/org-admin" replace />;
+      case 'manager':
+        return <Navigate to="/manager" replace />;
+      case 'employee':
+        return <Navigate to="/employee" replace />;
+      default:
+        return <Navigate to="/" replace />;
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!username || !password) {
       toast({
         title: "❌ Missing Information",
-        description: "Please enter both email and password",
+        description: "Please enter both username and password",
         variant: "destructive"
       });
       return;
     }
 
     setLoading(true);
-    try {
-      const success = await login(email, password);
-      if (success) {
-        toast({
-          title: "✅ Login Successful",
-          description: "Welcome back to MinTid!",
-        });
-        navigate('/');
-      } else {
-        toast({
-          title: "❌ Login Failed",
-          description: "Invalid email or password. Try demo@company.com / demo123",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
+    const result = await signIn(username, password);
+    
+    if (result.success) {
       toast({
-        title: "❌ Login Error",
-        description: "An unexpected error occurred",
+        title: "✅ Login Successful",
+        description: "Welcome back to MinTid!",
+      });
+    } else {
+      toast({
+        title: "❌ Login Failed",
+        description: result.error || "Invalid username or password",
         variant: "destructive"
       });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDemoLogin = async (role: string) => {
-    const demoCredentials: Record<string, {email: string, password: string}> = {
-      employee: { email: 'employee@company.com', password: 'demo123' },
-      manager: { email: 'manager@company.com', password: 'demo123' },
-      admin: { email: 'admin@company.com', password: 'demo123' },
-      super_admin: { email: 'super@company.com', password: 'demo123' }
-    };
-
-    const creds = demoCredentials[role];
-    setEmail(creds.email);
-    setPassword(creds.password);
-    
-    setLoading(true);
-    const success = await login(creds.email, creds.password);
-    if (success) {
-      toast({
-        title: "🎭 Demo Login",
-        description: `Logged in as ${role.replace('_', ' ')} demo user`,
-      });
-      navigate('/');
     }
     setLoading(false);
   };
@@ -97,23 +79,24 @@ const Login = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <LogIn className="w-5 h-5" />
-              Sign In
+              Employee Login
             </CardTitle>
             <CardDescription>
-              Enter your credentials to access your dashboard
+              Enter your assigned username and password
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="username">Username</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your.email@company.com"
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="your.username"
                   disabled={loading}
+                  autoComplete="username"
                 />
               </div>
               
@@ -127,6 +110,7 @@ const Login = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     disabled={loading}
+                    autoComplete="current-password"
                   />
                   <Button
                     type="button"
@@ -144,81 +128,19 @@ const Login = () => {
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
-
-            <div className="mt-4 text-center">
-              <p className="text-sm text-gray-600 mb-3">
-                Don't have an account?{' '}
-                <Link to="/register" className="text-blue-600 hover:underline">
-                  Sign up
-                </Link>
-              </p>
-            </div>
           </CardContent>
         </Card>
 
-        {/* Demo Accounts */}
-        <Card className="bg-green-50 border-green-200">
-          <CardHeader>
-            <CardTitle className="text-green-800">🎭 Try Demo Accounts</CardTitle>
-            <CardDescription className="text-green-700">
-              Click any role below to login instantly and explore the app
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleDemoLogin('employee')}
-                disabled={loading}
-                className="text-green-700 border-green-300 hover:bg-green-100"
-              >
-                👤 Employee
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleDemoLogin('manager')}
-                disabled={loading}
-                className="text-green-700 border-green-300 hover:bg-green-100"
-              >
-                👥 Manager
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleDemoLogin('admin')}
-                disabled={loading}
-                className="text-green-700 border-green-300 hover:bg-green-100"
-              >
-                ⚙️ Admin
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleDemoLogin('super_admin')}
-                disabled={loading}
-                className="text-green-700 border-green-300 hover:bg-green-100"
-              >
-                👑 Super Admin
-              </Button>
-            </div>
-            <p className="text-xs text-green-600 text-center mt-2">
-              Each role shows different features and permissions
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Login Tips */}
-        <Card className="bg-blue-50 border-blue-200">
+        {/* Security Notice */}
+        <Card className="bg-yellow-50 border-yellow-200">
           <CardContent className="pt-4">
-            <h4 className="font-medium text-blue-800 mb-2">💡 Login Tips</h4>
-            <ul className="text-sm text-blue-700 space-y-1">
-              <li>• Use demo@company.com / demo123 for quick access</li>
-              <li>• Each role has different dashboard views</li>
-              <li>• All features work in demo mode</li>
-              <li>• No registration required for testing</li>
-            </ul>
+            <div className="flex items-center gap-2 mb-2">
+              <h4 className="font-medium text-yellow-800">Security Notice</h4>
+            </div>
+            <p className="text-sm text-yellow-700">
+              Your login credentials are provided by your administrator. 
+              Contact your manager if you need assistance accessing your account.
+            </p>
           </CardContent>
         </Card>
       </div>
