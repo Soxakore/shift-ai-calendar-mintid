@@ -13,7 +13,7 @@ interface User {
   name: string;
   username: string;
   password: string;
-  role: 'admin' | 'manager' | 'user';
+  role: 'super_admin' | 'org_admin' | 'manager' | 'employee';
   status: 'Active' | 'Inactive';
   language: string;
   email: string;
@@ -27,7 +27,7 @@ const UsersManagement = () => {
       username: 'john.doe', 
       password: 'worker123',
       email: 'john.doe@company.com',
-      role: 'user', 
+      role: 'employee', 
       status: 'Active', 
       language: 'English' 
     },
@@ -37,7 +37,7 @@ const UsersManagement = () => {
       username: 'jane.smith', 
       password: 'worker123',
       email: 'jane.smith@company.com',
-      role: 'user', 
+      role: 'manager', 
       status: 'Active', 
       language: 'English' 
     },
@@ -47,7 +47,7 @@ const UsersManagement = () => {
       username: 'demo', 
       password: 'demo123',
       email: 'demo@company.com',
-      role: 'user', 
+      role: 'employee', 
       status: 'Active', 
       language: 'Svenska' 
     },
@@ -58,14 +58,14 @@ const UsersManagement = () => {
     username: string;
     password: string;
     email: string;
-    role: 'admin' | 'manager' | 'user';
+    role: 'super_admin' | 'org_admin' | 'manager' | 'employee';
     language: string;
   }>({
     name: '',
     username: '',
     password: '',
     email: '',
-    role: 'user',
+    role: 'employee',
     language: 'English'
   });
 
@@ -76,7 +76,7 @@ const UsersManagement = () => {
       status: 'Active'
     };
     setUsers([...users, user]);
-    setNewUser({ name: '', username: '', password: '', email: '', role: 'user', language: 'English' });
+    setNewUser({ name: '', username: '', password: '', email: '', role: 'employee', language: 'English' });
   };
 
   const deleteUser = (id: string) => {
@@ -134,14 +134,15 @@ const UsersManagement = () => {
                     value={newUser.password}
                     onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                   />
-                  <Select value={newUser.role} onValueChange={(value: 'admin' | 'manager' | 'user') => setNewUser({ ...newUser, role: value })}>
+                  <Select value={newUser.role} onValueChange={(value: 'super_admin' | 'org_admin' | 'manager' | 'employee') => setNewUser({ ...newUser, role: value })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="employee">Employee</SelectItem>
                       <SelectItem value="manager">Manager</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="org_admin">Org Admin</SelectItem>
+                      <SelectItem value="super_admin">Super Admin</SelectItem>
                     </SelectContent>
                   </Select>
                   <Select value={newUser.language} onValueChange={(value) => setNewUser({ ...newUser, language: value })}>
@@ -187,11 +188,12 @@ const UsersManagement = () => {
                   <TableCell className="font-mono text-sm">{'*'.repeat(user.password.length)}</TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded text-xs ${
-                      user.role === 'admin' ? 'bg-red-100 text-red-800' :
+                      user.role === 'super_admin' ? 'bg-red-100 text-red-800' :
+                      user.role === 'org_admin' ? 'bg-purple-100 text-purple-800' :
                       user.role === 'manager' ? 'bg-yellow-100 text-yellow-800' :
                       'bg-blue-100 text-blue-800'
                     }`}>
-                      {user.role}
+                      {user.role.replace('_', ' ')}
                     </span>
                   </TableCell>
                   <TableCell>
