@@ -46,8 +46,6 @@ export default function HistoryButton({
       <SecurityHistoryPanel
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
-        targetUserId={targetUserId}
-        targetOrgId={targetOrgId}
       />
     </>
   );

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -276,8 +275,10 @@ export default function RoleBasedUserManagement() {
             <CardContent className="p-0">
               <OrganizationsList
                 organizations={organizations}
-                onRefresh={fetchOrganizations}
-                loading={loading}
+                profiles={allUsers}
+                departments={[]}
+                deletingOrgId={null}
+                onDelete={() => {}}
               />
             </CardContent>
           </Card>
@@ -308,8 +309,13 @@ export default function RoleBasedUserManagement() {
               <UsersList
                 users={allUsers}
                 organizations={organizations}
-                onRefresh={fetchUsers}
-                loading={loading}
+                deletingUserId={null}
+                onEdit={() => {}}
+                onDelete={() => {}}
+                getUserOrganization={(orgId: string) => {
+                  const org = organizations.find(o => o.id === orgId);
+                  return org?.name || 'Unknown Organization';
+                }}
               />
             </CardContent>
           </Card>

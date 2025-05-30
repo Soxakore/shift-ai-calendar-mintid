@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
@@ -65,11 +66,7 @@ export default function SecurityHistoryPanel({ isOpen, onClose }: SecurityHistor
     try {
       const { data, error } = await supabase
         .from('audit_logs')
-        .select(`
-          *,
-          profiles!audit_logs_user_id_fkey(display_name, username),
-          target_profiles:profiles!audit_logs_target_user_id_fkey(display_name, username)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
 
@@ -83,11 +80,20 @@ export default function SecurityHistoryPanel({ isOpen, onClose }: SecurityHistor
         return;
       }
 
-      // Transform the data to handle potential null relationships
-      const transformedData = (data || []).map(log => ({
-        ...log,
-        profiles: log.profiles || null,
-        target_profiles: log.target_profiles || null
+      // Transform the data to match our interface
+      const transformedData: AuditLog[] = (data || []).map(log => ({
+        id: log.id,
+        user_id: log.user_id,
+        action_type: log.action_type,
+        target_user_id: log.target_user_id,
+        target_organization_id: log.target_organization_id,
+        ip_address: log.ip_address ? String(log.ip_address) : undefined,
+        user_agent: log.user_agent,
+        location_data: log.location_data,
+        metadata: log.metadata,
+        created_at: log.created_at,
+        profiles: null,
+        target_profiles: null
       }));
 
       setAuditLogs(transformedData);
@@ -108,10 +114,7 @@ export default function SecurityHistoryPanel({ isOpen, onClose }: SecurityHistor
     try {
       const { data, error } = await supabase
         .from('session_logs')
-        .select(`
-          *,
-          profiles!session_logs_user_id_fkey(display_name, username)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
 
@@ -125,10 +128,19 @@ export default function SecurityHistoryPanel({ isOpen, onClose }: SecurityHistor
         return;
       }
 
-      // Transform the data to handle potential null relationships
-      const transformedData = (data || []).map(log => ({
-        ...log,
-        profiles: log.profiles || null
+      // Transform the data to match our interface
+      const transformedData: SessionLog[] = (data || []).map(log => ({
+        id: log.id,
+        user_id: log.user_id,
+        session_id: log.session_id,
+        action: log.action as 'login' | 'logout' | 'session_refresh',
+        ip_address: log.ip_address ? String(log.ip_address) : undefined,
+        user_agent: log.user_agent,
+        location_data: log.location_data,
+        success: log.success,
+        failure_reason: log.failure_reason,
+        created_at: log.created_at,
+        profiles: null
       }));
 
       setSessionLogs(transformedData);
