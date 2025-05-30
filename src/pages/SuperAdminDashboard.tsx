@@ -300,6 +300,7 @@ const SuperAdminDashboard = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
+            {/* Live Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -366,16 +367,31 @@ const SuperAdminDashboard = () => {
               </Card>
             </div>
 
-            <SuperAdminUserManagement />
+            {/* Quick Actions */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Button 
+                onClick={() => setActiveTab('users')}
+                className="h-20 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Manage Users
+              </Button>
+              <Button 
+                onClick={() => setActiveTab('analytics')}
+                className="h-20 bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                View Analytics
+              </Button>
+              <Button 
+                onClick={() => setActiveTab('security')}
+                className="h-20 bg-green-600 hover:bg-green-700 text-white"
+              >
+                Security Monitor
+              </Button>
+            </div>
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
-            <EnhancedUserManagement
-              users={[]} // Would be populated with real data
-              onEdit={() => {}}
-              onDelete={() => {}}
-              onBulkAction={handleBulkUserAction}
-            />
+            <SuperAdminUserManagement />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
