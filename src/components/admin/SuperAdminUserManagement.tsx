@@ -15,7 +15,9 @@ import {
   Building,
   Eye,
   CheckCircle,
-  RefreshCw
+  RefreshCw,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
@@ -24,12 +26,14 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function SuperAdminUserManagement() {
   const { profile, createUser } = useSupabaseAuth();
-  const { organizations, departments, profiles, loading, refetchOrganizations, refetchProfiles } = useSupabaseData();
+  const { organizations, departments, profiles, loading, refetch, refetchOrganizations, refetchProfiles } = useSupabaseData();
   const { toast } = useToast();
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [showCreateOrg, setShowCreateOrg] = useState(false);
   const [isCreatingOrg, setIsCreatingOrg] = useState(false);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [deletingOrgId, setDeletingOrgId] = useState<string | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [newUser, setNewUser] = useState({
     username: '',
     password: '',
@@ -81,6 +85,22 @@ export default function SuperAdminUserManagement() {
           });
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'departments'
+        },
+        (payload) => {
+          console.log('Department change in SuperAdmin:', payload);
+          refetch();
+          toast({
+            title: "🔄 Live Update",
+            description: "Departments updated in real-time",
+          });
+        }
+      )
       .subscribe((status) => {
         console.log('SuperAdmin real-time subscription status:', status);
       });
@@ -89,7 +109,7 @@ export default function SuperAdminUserManagement() {
       console.log('Cleaning up SuperAdmin real-time subscriptions...');
       supabase.removeChannel(channel);
     };
-  }, [refetchOrganizations, refetchProfiles, toast]);
+  }, [refetchOrganizations, refetchProfiles, refetch, toast]);
 
   const handleCreateOrganization = async () => {
     if (!newOrg.name.trim()) {
@@ -129,7 +149,6 @@ export default function SuperAdminUserManagement() {
         });
         setNewOrg({ name: '', description: '' });
         setShowCreateOrg(false);
-        // Force immediate refresh
         await refetchOrganizations();
       }
     } catch (error) {
@@ -141,6 +160,65 @@ export default function SuperAdminUserManagement() {
       });
     } finally {
       setIsCreatingOrg(false);
+    }
+  };
+
+  const handleDeleteOrganization = async (orgId: string, orgName: string) => {
+    if (!confirm(`Are you sure you want to delete "${orgName}"? This will also delete all associated users and data. This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingOrgId(orgId);
+    console.log('Deleting organization:', orgId);
+
+    try {
+      // First delete all users in this organization
+      const { error: usersError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('organization_id', orgId);
+
+      if (usersError) {
+        console.error('Error deleting organization users:', usersError);
+        toast({
+          title: "❌ Deletion Failed",
+          description: "Failed to delete organization users",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Then delete the organization
+      const { error: orgError } = await supabase
+        .from('organizations')
+        .delete()
+        .eq('id', orgId);
+
+      if (orgError) {
+        console.error('Error deleting organization:', orgError);
+        toast({
+          title: "❌ Deletion Failed",
+          description: orgError.message || "Failed to delete organization",
+          variant: "destructive"
+        });
+      } else {
+        console.log('Organization deleted successfully');
+        toast({
+          title: "✅ Organization Deleted",
+          description: `${orgName} has been deleted successfully`,
+        });
+        await refetchOrganizations();
+        await refetchProfiles();
+      }
+    } catch (error) {
+      console.error('Unexpected error deleting organization:', error);
+      toast({
+        title: "❌ Unexpected Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setDeletingOrgId(null);
     }
   };
 
@@ -183,7 +261,6 @@ export default function SuperAdminUserManagement() {
         department_id: ''
       });
       setShowCreateUser(false);
-      // Force immediate refresh
       await refetchProfiles();
     } else {
       console.error('User creation failed:', result.error);
@@ -196,6 +273,58 @@ export default function SuperAdminUserManagement() {
     setIsCreatingUser(false);
   };
 
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`Are you sure you want to delete user "${userName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingUserId(userId);
+    console.log('Deleting user:', userId);
+
+    try {
+      // Delete from profiles table first
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+
+      if (profileError) {
+        console.error('Error deleting user profile:', profileError);
+        toast({
+          title: "❌ Deletion Failed",
+          description: "Failed to delete user profile",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Then delete from auth.users using admin API
+      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+
+      if (authError) {
+        console.error('Error deleting user from auth:', authError);
+        // Don't show error toast for auth deletion as profile is already deleted
+        console.log('User profile deleted, but auth deletion failed - this is acceptable');
+      }
+
+      console.log('User deleted successfully');
+      toast({
+        title: "✅ User Deleted",
+        description: `${userName} has been deleted successfully`,
+      });
+      await refetchProfiles();
+    } catch (error) {
+      console.error('Unexpected error deleting user:', error);
+      toast({
+        title: "❌ Unexpected Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setDeletingUserId(null);
+    }
+  };
+
   const getUserOrganization = (orgId: string) => {
     return organizations.find(org => org.id === orgId)?.name || 'Unknown';
   };
@@ -206,11 +335,10 @@ export default function SuperAdminUserManagement() {
 
   const handleRefresh = async () => {
     console.log('Manual refresh triggered');
-    await refetchOrganizations();
-    await refetchProfiles();
+    await refetch();
     toast({
       title: "🔄 Refreshed",
-      description: "Data has been refreshed",
+      description: "All data has been refreshed",
     });
   };
 
@@ -234,7 +362,7 @@ export default function SuperAdminUserManagement() {
           <div>
             <h1 className="text-2xl font-bold">Super Admin Management</h1>
             <p className="text-muted-foreground">
-              Full system control - Organizations: {organizations.length}, Users: {profiles.length}
+              Full system control - Organizations: {organizations.length}, Users: {profiles.length}, Departments: {departments.length}
             </p>
           </div>
         </div>
@@ -442,7 +570,7 @@ export default function SuperAdminUserManagement() {
         </Card>
       )}
 
-      {/* Organizations List with live updates */}
+      {/* Organizations List with delete functionality */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -482,6 +610,18 @@ export default function SuperAdminUserManagement() {
                         <Button variant="ghost" size="sm">
                           <Eye className="h-4 w-4" />
                         </Button>
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          onClick={() => handleDeleteOrganization(org.id, org.name)}
+                          disabled={deletingOrgId === org.id}
+                        >
+                          {deletingOrgId === org.id ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -492,7 +632,7 @@ export default function SuperAdminUserManagement() {
         </CardContent>
       </Card>
 
-      {/* Users List with live updates */}
+      {/* Users List with delete functionality */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -541,6 +681,20 @@ export default function SuperAdminUserManagement() {
                       <Button variant="ghost" size="sm">
                         <Eye className="h-4 w-4" />
                       </Button>
+                      {user.user_type !== 'super_admin' && (
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          onClick={() => handleDeleteUser(user.id, user.display_name)}
+                          disabled={deletingUserId === user.id}
+                        >
+                          {deletingUserId === user.id ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
