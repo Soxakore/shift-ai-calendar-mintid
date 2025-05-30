@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator, CommandShortcut } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -57,12 +59,14 @@ const GlobalNavigation = ({ currentPath, onNavigate, searchTerm, onSearchChange 
         description: "Navigating to user management...",
       });
       onNavigate('/super-admin/users');
+      setOpen(false);
     }},
     { id: 'new-org', label: 'Create New Organization', action: () => {
       toast({
         title: "🏢 New Organization",
         description: "Feature coming soon!",
       });
+      setOpen(false);
     }},
     { id: 'view-analytics', label: 'View System Analytics', action: () => {
       toast({
@@ -70,6 +74,7 @@ const GlobalNavigation = ({ currentPath, onNavigate, searchTerm, onSearchChange 
         description: "Navigating to system analytics...",
       });
       onNavigate('/super-admin/analytics');
+      setOpen(false);
     }},
     { id: 'system-settings', label: 'Adjust System Settings', action: () => {
       toast({
@@ -77,6 +82,7 @@ const GlobalNavigation = ({ currentPath, onNavigate, searchTerm, onSearchChange 
         description: "Navigating to system settings...",
       });
       onNavigate('/super-admin/system');
+      setOpen(false);
     }},
     { id: 'security-dashboard', label: 'Open Security Dashboard', action: () => {
       toast({
@@ -84,6 +90,7 @@ const GlobalNavigation = ({ currentPath, onNavigate, searchTerm, onSearchChange 
         description: "Navigating to security dashboard...",
       });
       onNavigate('/super-admin/security');
+      setOpen(false);
     }},
     { id: 'unlock-2fa', label: 'Unlock User 2FA', action: () => {
       toast({
@@ -91,11 +98,26 @@ const GlobalNavigation = ({ currentPath, onNavigate, searchTerm, onSearchChange 
         description: "Navigate to 2FA Management to unlock user accounts",
       });
       onNavigate('/super-admin/2fa');
+      setOpen(false);
     }},
     { id: 'view-history', label: 'View Audit History', action: () => {
       navigate('/history');
+      setOpen(false);
     }},
   ];
+
+  // Add keyboard shortcut for command dialog
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setOpen((open) => !open);
+      }
+    };
+
+    document.addEventListener('keydown', down);
+    return () => document.removeEventListener('keydown', down);
+  }, []);
 
   const handleNavigation = (path: string) => {
     onNavigate(path);
@@ -113,12 +135,20 @@ const GlobalNavigation = ({ currentPath, onNavigate, searchTerm, onSearchChange 
     }
   };
 
+  const handleCommandSearch = (value: string) => {
+    // This handles the search within the command dialog
+    console.log('Command search:', value);
+  };
+
   return (
     <div className="border-b bg-secondary text-secondary-foreground">
       <div className="container flex items-center gap-4 py-2">
         {/* Command Dialog */}
         <CommandDialog open={open} onOpenChange={setOpen}>
-          <CommandInput placeholder="Type a command or search..." />
+          <CommandInput 
+            placeholder="Type a command or search..." 
+            onValueChange={handleCommandSearch}
+          />
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
 
@@ -127,16 +157,26 @@ const GlobalNavigation = ({ currentPath, onNavigate, searchTerm, onSearchChange 
                 <CommandItem
                   key={item.path}
                   onSelect={() => handleNavigation(item.path)}
+                  className="cursor-pointer"
                 >
                   <item.icon className="mr-2 h-4 w-4" />
                   <span>{item.label}</span>
+                  <CommandShortcut className="ml-auto">
+                    {item.path === currentPath && '✓'}
+                  </CommandShortcut>
                 </CommandItem>
               ))}
             </CommandGroup>
 
+            <CommandSeparator />
+
             <CommandGroup heading="Quick Actions">
               {quickCommands.map((command) => (
-                <CommandItem key={command.id} onSelect={command.action}>
+                <CommandItem 
+                  key={command.id} 
+                  onSelect={command.action}
+                  className="cursor-pointer"
+                >
                   <span>{command.label}</span>
                 </CommandItem>
               ))}
@@ -145,9 +185,17 @@ const GlobalNavigation = ({ currentPath, onNavigate, searchTerm, onSearchChange 
         </CommandDialog>
 
         {/* Open Command Menu Button */}
-        <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => setOpen(true)}
+          className="relative"
+        >
           <Search className="mr-2 h-4 w-4" />
           Search / Open Menu...
+          <kbd className="pointer-events-none ml-auto inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+            <span className="text-xs">⌘</span>K
+          </kbd>
         </Button>
 
         {/* Search Input with Popover */}
@@ -156,26 +204,45 @@ const GlobalNavigation = ({ currentPath, onNavigate, searchTerm, onSearchChange 
             <Button variant="ghost" size="sm" className="ml-auto relative">
               <Search className="mr-2 h-4 w-4" />
               Search System
+              {searchTerm && (
+                <Badge className="ml-2 bg-blue-500 text-white text-xs">
+                  Active
+                </Badge>
+              )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80">
-            <div className="px-4 py-2">
-              <Input
-                ref={searchInputRef}
-                placeholder="Search users, logs, organizations..."
-                value={searchTerm}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="mb-2"
-              />
+          <PopoverContent className="w-80" align="end">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <h4 className="font-medium leading-none">System Search</h4>
+                <p className="text-sm text-muted-foreground">
+                  Search across users, logs, organizations, and more.
+                </p>
+              </div>
+              <div className="relative">
+                <Input
+                  ref={searchInputRef}
+                  placeholder="Search users, logs, organizations..."
+                  value={searchTerm}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="pr-8"
+                />
+                {searchTerm && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="absolute right-1 top-1 h-6 w-6 p-0" 
+                    onClick={handleClearSearch}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
               {searchTerm && (
-                <Button variant="ghost" size="sm" className="absolute top-2 right-2" onClick={handleClearSearch}>
-                  <X className="h-4 w-4" />
-                  Clear
-                </Button>
+                <div className="text-sm text-muted-foreground">
+                  Searching for: <strong>"{searchTerm}"</strong>
+                </div>
               )}
-              <p className="text-sm text-muted-foreground">
-                Search across users, audit logs, organizations, and more.
-              </p>
             </div>
           </PopoverContent>
         </Popover>

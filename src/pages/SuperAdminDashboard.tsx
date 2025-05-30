@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -64,6 +65,8 @@ const SuperAdminDashboard = () => {
       '/super-admin/users': 'users',
       '/super-admin/analytics': 'analytics',
       '/super-admin/security': 'security',
+      '/super-admin/2fa': '2fa',
+      '/super-admin/system': 'system',
       '/history': 'history'
     };
     
