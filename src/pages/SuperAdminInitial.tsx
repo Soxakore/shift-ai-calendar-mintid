@@ -42,15 +42,18 @@ const SuperAdminInitial = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.admin.createUser({
+      // Use regular signup instead of admin.createUser
+      const { data, error } = await supabase.auth.signUp({
         email: 'tiktok518@gmail.com',
         password: password,
-        user_metadata: {
-          username: username,
-          display_name: 'Super Administrator',
-          user_type: 'super_admin',
-          organization_id: '00000000-0000-0000-0000-000000000000',
-          created_by: null
+        options: {
+          data: {
+            username: username,
+            display_name: 'Super Administrator',
+            user_type: 'super_admin',
+            organization_id: '00000000-0000-0000-0000-000000000000',
+            created_by: null
+          }
         }
       });
 
@@ -60,7 +63,7 @@ const SuperAdminInitial = () => {
           description: error.message,
           variant: "destructive"
         });
-      } else {
+      } else if (data.user) {
         toast({
           title: "✅ Super Admin Created",
           description: `Super admin account created successfully! You can now sign in with username: ${username}`,
