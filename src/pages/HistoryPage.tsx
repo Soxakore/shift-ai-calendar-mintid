@@ -144,7 +144,7 @@ const HistoryPage = () => {
         description="Complete system history and user management overview"
         keywords={pageMetadata.keywords}
         canonicalUrl={`${pageMetadata.canonical}/history`}
-        pageName="history"
+        pageName="dashboard"
       />
       
       {/* Header */}
