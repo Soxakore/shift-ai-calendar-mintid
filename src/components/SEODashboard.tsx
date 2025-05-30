@@ -26,6 +26,7 @@ import {
   FileText,
   Zap
 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Import our SEO and performance utilities
 import { 
@@ -43,6 +44,8 @@ interface SEODashboardProps {
 }
 
 export const SEODashboard: React.FC<SEODashboardProps> = ({ className }) => {
+  const isMobile = useIsMobile();
+  
   // State
   const [seoResults, setSeoResults] = useState<SEOValidationResult | null>(null);
   const [pageMetrics, setPageMetrics] = useState<PageSEOMetrics | null>(null);
@@ -138,20 +141,23 @@ export const SEODashboard: React.FC<SEODashboardProps> = ({ className }) => {
   }, [autoRefresh]);
 
   return (
-    <div className={`space-y-6 ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className={`space-y-4 sm:space-y-6 p-4 sm:p-0 ${className}`}>
+      {/* Header - Mobile Responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">SEO Analytics Dashboard</h2>
-          <p className="text-muted-foreground">
+          <h2 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold tracking-tight`}>
+            SEO Analytics Dashboard
+          </h2>
+          <p className="text-muted-foreground text-sm">
             Real-time SEO monitoring and performance analytics
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setAutoRefresh(!autoRefresh)}
+            className="flex-1 sm:flex-none"
           >
             <Monitor className="h-4 w-4 mr-2" />
             {autoRefresh ? 'Stop' : 'Start'} Auto-refresh
@@ -161,6 +167,7 @@ export const SEODashboard: React.FC<SEODashboardProps> = ({ className }) => {
             size="sm"
             onClick={refreshSEO}
             disabled={isRefreshing}
+            className="flex-1 sm:flex-none"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
             Refresh
@@ -169,22 +176,23 @@ export const SEODashboard: React.FC<SEODashboardProps> = ({ className }) => {
             variant="outline"
             size="sm"
             onClick={exportReport}
+            className="flex-1 sm:flex-none"
           >
             <Download className="h-4 w-4 mr-2" />
-            Export Report
+            Export
           </Button>
         </div>
       </div>
 
-      {/* Overview Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Overview Cards - Responsive Grid */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">SEO Score</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">SEO Score</CardTitle>
             <Search className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold`}>
               {seoResults?.score || 0}/100
             </div>
             <Progress 
@@ -196,11 +204,11 @@ export const SEODashboard: React.FC<SEODashboardProps> = ({ className }) => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Performance Score</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Performance</CardTitle>
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold`}>
               {performanceScore}/100
             </div>
             <Progress 
@@ -212,29 +220,29 @@ export const SEODashboard: React.FC<SEODashboardProps> = ({ className }) => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Core Web Vitals</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Core Web Vitals</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold`}>
               {webVitals ? 
                 `${webVitals.lcp !== null ? Math.round(webVitals.lcp) : 'N/A'}ms` : 
                 'Loading...'
               }
             </div>
             <p className="text-xs text-muted-foreground">
-              LCP (Largest Contentful Paint)
+              LCP
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Issues</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Issues</CardTitle>
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
+            <div className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-red-600`}>
               {seoResults?.failed || 0}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -250,20 +258,146 @@ export const SEODashboard: React.FC<SEODashboardProps> = ({ className }) => {
           {performanceAlerts.map((alert, index) => (
             <Alert key={index} variant={alert.type === 'error' ? 'destructive' : 'default'}>
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>{alert.message}</AlertDescription>
+              <AlertDescription className="text-sm">{alert.message}</AlertDescription>
             </Alert>
           ))}
         </div>
       )}
 
-      {/* Main Content Tabs */}
+      {/* Main Content Tabs - Mobile Responsive */}
       <Tabs defaultValue="seo" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="seo">SEO Analysis</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
-          <TabsTrigger value="technical">Technical SEO</TabsTrigger>
-          <TabsTrigger value="content">Content Analysis</TabsTrigger>
+        <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-4'}`}>
+          <TabsTrigger value="seo" className="text-xs sm:text-sm">SEO Analysis</TabsTrigger>
+          <TabsTrigger value="performance" className="text-xs sm:text-sm">Performance</TabsTrigger>
+          {!isMobile && (
+            <>
+              <TabsTrigger value="technical" className="text-xs sm:text-sm">Technical SEO</TabsTrigger>
+              <TabsTrigger value="content" className="text-xs sm:text-sm">Content Analysis</TabsTrigger>
+            </>
+          )}
         </TabsList>
+
+        {/* Performance Tab - Mobile Optimized */}
+        <TabsContent value="performance" className="space-y-4">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+            {/* Core Web Vitals */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base sm:text-lg">Core Web Vitals</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {webVitals ? (
+                  <>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>LCP</span>
+                        <span className="font-mono">
+                          {webVitals.lcp ? `${Math.round(webVitals.lcp)}ms` : 'N/A'}
+                        </span>
+                      </div>
+                      <Progress value={webVitals.lcp ? Math.min((2500 / webVitals.lcp) * 100, 100) : 0} />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>FID</span>
+                        <span className="font-mono">
+                          {webVitals.fid ? `${Math.round(webVitals.fid)}ms` : 'N/A'}
+                        </span>
+                      </div>
+                      <Progress value={webVitals.fid ? Math.min((100 / webVitals.fid) * 100, 100) : 0} />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>CLS</span>
+                        <span className="font-mono">
+                          {webVitals.cls ? webVitals.cls.toFixed(3) : 'N/A'}
+                        </span>
+                      </div>
+                      <Progress value={webVitals.cls ? Math.min((0.1 / webVitals.cls) * 100, 100) : 0} />
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center text-muted-foreground text-sm">
+                    {perfLoading ? 'Loading metrics...' : 'No data available'}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Bundle Analysis */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base sm:text-lg">Bundle Performance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {bundleMetrics ? (
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Resources</p>
+                      <p className="text-lg font-mono">{bundleMetrics.totalResources}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Size</p>
+                      <p className="text-lg font-mono">
+                        {bundleMetrics.totalSize ? `${(bundleMetrics.totalSize / 1024).toFixed(1)}KB` : 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Largest Resource</p>
+                      <p className="text-sm font-mono truncate">
+                        {bundleMetrics.largestResource?.name || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center text-muted-foreground text-sm">
+                    Analyzing bundle...
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Performance Metrics */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base sm:text-lg">Page Metrics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {performanceMetrics ? (
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-muted-foreground">DOM Ready</p>
+                      <p className="text-lg font-mono">
+                        {performanceMetrics.navigationTiming?.domContentLoadedEventEnd || 'N/A'}ms
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Page Load</p>
+                      <p className="text-lg font-mono">
+                        {performanceMetrics.navigationTiming?.loadEventEnd || 'N/A'}ms
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Memory Usage</p>
+                      <p className="text-lg font-mono">
+                        {performanceMetrics.memory ? 
+                          `${(performanceMetrics.memory.usedJSHeapSize / 1024 / 1024).toFixed(1)}MB` : 
+                          'N/A'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center text-muted-foreground text-sm">
+                    Loading metrics...
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
         {/* SEO Analysis Tab */}
         <TabsContent value="seo" className="space-y-4">
@@ -341,128 +475,6 @@ export const SEODashboard: React.FC<SEODashboardProps> = ({ className }) => {
                   <div className="text-center py-8 text-muted-foreground">
                     <CheckCircle className="h-8 w-8 mx-auto mb-2" />
                     All optimizations implemented!
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Performance Tab */}
-        <TabsContent value="performance" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            {/* Core Web Vitals */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Core Web Vitals</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {webVitals ? (
-                  <>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm">LCP</span>
-                        <span className="text-sm font-mono">
-                          {webVitals.lcp ? `${Math.round(webVitals.lcp)}ms` : 'N/A'}
-                        </span>
-                      </div>
-                      <Progress value={webVitals.lcp ? Math.min((2500 / webVitals.lcp) * 100, 100) : 0} />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm">FID</span>
-                        <span className="text-sm font-mono">
-                          {webVitals.fid ? `${Math.round(webVitals.fid)}ms` : 'N/A'}
-                        </span>
-                      </div>
-                      <Progress value={webVitals.fid ? Math.min((100 / webVitals.fid) * 100, 100) : 0} />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm">CLS</span>
-                        <span className="text-sm font-mono">
-                          {webVitals.cls ? webVitals.cls.toFixed(3) : 'N/A'}
-                        </span>
-                      </div>
-                      <Progress value={webVitals.cls ? Math.min((0.1 / webVitals.cls) * 100, 100) : 0} />
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center text-muted-foreground">
-                    {perfLoading ? 'Loading metrics...' : 'No data available'}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Bundle Analysis */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Bundle Performance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {bundleMetrics ? (
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Total Resources</p>
-                      <p className="text-lg font-mono">{bundleMetrics.totalResources}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Total Size</p>
-                      <p className="text-lg font-mono">
-                        {bundleMetrics.totalSize ? `${(bundleMetrics.totalSize / 1024).toFixed(1)}KB` : 'N/A'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Largest Resource</p>
-                      <p className="text-sm font-mono">
-                        {bundleMetrics.largestResource?.name || 'N/A'}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center text-muted-foreground">
-                    Analyzing bundle...
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Performance Metrics */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Page Metrics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {performanceMetrics ? (
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm text-muted-foreground">DOM Ready</p>
-                      <p className="text-lg font-mono">
-                        {performanceMetrics.domContentLoaded}ms
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Page Load</p>
-                      <p className="text-lg font-mono">
-                        {performanceMetrics.loadComplete}ms
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Memory Usage</p>
-                      <p className="text-lg font-mono">
-                        {performanceMetrics.memoryUsage ? 
-                          `${(performanceMetrics.memoryUsage / 1024 / 1024).toFixed(1)}MB` : 
-                          'N/A'
-                        }
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center text-muted-foreground">
-                    Loading metrics...
                   </div>
                 )}
               </CardContent>

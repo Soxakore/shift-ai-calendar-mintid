@@ -2,236 +2,412 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, Shield, Building2, Utensils, Coffee, Briefcase } from 'lucide-react';
-import RoleBasedUserManagement from './RoleBasedUserManagement';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  Shield, 
+  Building2, 
+  Users, 
+  UserCheck, 
+  Settings, 
+  Eye, 
+  EyeOff,
+  Calendar,
+  BarChart3,
+  Lock,
+  Unlock,
+  Info
+} from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { AuthUser, getUIPermissions } from '@/types/permissions';
 
-// Mock users demonstrating different role views
-const mockUsers = [
+// Create demo users that match AuthUser interface
+const demoUsers: AuthUser[] = [
   {
-    id: 'super-admin-001',
-    name: 'Super Administrator',
+    id: '1',
+    name: 'Super Admin',
     username: 'super.admin',
-    role: 'super_admin' as const,
+    role: 'super_admin',
     organizationId: 'all',
-    permissions: {
-      canViewAllOrganizations: true,
-      canViewAllUsers: true,
-      canManageAllUsers: true,
-      canCreateOrganizations: true,
-      scope: 'all_organizations' as const
-    }
+    departmentId: undefined
   },
   {
-    id: 'mc-admin-001',
-    name: 'McDonald\'s Administrator',
-    username: 'mc.admin',
-    role: 'org_admin' as const,
+    id: '2',
+    name: 'Org Admin',
+    username: 'org.admin',
+    role: 'org_admin',
     organizationId: 'mcdonalds',
-    permissions: {
-      canViewAllOrganizations: false,
-      canViewAllUsers: false,
-      canManageAllUsers: false,
-      canCreateOrganizations: false,
-      scope: 'own_organization' as const
-    }
+    departmentId: undefined
   },
   {
-    id: 'kitchen-mgr-001',
+    id: '3',
     name: 'Kitchen Manager',
     username: 'kitchen.manager',
-    role: 'manager' as const,
+    role: 'manager',
     organizationId: 'mcdonalds',
-    departmentId: 'kitchen',
-    permissions: {
-      canViewAllOrganizations: false,
-      canViewAllUsers: false,
-      canManageAllUsers: false,
-      canCreateOrganizations: false,
-      scope: 'own_department' as const
-    }
+    departmentId: 'kitchen'
   },
   {
-    id: 'employee-001',
-    name: 'Mary Cook',
-    username: 'mary.cook',
-    role: 'employee' as const,
+    id: '4',
+    name: 'Employee',
+    username: 'john.employee',
+    role: 'employee',
     organizationId: 'mcdonalds',
-    departmentId: 'kitchen',
-    permissions: {
-      canViewAllOrganizations: false,
-      canViewAllUsers: false,
-      canManageAllUsers: false,
-      canCreateOrganizations: false,
-      scope: 'own_profile' as const
-    }
+    departmentId: 'kitchen'
   }
 ];
 
 const RoleBasedUIDemo = () => {
-  const [selectedUser, setSelectedUser] = useState(mockUsers[0]);
+  const [selectedUser, setSelectedUser] = useState<AuthUser>(demoUsers[0]);
+  const [showPermissions, setShowPermissions] = useState(true);
+  const isMobile = useIsMobile();
+
+  const permissions = getUIPermissions(selectedUser);
 
   const getRoleIcon = (role: string) => {
+    const iconClass = isMobile ? 'w-4 h-4' : 'w-5 h-5';
     switch (role) {
-      case 'super_admin': return <Shield className="w-5 h-5 text-red-500" />;
-      case 'org_admin': return <Building2 className="w-5 h-5 text-blue-500" />;
-      case 'manager': return <Briefcase className="w-5 h-5 text-green-500" />;
-      case 'employee': return <Users className="w-5 h-5 text-gray-500" />;
-      default: return <Users className="w-5 h-5" />;
+      case 'super_admin': return <Shield className={`${iconClass} text-red-500`} />;
+      case 'org_admin': return <Building2 className={`${iconClass} text-blue-500`} />;
+      case 'manager': return <UserCheck className={`${iconClass} text-green-500`} />;
+      case 'employee': return <Users className={`${iconClass} text-gray-500`} />;
+      default: return <Users className={iconClass} />;
     }
   };
 
-  const getRoleBadgeColor = (role: string) => {
+  const getRoleBadgeVariant = (role: string) => {
     switch (role) {
-      case 'super_admin': return 'bg-red-500 text-white';
-      case 'org_admin': return 'bg-blue-500 text-white';
-      case 'manager': return 'bg-green-500 text-white';
-      case 'employee': return 'bg-gray-500 text-white';
-      default: return 'bg-gray-500 text-white';
-    }
-  };
-
-  const getDepartmentIcon = (departmentId?: string) => {
-    switch (departmentId) {
-      case 'kitchen': return <Utensils className="w-4 h-4" />;
-      case 'front-counter': return <Coffee className="w-4 h-4" />;
-      default: return null;
+      case 'super_admin': return 'destructive';
+      case 'org_admin': return 'default';
+      case 'manager': return 'secondary';
+      case 'employee': return 'outline';
+      default: return 'outline';
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Role Selector */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="w-5 h-5" />
-            Login as Different Roles
-          </CardTitle>
-          <p className="text-sm text-gray-600">
-            Click on any user below to see exactly what their interface would look like when they log in
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold`}>
+            Role-Based Access Control Demo
+          </h2>
+          <p className="text-muted-foreground text-sm">
+            Experience how different user roles see and interact with the application
           </p>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {mockUsers.map((user) => (
-              <Card 
-                key={user.id} 
-                className={`cursor-pointer transition-all ${selectedUser.id === user.id ? 'ring-2 ring-blue-500' : ''}`}
-                onClick={() => setSelectedUser(user)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {getRoleIcon(user.role)}
-                      <div>
-                        <h3 className="font-semibold">{user.name}</h3>
-                        <p className="text-sm text-gray-600">@{user.username}</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <Badge className={getRoleBadgeColor(user.role)}>
-                        {user.role.replace('_', ' ').toUpperCase()}
-                      </Badge>
-                      {user.departmentId && (
-                        <div className="flex items-center gap-1 text-xs text-gray-600">
-                          {getDepartmentIcon(user.departmentId)}
-                          {user.departmentId.replace('-', ' ')}
-                        </div>
-                      )}
-                    </div>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="show-permissions"
+              checked={showPermissions}
+              onCheckedChange={setShowPermissions}
+            />
+            <Label htmlFor="show-permissions" className="text-sm">Show Permissions</Label>
+          </div>
+          
+          <Select 
+            value={selectedUser.id} 
+            onValueChange={(userId) => {
+              const user = demoUsers.find(u => u.id === userId);
+              if (user) setSelectedUser(user);
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {demoUsers.map((user) => (
+                <SelectItem key={user.id} value={user.id}>
+                  <div className="flex items-center gap-2">
+                    {getRoleIcon(user.role)}
+                    <span className="font-medium">{user.name}</span>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </CardContent>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Current User Display */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-3">
+            {getRoleIcon(selectedUser.role)}
+            <div>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <span className={isMobile ? 'text-lg' : 'text-xl'}>{selectedUser.name}</span>
+                <Badge variant={getRoleBadgeVariant(selectedUser.role)} className="w-fit">
+                  {selectedUser.role.replace('_', ' ').toUpperCase()}
+                </Badge>
+              </div>
+              <div className="text-sm text-muted-foreground mt-1">
+                {selectedUser.organizationId && selectedUser.organizationId !== 'all' && (
+                  <span>Organization: {selectedUser.organizationId.toUpperCase()}</span>
+                )}
+                {selectedUser.departmentId && (
+                  <span className="ml-2">Department: {selectedUser.departmentId.replace('-', ' ')}</span>
+                )}
+              </div>
+            </div>
+          </CardTitle>
+        </CardHeader>
       </Card>
 
-      {/* Current User View */}
-      <Card className="border-2 border-blue-200">
-        <CardHeader className="bg-blue-50">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              {getRoleIcon(selectedUser.role)}
-              What {selectedUser.name} Sees When They Log In
+      {/* Permissions Overview */}
+      {showPermissions && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
+              Current Permissions & Access Level
             </CardTitle>
-            <Badge className={getRoleBadgeColor(selectedUser.role)}>
-              {selectedUser.role.replace('_', ' ').toUpperCase()}
-            </Badge>
-          </div>
-          <p className="text-sm text-gray-600">
-            This is the exact interface that would appear when <strong>{selectedUser.username}</strong> logs in
-          </p>
-        </CardHeader>
-        <CardContent className="p-6">
-          <RoleBasedUserManagement currentUser={selectedUser} />
-        </CardContent>
-      </Card>
-
-      {/* How Credentials Work */}
-      <Card className="bg-green-50 border-green-200">
-        <CardHeader>
-          <CardTitle className="text-green-800">🔐 How the Login System Works</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm text-green-700">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h4 className="font-semibold mb-2">1. You Create Accounts</h4>
-              <p>• Go to the "Accounts" tab in the admin panel</p>
-              <p>• Create usernames and passwords for your managers/staff</p>
-              <p>• Assign their specific roles and departments</p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-2">2. They Log In</h4>
-              <p>• Give them their username and password</p>
-              <p>• They go to <code className="bg-white px-1 rounded">yoursite.com/worker-login</code></p>
-              <p>• The system automatically shows their role-based interface</p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-2">3. Automatic Role Detection</h4>
-              <p>• Kitchen managers only see kitchen staff</p>
-              <p>• Front counter managers only see front counter staff</p>
-              <p>• Employees only see their own profile</p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-2">4. Persistent Storage</h4>
-              <p>• All accounts are saved automatically</p>
-              <p>• The system remembers every username/password</p>
-              <p>• Works across browser sessions</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Example Credentials */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardHeader>
-          <CardTitle className="text-blue-800">📋 Ready-to-Use Test Credentials</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            {mockUsers.map((user, index) => (
-              <div key={user.id} className="bg-white p-4 rounded border">
-                <div className="flex items-center gap-2 mb-2">
-                  {getRoleIcon(user.role)}
-                  <strong>{user.name}</strong>
-                  <Badge className={`text-xs ${getRoleBadgeColor(user.role)}`}>
-                    {user.role.replace('_', ' ')}
-                  </Badge>
-                </div>
-                <div className="space-y-1 font-mono text-xs">
-                  <div><span className="text-gray-600">Username:</span> <code className="bg-gray-100 px-1 rounded">{user.username}</code></div>
-                  <div><span className="text-gray-600">Password:</span> <code className="bg-gray-100 px-1 rounded">
-                    {user.username === 'super.admin' ? 'admin123' :
-                     user.username === 'mc.admin' ? 'mcadmin123' :
-                     user.username === 'kitchen.manager' ? 'kitchen123' : 'mary123'}
-                  </code></div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              
+              <div className="space-y-3">
+                <h4 className="font-semibold text-sm flex items-center gap-2">
+                  <Eye className="w-4 h-4" />
+                  Data Access
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span>Data Scope</span>
+                    <Badge variant="outline" className="text-xs">
+                      {permissions.dataScope === 'all' ? 'All Organizations' : 
+                       permissions.dataScope === 'organization' ? 'Organization' : 'Department'}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>View All Organizations</span>
+                    {permissions.canViewAllOrganizations ? 
+                      <Unlock className="w-4 h-4 text-green-500" /> : 
+                      <Lock className="w-4 h-4 text-red-500" />
+                    }
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>View All Users</span>
+                    {permissions.canViewAllUsers ? 
+                      <Unlock className="w-4 h-4 text-green-500" /> : 
+                      <Lock className="w-4 h-4 text-red-500" />
+                    }
+                  </div>
                 </div>
               </div>
-            ))}
+
+              <div className="space-y-3">
+                <h4 className="font-semibold text-sm flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  User Management
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span>Create Users</span>
+                    {permissions.canCreateUsers ? 
+                      <Unlock className="w-4 h-4 text-green-500" /> : 
+                      <Lock className="w-4 h-4 text-red-500" />
+                    }
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Edit Users</span>
+                    {permissions.canEditUsers ? 
+                      <Unlock className="w-4 h-4 text-green-500" /> : 
+                      <Lock className="w-4 h-4 text-red-500" />
+                    }
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Delete Users</span>
+                    {permissions.canDeleteUsers ? 
+                      <Unlock className="w-4 h-4 text-green-500" /> : 
+                      <Lock className="w-4 h-4 text-red-500" />
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="font-semibold text-sm flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  System Access
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span>View Reports</span>
+                    {permissions.canViewReports ? 
+                      <Unlock className="w-4 h-4 text-green-500" /> : 
+                      <Lock className="w-4 h-4 text-red-500" />
+                    }
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Manage Organizations</span>
+                    {permissions.canManageOrganizations ? 
+                      <Unlock className="w-4 h-4 text-green-500" /> : 
+                      <Lock className="w-4 h-4 text-red-500" />
+                    }
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>System Settings</span>
+                    {permissions.canAccessSystemSettings ? 
+                      <Unlock className="w-4 h-4 text-green-500" /> : 
+                      <Lock className="w-4 h-4 text-red-500" />
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Demo Interface - Mobile Responsive */}
+      <Tabs defaultValue="dashboard" className="space-y-4">
+        <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-4'}`}>
+          <TabsTrigger value="dashboard" className="text-xs sm:text-sm">Dashboard</TabsTrigger>
+          <TabsTrigger value="schedule" className="text-xs sm:text-sm">Schedule</TabsTrigger>
+          {!isMobile && (
+            <>
+              <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>
+              <TabsTrigger value="reports" className="text-xs sm:text-sm">Reports</TabsTrigger>
+            </>
+          )}
+        </TabsList>
+
+        <TabsContent value="dashboard" className="space-y-4">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Role-specific dashboard content */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  My Schedule
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm">
+                <p className="text-muted-foreground">
+                  {selectedUser.role === 'employee' 
+                    ? 'View your assigned shifts and upcoming schedule'
+                    : 'Manage team schedules and assign shifts'
+                  }
+                </p>
+                <Button size="sm" className="mt-3 w-full" variant="outline">
+                  View Schedule
+                </Button>
+              </CardContent>
+            </Card>
+
+            {permissions.canViewReports && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4" />
+                    Analytics
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm">
+                  <p className="text-muted-foreground">
+                    {selectedUser.role === 'super_admin' 
+                      ? 'System-wide analytics and performance metrics'
+                      : permissions.dataScope === 'organization'
+                      ? 'Organization-wide reports and analytics'
+                      : 'Department performance and team metrics'
+                    }
+                  </p>
+                  <Button size="sm" className="mt-3 w-full" variant="outline">
+                    View Reports
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {permissions.canCreateUsers && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    User Management
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm">
+                  <p className="text-muted-foreground">
+                    {selectedUser.role === 'super_admin' 
+                      ? 'Manage all users across all organizations'
+                      : selectedUser.role === 'org_admin'
+                      ? 'Manage users within your organization'
+                      : 'Manage your department team members'
+                    }
+                  </p>
+                  <Button size="sm" className="mt-3 w-full" variant="outline">
+                    Manage Users
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
-        </CardContent>
-      </Card>
+
+          {!permissions.canViewReports && !permissions.canCreateUsers && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                As an employee, you have access to your personal schedule, tasks, and basic reporting features.
+                Contact your manager or administrator for additional access permissions.
+              </AlertDescription>
+            </Alert>
+          )}
+        </TabsContent>
+
+        <TabsContent value="schedule" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Schedule Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {selectedUser.role === 'employee' ? (
+                <p>View your schedule here.</p>
+              ) : (
+                <p>Manage schedules for your team.</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="users" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>User Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {selectedUser.role === 'super_admin' ? (
+                <p>Manage all users in the system.</p>
+              ) : (
+                <p>Manage users in your organization.</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="reports" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Reports and Analytics</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {selectedUser.role === 'super_admin' ? (
+                <p>View system-wide reports.</p>
+              ) : (
+                <p>View reports for your organization.</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+      </Tabs>
     </div>
   );
 };
