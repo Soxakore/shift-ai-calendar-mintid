@@ -3,7 +3,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Building, Users, Trash2, Calendar } from 'lucide-react';
+import { Building, Users, Trash2, Calendar, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface OrganizationsListProps {
   organizations: Array<{
@@ -31,12 +32,24 @@ export default function OrganizationsList({
   deletingOrgId,
   onDelete
 }: OrganizationsListProps) {
+  const navigate = useNavigate();
+
   const getUserCount = (orgId: string) => {
     return profiles.filter(p => p.organization_id === orgId).length;
   };
 
   const getDepartmentCount = (orgId: string) => {
     return departments.filter(d => d.organization_id === orgId).length;
+  };
+
+  const handleViewOrgPanel = (orgId: string, orgName: string) => {
+    // Store the organization context in sessionStorage for the org admin view
+    sessionStorage.setItem('superAdminViewingOrg', JSON.stringify({
+      id: orgId,
+      name: orgName,
+      returnUrl: '/super-admin'
+    }));
+    navigate('/org-admin');
   };
 
   return (
@@ -52,7 +65,7 @@ export default function OrganizationsList({
           {organizations.map((org) => (
             <div 
               key={org.id} 
-              className="p-4 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              className="p-4 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
             >
               <div className="flex items-center justify-between">
                 <div className="flex-1">
@@ -87,22 +100,32 @@ export default function OrganizationsList({
                     </div>
                   </div>
                 </div>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => onDelete(org.id, org.name)}
-                  disabled={deletingOrgId === org.id}
-                  className="ml-4"
-                >
-                  {deletingOrgId === org.id ? (
-                    'Deleting...'
-                  ) : (
-                    <>
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Delete
-                    </>
-                  )}
-                </Button>
+                <div className="flex items-center gap-2 ml-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleViewOrgPanel(org.id, org.name)}
+                    className="hover:bg-blue-50 dark:hover:bg-blue-950"
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    View Admin Panel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => onDelete(org.id, org.name)}
+                    disabled={deletingOrgId === org.id}
+                  >
+                    {deletingOrgId === org.id ? (
+                      'Deleting...'
+                    ) : (
+                      <>
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           ))}

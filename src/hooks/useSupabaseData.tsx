@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
@@ -22,6 +21,12 @@ export const useSupabaseData = () => {
   const [timeLogs, setTimeLogs] = useState<TimeLog[]>([]);
   const [qrCodes, setQRCodes] = useState<QRCode[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Check if super admin is viewing a specific organization
+  const getSuperAdminViewingOrg = () => {
+    const storedContext = sessionStorage.getItem('superAdminViewingOrg');
+    return storedContext ? JSON.parse(storedContext) : null;
+  };
 
   useEffect(() => {
     if (profile) {
@@ -126,8 +131,14 @@ export const useSupabaseData = () => {
     try {
       let query = supabase.from('departments').select('*');
       
-      // Filter based on user role
-      if (profile?.user_type !== 'super_admin' && profile?.organization_id) {
+      // Check if super admin is viewing a specific org
+      const superAdminContext = getSuperAdminViewingOrg();
+      
+      if (profile?.user_type === 'super_admin' && superAdminContext) {
+        // Super admin viewing specific organization
+        query = query.eq('organization_id', superAdminContext.id);
+      } else if (profile?.user_type !== 'super_admin' && profile?.organization_id) {
+        // Regular user - filter by their organization
         query = query.eq('organization_id', profile.organization_id);
       }
       
@@ -148,8 +159,13 @@ export const useSupabaseData = () => {
     try {
       let query = supabase.from('profiles').select('*');
       
-      // Filter based on user role
-      if (profile?.user_type === 'org_admin' && profile?.organization_id) {
+      // Check if super admin is viewing a specific org
+      const superAdminContext = getSuperAdminViewingOrg();
+      
+      if (profile?.user_type === 'super_admin' && superAdminContext) {
+        // Super admin viewing specific organization
+        query = query.eq('organization_id', superAdminContext.id);
+      } else if (profile?.user_type === 'org_admin' && profile?.organization_id) {
         query = query.eq('organization_id', profile.organization_id);
       } else if (profile?.user_type === 'manager' && profile?.department_id) {
         query = query.eq('department_id', profile.department_id);
@@ -174,8 +190,11 @@ export const useSupabaseData = () => {
     try {
       let query = supabase.from('schedules').select('*');
       
-      // Filter based on user role and organization
-      if (profile?.user_type !== 'super_admin' && profile?.organization_id) {
+      const superAdminContext = getSuperAdminViewingOrg();
+      
+      if (profile?.user_type === 'super_admin' && superAdminContext) {
+        query = query.eq('organization_id', superAdminContext.id);
+      } else if (profile?.user_type !== 'super_admin' && profile?.organization_id) {
         query = query.eq('organization_id', profile.organization_id);
       }
       
@@ -201,8 +220,11 @@ export const useSupabaseData = () => {
     try {
       let query = supabase.from('sick_notices').select('*');
       
-      // Filter based on user role
-      if (profile?.user_type !== 'super_admin' && profile?.organization_id) {
+      const superAdminContext = getSuperAdminViewingOrg();
+      
+      if (profile?.user_type === 'super_admin' && superAdminContext) {
+        query = query.eq('organization_id', superAdminContext.id);
+      } else if (profile?.user_type !== 'super_admin' && profile?.organization_id) {
         query = query.eq('organization_id', profile.organization_id);
       }
       
@@ -228,8 +250,11 @@ export const useSupabaseData = () => {
     try {
       let query = supabase.from('time_logs').select('*');
       
-      // Filter based on user role
-      if (profile?.user_type !== 'super_admin' && profile?.organization_id) {
+      const superAdminContext = getSuperAdminViewingOrg();
+      
+      if (profile?.user_type === 'super_admin' && superAdminContext) {
+        query = query.eq('organization_id', superAdminContext.id);
+      } else if (profile?.user_type !== 'super_admin' && profile?.organization_id) {
         query = query.eq('organization_id', profile.organization_id);
       }
       
@@ -255,8 +280,11 @@ export const useSupabaseData = () => {
     try {
       let query = supabase.from('qr_codes').select('*');
       
-      // Filter based on user role
-      if (profile?.user_type !== 'super_admin' && profile?.organization_id) {
+      const superAdminContext = getSuperAdminViewingOrg();
+      
+      if (profile?.user_type === 'super_admin' && superAdminContext) {
+        query = query.eq('organization_id', superAdminContext.id);
+      } else if (profile?.user_type !== 'super_admin' && profile?.organization_id) {
         query = query.eq('organization_id', profile.organization_id);
       }
       
