@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Alert, AlertDescription } from '../ui/alert';
-import { CheckCircle, AlertTriangle } from 'lucide-react';
+import { CheckCircle, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Button } from '../ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
@@ -28,6 +29,7 @@ export default function SuperAdminUserManagement() {
   const [isUpdatingUser, setIsUpdatingUser] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [selectedOrganization, setSelectedOrganization] = useState<any>(null);
   const [editUserData, setEditUserData] = useState({
     username: '',
     display_name: '',
@@ -67,6 +69,21 @@ export default function SuperAdminUserManagement() {
     user.phone_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     getUserOrganization(user.organization_id!).toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Get users for selected organization
+  const getOrganizationUsers = (orgId: string) => {
+    return profiles.filter(user => user.organization_id === orgId);
+  };
+
+  const filteredUsersForSelectedOrg = selectedOrganization 
+    ? getOrganizationUsers(selectedOrganization.id).filter(user =>
+        user.display_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.user_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (user.tracking_id && user.tracking_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (user.phone_number && user.phone_number.includes(searchTerm))
+      )
+    : [];
 
   // Set up real-time subscriptions for immediate updates
   useEffect(() => {
@@ -131,6 +148,16 @@ export default function SuperAdminUserManagement() {
       supabase.removeChannel(channel);
     };
   }, [refetchOrganizations, refetchProfiles, refetch, toast]);
+
+  const handleOrganizationClick = (org: any) => {
+    setSelectedOrganization(org);
+    setSearchTerm(''); // Clear search when switching views
+  };
+
+  const handleBackToOrganizations = () => {
+    setSelectedOrganization(null);
+    setSearchTerm(''); // Clear search when going back
+  };
 
   const handleCreateOrganization = async (orgData) => {
     if (!orgData.name.trim()) {
@@ -675,8 +702,8 @@ export default function SuperAdminUserManagement() {
         organizationsCount={organizations.length}
         usersCount={profiles.length}
         departmentsCount={departments.length}
-        filteredOrganizationsCount={filteredOrganizations.length}
-        filteredUsersCount={filteredProfiles.length}
+        filteredOrganizationsCount={selectedOrganization ? 1 : filteredOrganizations.length}
+        filteredUsersCount={selectedOrganization ? filteredUsersForSelectedOrg.length : filteredProfiles.length}
       />
 
       {/* Quick Actions */}
@@ -688,6 +715,25 @@ export default function SuperAdminUserManagement() {
       />
 
       <div className="p-6 space-y-8">
+        {/* Back Button when viewing organization users */}
+        {selectedOrganization && (
+          <div className="flex items-center gap-2 mb-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBackToOrganizations}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Organizations
+            </Button>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-600 dark:text-slate-400">Viewing users in:</span>
+              <span className="font-medium text-slate-900 dark:text-slate-100">{selectedOrganization.name}</span>
+            </div>
+          </div>
+        )}
+
         {/* Create Organization Form */}
         {showCreateOrg && (
           <CreateOrganizationForm
@@ -716,24 +762,87 @@ export default function SuperAdminUserManagement() {
           onSubmit={handleUpdateUser}
         />
 
-        {/* Organizations List */}
-        <OrganizationsList
-          organizations={filteredOrganizations}
-          profiles={profiles}
-          departments={departments}
-          deletingOrgId={deletingOrgId}
-          onDelete={handleDeleteOrganization}
-        />
-
-        {/* Users List */}
-        <UsersList
-          users={filteredProfiles}
-          organizations={organizations}
-          deletingUserId={deletingUserId}
-          onEdit={handleEditUser}
-          onDelete={handleDeleteUser}
-          getUserOrganization={getUserOrganization}
-        />
+        {!selectedOrganization ? (
+          /* Organizations List */
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Organizations ({filteredOrganizations.length})</span>
+                <span className="text-sm font-normal text-slate-600 dark:text-slate-400">
+                  Click an organization to view its users
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4">
+                {filteredOrganizations.map((org) => (
+                  <div 
+                    key={org.id} 
+                    className="p-4 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+                    onClick={() => handleOrganizationClick(org)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-semibold text-lg text-slate-900 dark:text-slate-100">{org.name}</h3>
+                          {org.alias && (
+                            <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+                              {org.alias}
+                            </span>
+                          )}
+                        </div>
+                        
+                        {org.description && (
+                          <p className="text-slate-600 dark:text-slate-400 mb-2">{org.description}</p>
+                        )}
+                        
+                        <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
+                          <span className="text-slate-900 dark:text-slate-100">
+                            {getOrganizationUsers(org.id).length} users
+                          </span>
+                          <span className="text-slate-900 dark:text-slate-100">
+                            ID: {org.organization_number || 'Not assigned'}
+                          </span>
+                          <span className="text-slate-900 dark:text-slate-100">
+                            Created {new Date(org.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 ml-4">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteOrganization(org.id, org.name);
+                          }}
+                          disabled={deletingOrgId === org.id}
+                        >
+                          {deletingOrgId === org.id ? 'Deleting...' : 'Delete'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {filteredOrganizations.length === 0 && (
+                  <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                    No organizations found
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          /* Users List for Selected Organization */
+          <UsersList
+            users={filteredUsersForSelectedOrg}
+            organizations={organizations}
+            deletingUserId={deletingUserId}
+            onEdit={handleEditUser}
+            onDelete={handleDeleteUser}
+            getUserOrganization={getUserOrganization}
+          />
+        )}
 
         {/* Success Alert */}
         <Alert className="border-green-200 bg-green-50">
