@@ -26,6 +26,7 @@ import GlobalNavigation from '@/components/admin/GlobalNavigation';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import TwoFactorManagement from '@/components/admin/TwoFactorManagement';
 
 const SuperAdminDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
@@ -149,7 +150,7 @@ const SuperAdminDashboard = () => {
       {/* Main Content with Enhanced Tabs */}
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto">
+          <TabsList className="grid w-full grid-cols-6 lg:w-auto">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Overview
@@ -166,6 +167,11 @@ const SuperAdminDashboard = () => {
               <Shield className="h-4 w-4" />
               Security
               <Badge variant="destructive" className="text-xs">New</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="2fa" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              2FA
+              <Badge className="bg-blue-500 text-white text-xs">New</Badge>
             </TabsTrigger>
             <TabsTrigger value="system" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
@@ -238,6 +244,10 @@ const SuperAdminDashboard = () => {
 
           <TabsContent value="security" className="space-y-6">
             <SecurityMonitoring />
+          </TabsContent>
+
+          <TabsContent value="2fa" className="space-y-6">
+            <TwoFactorManagement />
           </TabsContent>
 
           <TabsContent value="system" className="space-y-6">
