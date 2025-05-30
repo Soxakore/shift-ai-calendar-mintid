@@ -19,7 +19,11 @@ import {
   Trash2,
   AlertTriangle,
   Mail,
-  Edit
+  Edit,
+  Search,
+  Phone,
+  Hash,
+  Tag
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
@@ -38,11 +42,13 @@ export default function SuperAdminUserManagement() {
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [isUpdatingUser, setIsUpdatingUser] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [newUser, setNewUser] = useState({
     email: '',
     username: '',
     password: '',
     display_name: '',
+    phone_number: '',
     user_type: 'org_admin' as 'org_admin' | 'manager' | 'employee',
     organization_id: '',
     department_id: ''
@@ -50,6 +56,7 @@ export default function SuperAdminUserManagement() {
   const [editUserData, setEditUserData] = useState({
     username: '',
     display_name: '',
+    phone_number: '',
     user_type: 'org_admin' as 'org_admin' | 'manager' | 'employee',
     organization_id: '',
     department_id: '',
@@ -57,8 +64,25 @@ export default function SuperAdminUserManagement() {
   });
   const [newOrg, setNewOrg] = useState({
     name: '',
-    description: ''
+    description: '',
+    alias: ''
   });
+
+  // Filter data based on search term
+  const filteredOrganizations = organizations.filter(org =>
+    org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    org.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    org.organization_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    org.alias?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredProfiles = profiles.filter(user =>
+    user.display_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.tracking_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.phone_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    getUserOrganization(user.organization_id!).toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   // Set up real-time subscriptions for immediate updates
   useEffect(() => {
@@ -142,7 +166,8 @@ export default function SuperAdminUserManagement() {
         .from('organizations')
         .insert([{
           name: newOrg.name.trim(),
-          description: newOrg.description.trim() || null
+          description: newOrg.description.trim() || null,
+          alias: newOrg.alias.trim() || null
         }])
         .select()
         .single();
@@ -158,9 +183,9 @@ export default function SuperAdminUserManagement() {
         console.log('Organization created successfully:', data);
         toast({
           title: "✅ Organization Created",
-          description: `${newOrg.name} has been created successfully`,
+          description: `${newOrg.name} has been created with number: ${data.organization_number}`,
         });
-        setNewOrg({ name: '', description: '' });
+        setNewOrg({ name: '', description: '', alias: '' });
         setShowCreateOrg(false);
         await refetchOrganizations();
       }
@@ -354,6 +379,7 @@ export default function SuperAdminUserManagement() {
       const userMetadata = {
         username: newUser.username.trim(),
         display_name: newUser.display_name.trim(),
+        phone_number: newUser.phone_number.trim() || null,
         user_type: newUser.user_type,
         organization_id: newUser.organization_id || null,
         department_id: newUser.department_id || null,
@@ -393,6 +419,7 @@ export default function SuperAdminUserManagement() {
         username: '',
         password: '',
         display_name: '',
+        phone_number: '',
         user_type: 'org_admin',
         organization_id: '',
         department_id: ''
@@ -480,6 +507,7 @@ export default function SuperAdminUserManagement() {
     setEditUserData({
       username: user.username,
       display_name: user.display_name,
+      phone_number: user.phone_number || '',
       user_type: user.user_type,
       organization_id: user.organization_id || '',
       department_id: user.department_id || '',
@@ -547,6 +575,7 @@ export default function SuperAdminUserManagement() {
         .update({
           username: editUserData.username.trim(),
           display_name: editUserData.display_name.trim(),
+          phone_number: editUserData.phone_number.trim() || null,
           user_type: editUserData.user_type,
           organization_id: editUserData.organization_id || null,
           department_id: editUserData.department_id || null,
@@ -594,6 +623,7 @@ export default function SuperAdminUserManagement() {
       setEditUserData({
         username: '',
         display_name: '',
+        phone_number: '',
         user_type: 'org_admin',
         organization_id: '',
         department_id: '',
@@ -643,18 +673,27 @@ export default function SuperAdminUserManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Header with live stats */}
-      <div className="flex items-center justify-between">
+      {/* Header with live stats and search */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-4">
           <Crown className="h-8 w-8 text-yellow-600" />
           <div>
             <h1 className="text-2xl font-bold">Super Admin Management</h1>
             <p className="text-muted-foreground">
-              Fully Automated System - Organizations: {organizations.length}, Users: {profiles.length}, Departments: {departments.length}
+              Fully Automated System - Organizations: {filteredOrganizations.length}/{organizations.length}, Users: {filteredProfiles.length}/{profiles.length}, Departments: {departments.length}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-80">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search users, organizations, tracking IDs..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
           <Button onClick={handleRefresh} variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
@@ -681,7 +720,7 @@ export default function SuperAdminUserManagement() {
           <Building className="h-6 w-6 mr-3" />
           <div>
             <div className="font-semibold">Create Organization</div>
-            <div className="text-sm text-muted-foreground">Add new company/business</div>
+            <div className="text-sm text-muted-foreground">Add new company/business with auto-numbering</div>
           </div>
         </Button>
         
@@ -694,7 +733,7 @@ export default function SuperAdminUserManagement() {
           <UserPlus className="h-6 w-6 mr-3" />
           <div>
             <div className="font-semibold">Auto-Create User</div>
-            <div className="text-sm text-muted-foreground">Instant activation, no confirmation needed</div>
+            <div className="text-sm text-muted-foreground">Instant activation with tracking ID</div>
           </div>
         </Button>
       </div>
@@ -705,19 +744,32 @@ export default function SuperAdminUserManagement() {
           <CardHeader>
             <CardTitle>Create New Organization</CardTitle>
             <CardDescription>
-              Add a new company or business to the MinTid system
+              Add a new company or business to the MinTid system (organization number will be auto-generated)
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="orgName">Organization Name *</Label>
-              <Input
-                id="orgName"
-                value={newOrg.name}
-                onChange={(e) => setNewOrg({...newOrg, name: e.target.value})}
-                placeholder="Company Name Inc."
-                disabled={isCreatingOrg}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="orgName">Organization Name *</Label>
+                <Input
+                  id="orgName"
+                  value={newOrg.name}
+                  onChange={(e) => setNewOrg({...newOrg, name: e.target.value})}
+                  placeholder="Company Name Inc."
+                  disabled={isCreatingOrg}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="orgAlias">Alias (Optional)</Label>
+                <Input
+                  id="orgAlias"
+                  value={newOrg.alias}
+                  onChange={(e) => setNewOrg({...newOrg, alias: e.target.value})}
+                  placeholder="Short name or abbreviation"
+                  disabled={isCreatingOrg}
+                />
+              </div>
             </div>
             
             <div>
@@ -757,23 +809,34 @@ export default function SuperAdminUserManagement() {
           <CardHeader>
             <CardTitle>Auto-Create User Account</CardTitle>
             <CardDescription>
-              Create a fully activated user account - No email confirmation required, instant login capability
+              Create a fully activated user account with auto-generated tracking ID - No email confirmation required
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="email">Email Address *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={newUser.email}
-                onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-                placeholder="user@company.com"
-                disabled={isCreatingUser}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Email is required but no verification needed - account will be instantly active
-              </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="email">Email Address *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                  placeholder="user@company.com"
+                  disabled={isCreatingUser}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={newUser.phone_number}
+                  onChange={(e) => setNewUser({...newUser, phone_number: e.target.value})}
+                  placeholder="+46 70 123 4567"
+                  disabled={isCreatingUser}
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -786,9 +849,6 @@ export default function SuperAdminUserManagement() {
                   placeholder="john.admin"
                   disabled={isCreatingUser}
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Ready for immediate login
-                </p>
               </div>
               <div>
                 <Label htmlFor="displayName">Full Name *</Label>
@@ -848,7 +908,7 @@ export default function SuperAdminUserManagement() {
                   <SelectContent>
                     {organizations.map((org) => (
                       <SelectItem key={org.id} value={org.id}>
-                        {org.name}
+                        {org.name} ({org.organization_number})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -859,7 +919,7 @@ export default function SuperAdminUserManagement() {
             <Alert>
               <CheckCircle className="h-4 w-4" />
               <AlertDescription>
-                🚀 Fully Automated: Account will be instantly activated with no email confirmation required. User can log in immediately with their username and password.
+                🚀 Fully Automated: Account will be instantly activated with auto-generated tracking ID for easy support. No email confirmation required.
               </AlertDescription>
             </Alert>
 
@@ -885,46 +945,62 @@ export default function SuperAdminUserManagement() {
 
       {/* Edit User Dialog */}
       <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Edit User Account</DialogTitle>
             <DialogDescription>
-              Update user details, role, or password - Changes are applied instantly
+              Update user details, role, phone number, or password - Changes are applied instantly
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="editUsername">Username *</Label>
-              <Input
-                id="editUsername"
-                value={editUserData.username}
-                onChange={(e) => setEditUserData({...editUserData, username: e.target.value})}
-                placeholder="john.admin"
-                disabled={isUpdatingUser}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="editUsername">Username *</Label>
+                <Input
+                  id="editUsername"
+                  value={editUserData.username}
+                  onChange={(e) => setEditUserData({...editUserData, username: e.target.value})}
+                  placeholder="john.admin"
+                  disabled={isUpdatingUser}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="editDisplayName">Full Name *</Label>
+                <Input
+                  id="editDisplayName"
+                  value={editUserData.display_name}
+                  onChange={(e) => setEditUserData({...editUserData, display_name: e.target.value})}
+                  placeholder="John Administrator"
+                  disabled={isUpdatingUser}
+                />
+              </div>
             </div>
 
-            <div>
-              <Label htmlFor="editDisplayName">Full Name *</Label>
-              <Input
-                id="editDisplayName"
-                value={editUserData.display_name}
-                onChange={(e) => setEditUserData({...editUserData, display_name: e.target.value})}
-                placeholder="John Administrator"
-                disabled={isUpdatingUser}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="editPassword">New Password (optional)</Label>
-              <Input
-                id="editPassword"
-                type="password"
-                value={editUserData.new_password}
-                onChange={(e) => setEditUserData({...editUserData, new_password: e.target.value})}
-                placeholder="Leave blank to keep current password"
-                disabled={isUpdatingUser}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="editPhone">Phone Number</Label>
+                <Input
+                  id="editPhone"
+                  type="tel"
+                  value={editUserData.phone_number}
+                  onChange={(e) => setEditUserData({...editUserData, phone_number: e.target.value})}
+                  placeholder="+46 70 123 4567"
+                  disabled={isUpdatingUser}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="editPassword">New Password (optional)</Label>
+                <Input
+                  id="editPassword"
+                  type="password"
+                  value={editUserData.new_password}
+                  onChange={(e) => setEditUserData({...editUserData, new_password: e.target.value})}
+                  placeholder="Leave blank to keep current password"
+                  disabled={isUpdatingUser}
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -961,7 +1037,7 @@ export default function SuperAdminUserManagement() {
                   <SelectContent>
                     {organizations.map((org) => (
                       <SelectItem key={org.id} value={org.id}>
-                        {org.name}
+                        {org.name} ({org.organization_number})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -990,35 +1066,47 @@ export default function SuperAdminUserManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Organizations List with delete functionality */}
+      {/* Organizations List with enhanced information */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            Organizations ({organizations.length})
+            Organizations ({filteredOrganizations.length})
             <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
           </CardTitle>
           <CardDescription>
-            All organizations in the system - Auto-updates in real-time
+            All organizations in the system with auto-generated numbers - Auto-updates in real-time
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {organizations.length === 0 ? (
+          {filteredOrganizations.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No organizations found. Create one to get started.
+              {searchTerm ? `No organizations found matching "${searchTerm}"` : "No organizations found. Create one to get started."}
             </div>
           ) : (
             <div className="grid gap-4">
-              {organizations.map((org) => {
+              {filteredOrganizations.map((org) => {
                 const orgUsers = profiles.filter(p => p.organization_id === org.id);
                 const orgDepts = departments.filter(d => d.organization_id === org.id);
                 
                 return (
                   <div key={org.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold">{org.name}</h3>
-                        <p className="text-sm text-muted-foreground">{org.description || 'No description'}</p>
-                        <div className="flex gap-4 mt-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="font-semibold">{org.name}</h3>
+                          {org.alias && (
+                            <Badge variant="outline" className="text-xs">
+                              <Tag className="h-3 w-3 mr-1" />
+                              {org.alias}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">{org.description || 'No description'}</p>
+                        <div className="flex flex-wrap gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            <Hash className="h-3 w-3 mr-1" />
+                            {org.organization_number}
+                          </Badge>
                           <Badge variant="outline">{orgUsers.length} users</Badge>
                           <Badge variant="outline">{orgDepts.length} departments</Badge>
                           <Badge variant="outline" className="text-xs">
@@ -1053,35 +1141,49 @@ export default function SuperAdminUserManagement() {
         </CardContent>
       </Card>
 
-      {/* Users List with enhanced delete functionality */}
+      {/* Users List with enhanced information */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            All System Users ({profiles.length})
+            All System Users ({filteredProfiles.length})
             <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
           </CardTitle>
           <CardDescription>
-            Complete automated user management - Easy deletion without Supabase access
+            Complete automated user management with tracking IDs for easy support
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {profiles.length === 0 ? (
+          {filteredProfiles.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No users found.
+              {searchTerm ? `No users found matching "${searchTerm}"` : "No users found."}
             </div>
           ) : (
             <div className="grid gap-4">
-              {profiles.map((user) => (
+              {filteredProfiles.map((user) => (
                 <div key={user.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-4 flex-1">
                       <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
                         <Users className="h-5 w-5 text-primary" />
                       </div>
-                      <div>
-                        <p className="font-semibold">{user.display_name}</p>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-semibold">{user.display_name}</p>
+                          {user.tracking_id && (
+                            <Badge variant="outline" className="text-xs font-mono">
+                              <Hash className="h-3 w-3 mr-1" />
+                              {user.tracking_id}
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-sm text-muted-foreground">@{user.username}</p>
-                        <div className="flex items-center space-x-2 mt-1">
+                        {user.phone_number && (
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {user.phone_number}
+                          </p>
+                        )}
+                        <div className="flex items-center space-x-2 mt-2">
                           <Badge variant="outline">{getUserOrganization(user.organization_id!)}</Badge>
                           <span className="text-muted-foreground">→</span>
                           <Badge variant={
@@ -1138,7 +1240,7 @@ export default function SuperAdminUserManagement() {
       <Alert>
         <CheckCircle className="h-4 w-4" />
         <AlertDescription>
-          🚀 Easy Management: Delete users and organizations directly from this dashboard - no need to access Supabase manually! The system automatically handles all cleanup and maintains data integrity.
+          🚀 Enhanced Management: Now with phone numbers, organization numbers, auto-generated tracking IDs, aliases, and powerful search functionality. Easy support with tracking IDs and complete user information at your fingertips!
         </AlertDescription>
       </Alert>
     </div>

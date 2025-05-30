@@ -46,24 +46,30 @@ export type Database = {
       }
       organizations: {
         Row: {
+          alias: string | null
           created_at: string
           description: string | null
           id: string
           name: string
+          organization_number: string | null
           updated_at: string
         }
         Insert: {
+          alias?: string | null
           created_at?: string
           description?: string | null
           id?: string
           name: string
+          organization_number?: string | null
           updated_at?: string
         }
         Update: {
+          alias?: string | null
           created_at?: string
           description?: string | null
           id?: string
           name?: string
+          organization_number?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -77,6 +83,8 @@ export type Database = {
           id: string
           is_active: boolean | null
           organization_id: string | null
+          phone_number: string | null
+          tracking_id: string | null
           updated_at: string
           user_type: string
           username: string
@@ -89,6 +97,8 @@ export type Database = {
           id: string
           is_active?: boolean | null
           organization_id?: string | null
+          phone_number?: string | null
+          tracking_id?: string | null
           updated_at?: string
           user_type: string
           username: string
@@ -101,6 +111,8 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           organization_id?: string | null
+          phone_number?: string | null
+          tracking_id?: string | null
           updated_at?: string
           user_type?: string
           username?: string
@@ -352,6 +364,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_org_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_user_department: {
         Args: { user_id: string }
         Returns: string
