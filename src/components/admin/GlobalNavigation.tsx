@@ -9,7 +9,6 @@ import {
   BarChart3,
   Building,
   Calendar,
-  Cog6Tooth,
   History,
   Home,
   LogOut,
