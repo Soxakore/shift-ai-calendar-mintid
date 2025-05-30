@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,15 +12,37 @@ import {
   Plus,
   Database,
   Globe,
-  Calendar
+  Calendar,
+  LogOut
 } from 'lucide-react';
 import Footer from '@/components/Footer';
 import SEOHead from '@/components/SEOHead';
 import { getPageMetadata } from '@/lib/seo';
 import SuperAdminUserManagement from '@/components/admin/SuperAdminUserManagement';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useToast } from '@/hooks/use-toast';
 
 const SuperAdminDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
+  const { signOut } = useSupabaseAuth();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "✅ Logged Out",
+        description: "You have been successfully logged out.",
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: "❌ Logout Error",
+        description: "There was an error logging out. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -45,10 +68,21 @@ const SuperAdminDashboard = () => {
               </div>
             </div>
           </div>
-          <Button variant="outline" size="sm" className="text-xs sm:text-sm">
-            <Settings className="w-4 h-4 mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">System </span>Settings
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+              <Settings className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">System </span>Settings
+            </Button>
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              className="text-xs sm:text-sm"
+              onClick={handleLogout}
+            >
+              <LogOut className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Log </span>Out
+            </Button>
+          </div>
         </div>
       </header>
 
