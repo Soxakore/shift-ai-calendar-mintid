@@ -1,3 +1,4 @@
+
 import { useState, useEffect, Suspense } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, BarChart3, Clock, Settings, LogOut, User, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,9 +9,12 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useToast } from '@/hooks/use-toast';
 import WorkHoursStats from '@/components/WorkHoursStats';
-import ImageUpload from '@/components/ImageUpload';
+import ImageScheduleParser from '@/components/ImageScheduleParser';
+import SickNoticeModal from '@/components/SickNoticeModal';
+import QRCodeScanner from '@/components/QRCodeScanner';
 import Footer from '@/components/Footer';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -31,21 +35,21 @@ import { createWebApplicationSchema, createOrganizationSchema, getPageMetadata }
 
 const Index = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [language, setLanguage] = useState('English');
   const { user, logout, hasRole } = useAuth();
+  const { t, currentLanguage, setLanguage, getLanguageName } = useTranslation();
   const { toast } = useToast();
 
   // Welcome message on component mount
   useEffect(() => {
     const timer = setTimeout(() => {
       toast({
-        title: "Welcome to MinTid! 🎉",
-        description: `Hello ${user?.name || 'User'}! All buttons are fully functional. Try navigating through the calendar and tabs.`,
+        title: `${t('appName')} 🎉`,
+        description: `${t('loading')} ${user?.name || 'User'}! All features are now fully functional with real-time updates.`,
       });
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [user?.name, toast]);
+  }, [user?.name, toast, t]);
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     setCurrentDate(prev => {
@@ -58,23 +62,21 @@ const Index = () => {
       return newDate;
     });
     
-    // Track calendar navigation
     trackScheduleAction('view', `month_${direction}`);
     
-    // Show feedback that navigation worked
     const monthName = direction === 'prev' ? 'Previous' : 'Next';
     toast({
-      title: "📅 Calendar Navigation",
+      title: `📅 ${t('calendar')}`,
       description: `${monthName} month loaded successfully!`,
     });
   };
 
   const handleLanguageChange = (newLanguage: string) => {
-    setLanguage(newLanguage);
+    setLanguage(newLanguage as any);
     trackFeatureUsage('language_change', user?.role);
     toast({
       title: "🌐 Language Changed",
-      description: `Interface language switched to ${newLanguage}`,
+      description: `Interface language switched to ${getLanguageName(newLanguage as any)}`,
     });
   };
 
@@ -82,16 +84,16 @@ const Index = () => {
     trackAuthAction('logout', user?.role);
     await logout();
     toast({
-      title: "👋 Logged Out",
+      title: `👋 ${t('logout')}`,
       description: "You have been successfully logged out.",
     });
   };
 
   const handleTabChange = (tabValue: string) => {
     const tabNames = {
-      calendar: "Calendar",
-      tasks: "Tasks", 
-      reports: "Reports"
+      calendar: t('calendar'),
+      tasks: t('tasks'),
+      reports: t('reports')
     };
     
     trackFeatureUsage(`tab_${tabValue}`, user?.role);
@@ -113,19 +115,19 @@ const Index = () => {
   const handleAdminPanel = () => {
     trackFeatureUsage('admin_panel_access', user?.role);
     toast({
-      title: "⚙️ Admin Panel",
+      title: `⚙️ ${t('settings')}`,
       description: "Opening administrative dashboard...",
     });
   };
 
   const formatMonth = (date: Date) => {
-    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    return date.toLocaleDateString(currentLanguage === 'ar' ? 'ar-SA' : currentLanguage === 'sv' ? 'sv-SE' : currentLanguage === 'de' ? 'de-DE' : currentLanguage === 'fr' ? 'fr-FR' : currentLanguage === 'es' ? 'es-ES' : 'en-US', { month: 'long', year: 'numeric' });
   };
 
   const pageMetadata = getPageMetadata('home');
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col" dir={currentLanguage === 'ar' ? 'rtl' : 'ltr'}>
       <SEOHead
         title={pageMetadata.title}
         description={pageMetadata.description}
@@ -149,11 +151,11 @@ const Index = () => {
                   <Menu className="w-5 h-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-80">
+              <SheetContent side={currentLanguage === 'ar' ? 'right' : 'left'} className="w-80">
                 <div className="flex flex-col gap-4 mt-6">
                   <div className="flex items-center gap-2 mb-4">
                     <Calendar className="w-6 h-6 text-blue-600" />
-                    <h2 className="text-xl font-bold text-gray-900">MinTid</h2>
+                    <h2 className="text-xl font-bold text-gray-900">{t('appName')}</h2>
                   </div>
                   
                   <div className="space-y-2">
@@ -170,15 +172,25 @@ const Index = () => {
                         className="block w-full text-left p-3 rounded-lg hover:bg-gray-100 transition-colors"
                         onClick={handleAdminPanel}
                       >
-                        ⚙️ Admin Panel
+                        ⚙️ {t('settings')}
                       </Link>
                     )}
+                    <SickNoticeModal trigger={
+                      <button className="block w-full text-left p-3 rounded-lg hover:bg-gray-100 transition-colors">
+                        🤒 {t('sickNotice')}
+                      </button>
+                    } />
+                    <QRCodeScanner trigger={
+                      <button className="block w-full text-left p-3 rounded-lg hover:bg-gray-100 transition-colors">
+                        📱 {t('qrTimeLogging')}
+                      </button>
+                    } />
                     <button 
                       onClick={handleLogout}
                       className="block w-full text-left p-3 rounded-lg hover:bg-gray-100 transition-colors text-red-600"
                     >
                       <LogOut className="w-4 h-4 inline mr-2" />
-                      Sign Out
+                      {t('logout')}
                     </button>
                   </div>
                 </div>
@@ -189,23 +201,23 @@ const Index = () => {
           {/* Desktop Logo */}
           <div className="flex items-center gap-2">
             <Calendar className="w-8 h-8 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">MinTid</h1>
-            <span className="hidden sm:block text-sm text-gray-600">Work Schedule Calendar</span>
+            <h1 className="text-2xl font-bold text-gray-900">{t('appName')}</h1>
+            <span className="hidden sm:block text-sm text-gray-600">{t('tagline')}</span>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Language Selector */}
-            <Select value={language} onValueChange={handleLanguageChange}>
+            <Select value={currentLanguage} onValueChange={handleLanguageChange}>
               <SelectTrigger className="w-20 sm:w-32">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="English">English</SelectItem>
-                <SelectItem value="Spanish">Español</SelectItem>
-                <SelectItem value="French">Français</SelectItem>
-                <SelectItem value="German">Deutsch</SelectItem>
-                <SelectItem value="Swedish">Svenska</SelectItem>
-                <SelectItem value="Arabic">العربية</SelectItem>
+                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="es">Español</SelectItem>
+                <SelectItem value="fr">Français</SelectItem>
+                <SelectItem value="de">Deutsch</SelectItem>
+                <SelectItem value="sv">Svenska</SelectItem>
+                <SelectItem value="ar">العربية</SelectItem>
               </SelectContent>
             </Select>
             
@@ -223,7 +235,7 @@ const Index = () => {
                 <Link to="/admin">
                   <Button variant="outline" size="sm" onClick={handleAdminPanel}>
                     <Settings className="w-4 h-4 mr-2" />
-                    Admin
+                    {t('settings')}
                   </Button>
                 </Link>
               )}
@@ -240,7 +252,7 @@ const Index = () => {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
+                    {t('logout')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -255,22 +267,39 @@ const Index = () => {
           <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="calendar" className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
-              <span className="hidden sm:inline">Calendar</span>
+              <span className="hidden sm:inline">{t('calendar')}</span>
             </TabsTrigger>
             <TabsTrigger value="tasks" className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
-              <span className="hidden sm:inline">Tasks</span>
+              <span className="hidden sm:inline">{t('tasks')}</span>
             </TabsTrigger>
             <TabsTrigger value="reports" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
-              <span className="hidden sm:inline">Reports</span>
+              <span className="hidden sm:inline">{t('reports')}</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="calendar" className="space-y-6">
-            {/* AI Upload Section */}
-            <div className="w-full">
-              <ImageUpload />
+            {/* Enhanced Features Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <ImageScheduleParser onScheduleParsed={(schedules) => {
+                toast({
+                  title: t('success'),
+                  description: `Added ${schedules.length} schedule entries from image`
+                });
+              }} />
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <SickNoticeModal />
+                  <QRCodeScanner />
+                </CardContent>
+              </Card>
+              
+              <WorkHoursStats />
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -299,17 +328,16 @@ const Index = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <Suspense fallback={<LoadingSpinner text="Loading Calendar..." />}>
+                    <Suspense fallback={<LoadingSpinner text={`${t('loading')} ${t('calendar')}...`} />}>
                       <LazyScheduleCalendar currentDate={currentDate} />
                     </Suspense>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Stats Section */}
+              {/* Charts Section */}
               <div className="space-y-6">
-                <WorkHoursStats />
-                <Suspense fallback={<LoadingSpinner text="Loading Charts..." />}>
+                <Suspense fallback={<LoadingSpinner text={`${t('loading')} Charts...`} />}>
                   <LazyHoursWorkedChart />
                 </Suspense>
               </div>
@@ -317,13 +345,13 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="tasks" className="space-y-6">
-            <Suspense fallback={<LoadingSpinner text="Loading Task Management..." />}>
+            <Suspense fallback={<LoadingSpinner text={`${t('loading')} ${t('tasks')}...`} />}>
               <LazyTaskManagement />
             </Suspense>
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-6">
-            <Suspense fallback={<LoadingSpinner text="Loading Reports..." />}>
+            <Suspense fallback={<LoadingSpinner text={`${t('loading')} ${t('reports')}...`} />}>
               <LazyReportsManagement />
             </Suspense>
           </TabsContent>
