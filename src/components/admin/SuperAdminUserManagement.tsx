@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Alert, AlertDescription } from '../ui/alert';
 import { CheckCircle, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
@@ -15,7 +16,7 @@ import CreateUserForm from './CreateUserForm';
 import EditUserDialog from './EditUserDialog';
 import OrganizationsList from './OrganizationsList';
 import UsersList from './UsersList';
-import Badge from './Badge';
+import OrganizationPauseManager from './OrganizationPauseManager';
 
 export default function SuperAdminUserManagement() {
   const { profile } = useSupabaseAuth();

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -83,7 +84,7 @@ export default function SecurityMonitoring() {
         .limit(20);
 
       // Convert session logs to security events with proper type handling
-      const events: SecurityEvent[] = sessionLogs?.map(log => ({
+      const sessionEvents: SecurityEvent[] = sessionLogs?.map(log => ({
         id: log.id,
         type: 'failed_login' as const,
         severity: 'medium' as const,
@@ -94,7 +95,7 @@ export default function SecurityMonitoring() {
       })) || [];
 
       // Add some mock security events for demonstration
-      const events: SecurityEvent[] = [
+      const mockEvents: SecurityEvent[] = [
         {
           id: 'mock-1',
           type: 'suspicious_activity',
@@ -113,7 +114,9 @@ export default function SecurityMonitoring() {
         }
       ];
 
-      setSecurityEvents(events);
+      // Combine both arrays
+      const allEvents = [...sessionEvents, ...mockEvents];
+      setSecurityEvents(allEvents);
 
       // Mock session information
       setSessionInfo({
