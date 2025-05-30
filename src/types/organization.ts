@@ -52,6 +52,7 @@ export interface EnhancedUser {
   password: string; // Hashed
   isActive: boolean;
   createdBy: string; // Admin who created this user
+  createdAt: string; // Add this missing property
   lastLogin?: Date;
   profileImage?: string;
   phoneNumber?: string;

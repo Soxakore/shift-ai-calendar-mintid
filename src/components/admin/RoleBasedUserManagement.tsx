@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -39,8 +38,11 @@ export default function RoleBasedUserManagement({ currentUser }: RoleBasedUserMa
     userType: 'employee' as 'employee' | 'manager'
   });
 
+  // Convert currentUser to have role property for permission functions
+  const currentUserWithRole = { ...currentUser, role: currentUser.userType };
+
   // Get UI permissions for current user
-  const uiPermissions = getUIPermissions(currentUser);
+  const uiPermissions = getUIPermissions(currentUserWithRole);
   
   // Filter users based on current user's permissions
   const getVisibleUsers = (): EnhancedUser[] => {
@@ -89,7 +91,7 @@ export default function RoleBasedUserManagement({ currentUser }: RoleBasedUserMa
 
   const handleCreateUser = () => {
     // Check if user has permission to create users
-    if (!checkPermission(currentUser, 'manage_dept_users', 'create')) {
+    if (!checkPermission(currentUserWithRole, 'manage_dept_users', 'create')) {
       alert('You do not have permission to create users');
       return;
     }
@@ -271,8 +273,9 @@ export default function RoleBasedUserManagement({ currentUser }: RoleBasedUserMa
       {/* Users List (filtered by permissions) */}
       <div className="grid gap-4">
         {visibleUsers.map((user) => {
-          const canEdit = checkPermission(currentUser, 'manage_dept_users', 'update', user);
-          const canDelete = checkPermission(currentUser, 'manage_dept_users', 'delete', user);
+          const userWithRole = { ...user, role: user.userType };
+          const canEdit = checkPermission(currentUserWithRole, 'manage_dept_users', 'update', userWithRole);
+          const canDelete = checkPermission(currentUserWithRole, 'manage_dept_users', 'delete', userWithRole);
           
           return (
             <Card key={user.id}>

@@ -188,21 +188,26 @@ export const demoUsersWithRoles: (EnhancedUser & { role: 'super_admin' | 'org_ad
   }
 ];
 
-// Helper function to get role from user
-const getUserRole = (user: AuthUser | (EnhancedUser & { role: string })): string => {
+// Helper function to get role from user - works with both AuthUser and EnhancedUser
+const getUserRole = (user: AuthUser | EnhancedUser): string => {
   if ('role' in user) {
     return user.role;
   }
-  // Fallback to roleId for EnhancedUser without role
-  return (user as any).roleId || 'employee';
+  // For EnhancedUser, use userType as role
+  return user.userType;
+};
+
+// Helper function to convert EnhancedUser to have a role property
+const addRoleToEnhancedUser = (user: EnhancedUser): EnhancedUser & { role: string } => {
+  return { ...user, role: user.userType };
 };
 
 // Permission checking utility - works with both AuthUser and EnhancedUser
 export const checkPermission = (
-  user: AuthUser | (EnhancedUser & { role: string }),
+  user: AuthUser | EnhancedUser,
   requiredPermission: string,
   action: string,
-  targetUser?: AuthUser | (EnhancedUser & { role: string })
+  targetUser?: AuthUser | EnhancedUser
 ): boolean => {
   const userRole = getUserRole(user);
   const userPermissions = rolePermissions[userRole] || [];
@@ -228,14 +233,13 @@ export const checkPermission = (
 };
 
 // UI visibility rules - works with both AuthUser and EnhancedUser
-export const getUIPermissions = (user: AuthUser | (EnhancedUser & { role: string })) => {
+export const getUIPermissions = (user: AuthUser | EnhancedUser) => {
   const userRole = getUserRole(user);
   const permissions = rolePermissions[userRole] || [];
   
   return {
     // Navigation items
     canViewOrganizations: userRole === 'super_admin',
-    canViewAllOrganizations: userRole === 'super_admin',
     canViewAllUsers: userRole === 'super_admin',
     canViewOrgUsers: ['super_admin', 'org_admin'].includes(userRole),
     canViewDeptUsers: ['super_admin', 'org_admin', 'manager'].includes(userRole),
