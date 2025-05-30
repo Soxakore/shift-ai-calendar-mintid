@@ -79,7 +79,7 @@ const EnhancedOrgAdminDashboard = () => {
 
     loadData();
 
-    // Subscribe to real-time updates
+    // Subscribe to real-time updates - now returns unsubscribe functions
     const unsubscribes = [
       dataStore.subscribe('user_added', loadData),
       dataStore.subscribe('user_updated', loadData),
@@ -88,7 +88,9 @@ const EnhancedOrgAdminDashboard = () => {
       dataStore.subscribe('time_logged', loadData)
     ];
 
-    return () => unsubscribes.forEach(unsub => unsub());
+    return () => {
+      unsubscribes.forEach(unsubscribe => unsubscribe());
+    };
   }, [user?.organizationId]);
 
   const generateRecentActivities = (users: any[], sickNotices: any[]) => {

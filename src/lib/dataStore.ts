@@ -1,4 +1,3 @@
-
 // Centralized data store for real-time updates across the application
 import { EnhancedUser, Organization, Department, Role } from '@/types/organization';
 
@@ -163,11 +162,18 @@ class DataStore {
   }
 
   // Event listener system for real-time updates
-  subscribe(event: string, callback: Function) {
+  subscribe(event: string, callback: Function): () => void {
     if (!this.listeners[event]) {
       this.listeners[event] = [];
     }
     this.listeners[event].push(callback);
+    
+    // Return unsubscribe function
+    return () => {
+      if (this.listeners[event]) {
+        this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
+      }
+    };
   }
 
   unsubscribe(event: string, callback: Function) {
