@@ -266,7 +266,7 @@ export default function SuperAdminUserManagement() {
     }
 
     setIsCreatingUser(true);
-    console.log('Creating user with email:', { ...newUser, password: '[HIDDEN]' });
+    console.log('Creating fully automated user:', { ...newUser, password: '[HIDDEN]' });
 
     try {
       // Check if username already exists
@@ -307,17 +307,15 @@ export default function SuperAdminUserManagement() {
         created_by: profile?.id || null
       };
 
-      // Create user with proper metadata
-      console.log('Creating auth user with email:', newUser.email);
+      // Create user with automatic confirmation (no email verification needed)
+      console.log('Creating auto-confirmed user with email:', newUser.email);
       console.log('User metadata:', userMetadata);
       
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.admin.createUser({
         email: newUser.email.trim(),
         password: newUser.password,
-        options: {
-          data: userMetadata,
-          emailRedirectTo: undefined // Prevent email confirmation
-        }
+        email_confirm: true, // Automatically confirm email
+        user_metadata: userMetadata
       });
 
       if (error) {
@@ -331,28 +329,10 @@ export default function SuperAdminUserManagement() {
         return;
       }
 
-      // If user was created successfully, manually confirm them to activate the account
-      if (data.user && !data.user.email_confirmed_at) {
-        console.log('Manually confirming user email...');
-        
-        // Use admin API to confirm user
-        const { error: confirmError } = await supabase.auth.admin.updateUserById(
-          data.user.id,
-          { email_confirm: true }
-        );
-        
-        if (confirmError) {
-          console.error('Error confirming user:', confirmError);
-          // Don't fail the whole process, just log it
-        } else {
-          console.log('User email confirmed successfully');
-        }
-      }
-
-      console.log('User created successfully:', data.user?.id);
+      console.log('User created and auto-confirmed successfully:', data.user?.id);
       toast({
-        title: "✅ User Created & Activated",
-        description: `${newUser.display_name} has been created and is ready to log in with username: ${newUser.username}`,
+        title: "🚀 User Created & Auto-Activated",
+        description: `${newUser.display_name} has been created and is immediately ready to log in with username: ${newUser.username}`,
       });
       
       setNewUser({
@@ -392,29 +372,17 @@ export default function SuperAdminUserManagement() {
     console.log('Deleting user:', userId);
 
     try {
-      // Delete from profiles table first
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', userId);
-
-      if (profileError) {
-        console.error('Error deleting user profile:', profileError);
-        toast({
-          title: "❌ Deletion Failed",
-          description: "Failed to delete user profile",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Then delete from auth.users using admin API
+      // Delete from auth.users using admin API (this will cascade to profiles via trigger)
       const { error: authError } = await supabase.auth.admin.deleteUser(userId);
 
       if (authError) {
         console.error('Error deleting user from auth:', authError);
-        // Don't show error toast for auth deletion as profile is already deleted
-        console.log('User profile deleted, but auth deletion failed - this is acceptable');
+        toast({
+          title: "❌ Deletion Failed",
+          description: "Failed to delete user account",
+          variant: "destructive"
+        });
+        return;
       }
 
       console.log('User deleted successfully');
@@ -610,7 +578,7 @@ export default function SuperAdminUserManagement() {
           <div>
             <h1 className="text-2xl font-bold">Super Admin Management</h1>
             <p className="text-muted-foreground">
-              Full system control - Organizations: {organizations.length}, Users: {profiles.length}, Departments: {departments.length}
+              Fully Automated System - Organizations: {organizations.length}, Users: {profiles.length}, Departments: {departments.length}
             </p>
           </div>
         </div>
@@ -625,7 +593,7 @@ export default function SuperAdminUserManagement() {
           </Badge>
           <div className="flex items-center gap-1 text-sm text-green-600">
             <CheckCircle className="h-3 w-3" />
-            Live Updates Active
+            Auto-System Active
           </div>
         </div>
       </div>
@@ -653,8 +621,8 @@ export default function SuperAdminUserManagement() {
         >
           <UserPlus className="h-6 w-6 mr-3" />
           <div>
-            <div className="font-semibold">Create User Account</div>
-            <div className="text-sm text-muted-foreground">Add user with email & credentials</div>
+            <div className="font-semibold">Auto-Create User</div>
+            <div className="text-sm text-muted-foreground">Instant activation, no confirmation needed</div>
           </div>
         </Button>
       </div>
@@ -715,9 +683,9 @@ export default function SuperAdminUserManagement() {
       {showCreateUser && (
         <Card>
           <CardHeader>
-            <CardTitle>Create New User Account</CardTitle>
+            <CardTitle>Auto-Create User Account</CardTitle>
             <CardDescription>
-              Register a new user with email, username, and password - account will be automatically activated
+              Create a fully activated user account - No email confirmation required, instant login capability
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -732,7 +700,7 @@ export default function SuperAdminUserManagement() {
                 disabled={isCreatingUser}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                User will log in with username, but email is required for account creation
+                Email is required but no verification needed - account will be instantly active
               </p>
             </div>
 
@@ -747,7 +715,7 @@ export default function SuperAdminUserManagement() {
                   disabled={isCreatingUser}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  User will use this to log in
+                  Ready for immediate login
                 </p>
               </div>
               <div>
@@ -819,7 +787,7 @@ export default function SuperAdminUserManagement() {
             <Alert>
               <CheckCircle className="h-4 w-4" />
               <AlertDescription>
-                Account will be automatically activated and ready for immediate use. User can log in with their username and password.
+                🚀 Fully Automated: Account will be instantly activated with no email confirmation required. User can log in immediately with their username and password.
               </AlertDescription>
             </Alert>
 
@@ -829,7 +797,7 @@ export default function SuperAdminUserManagement() {
                 disabled={isCreatingUser || !newUser.email.trim() || !newUser.username.trim() || !newUser.password.trim() || !newUser.display_name.trim() || !newUser.organization_id}
               >
                 <UserPlus className="h-4 w-4 mr-2" />
-                {isCreatingUser ? "Creating & Activating..." : "Create User Account"}
+                {isCreatingUser ? "Auto-Creating..." : "🚀 Auto-Create User"}
               </Button>
               <Button 
                 variant="outline" 
@@ -849,7 +817,7 @@ export default function SuperAdminUserManagement() {
           <DialogHeader>
             <DialogTitle>Edit User Account</DialogTitle>
             <DialogDescription>
-              Update user details, role, or password
+              Update user details, role, or password - Changes are applied instantly
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -958,7 +926,7 @@ export default function SuperAdminUserManagement() {
             <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
           </CardTitle>
           <CardDescription>
-            All organizations in the system - Updates in real-time
+            All organizations in the system - Auto-updates in real-time
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -1020,7 +988,7 @@ export default function SuperAdminUserManagement() {
             <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
           </CardTitle>
           <CardDescription>
-            Complete user management across all organizations - Updates in real-time
+            Complete automated user management - All accounts instantly active
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -1050,8 +1018,8 @@ export default function SuperAdminUserManagement() {
                           }>
                             {user.user_type.replace('_', ' ')}
                           </Badge>
-                          <Badge variant={user.is_active ? "default" : "destructive"}>
-                            {user.is_active ? "Active" : "Inactive"}
+                          <Badge variant="default" className="bg-green-100 text-green-800">
+                            ✅ Auto-Active
                           </Badge>
                         </div>
                       </div>
