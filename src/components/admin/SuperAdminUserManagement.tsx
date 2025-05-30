@@ -6,6 +6,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Alert, AlertDescription } from '../ui/alert';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { 
   Users, 
   UserPlus, 
@@ -17,7 +18,8 @@ import {
   RefreshCw,
   Trash2,
   AlertTriangle,
-  Mail
+  Mail,
+  Edit
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
@@ -34,6 +36,8 @@ export default function SuperAdminUserManagement() {
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [deletingOrgId, setDeletingOrgId] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [isUpdatingUser, setIsUpdatingUser] = useState(false);
   const [newUser, setNewUser] = useState({
     email: '',
     username: '',
@@ -42,6 +46,14 @@ export default function SuperAdminUserManagement() {
     user_type: 'org_admin' as 'org_admin' | 'manager' | 'employee',
     organization_id: '',
     department_id: ''
+  });
+  const [editUserData, setEditUserData] = useState({
+    username: '',
+    display_name: '',
+    user_type: 'org_admin' as 'org_admin' | 'manager' | 'employee',
+    organization_id: '',
+    department_id: '',
+    new_password: ''
   });
   const [newOrg, setNewOrg] = useState({
     name: '',
@@ -423,6 +435,144 @@ export default function SuperAdminUserManagement() {
     }
   };
 
+  const handleEditUser = (user: any) => {
+    setEditingUser(user);
+    setEditUserData({
+      username: user.username,
+      display_name: user.display_name,
+      user_type: user.user_type,
+      organization_id: user.organization_id || '',
+      department_id: user.department_id || '',
+      new_password: ''
+    });
+  };
+
+  const handleUpdateUser = async () => {
+    if (!editingUser || !editUserData.username.trim() || !editUserData.display_name.trim()) {
+      toast({
+        title: "❌ Missing Information",
+        description: "Username and display name are required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!editUserData.organization_id) {
+      toast({
+        title: "❌ Missing Organization",
+        description: "Please select an organization",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUpdatingUser(true);
+    console.log('Updating user:', editingUser.id, editUserData);
+
+    try {
+      // Check if username already exists (excluding current user)
+      if (editUserData.username !== editingUser.username) {
+        const { data: existingProfile, error: checkError } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('username', editUserData.username.trim())
+          .neq('id', editingUser.id)
+          .maybeSingle();
+        
+        if (checkError) {
+          console.error('Error checking username:', checkError);
+          toast({
+            title: "❌ Error",
+            description: "Error checking username availability",
+            variant: "destructive"
+          });
+          setIsUpdatingUser(false);
+          return;
+        }
+        
+        if (existingProfile) {
+          toast({
+            title: "❌ Username Taken",
+            description: "Username already exists. Please choose another.",
+            variant: "destructive"
+          });
+          setIsUpdatingUser(false);
+          return;
+        }
+      }
+
+      // Update profile data
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          username: editUserData.username.trim(),
+          display_name: editUserData.display_name.trim(),
+          user_type: editUserData.user_type,
+          organization_id: editUserData.organization_id || null,
+          department_id: editUserData.department_id || null,
+        })
+        .eq('id', editingUser.id);
+
+      if (profileError) {
+        console.error('Error updating profile:', profileError);
+        toast({
+          title: "❌ Update Failed",
+          description: profileError.message || "Failed to update user profile",
+          variant: "destructive"
+        });
+        setIsUpdatingUser(false);
+        return;
+      }
+
+      // Update password if provided
+      if (editUserData.new_password.trim()) {
+        console.log('Updating user password...');
+        const { error: passwordError } = await supabase.auth.admin.updateUserById(
+          editingUser.id,
+          { password: editUserData.new_password.trim() }
+        );
+
+        if (passwordError) {
+          console.error('Error updating password:', passwordError);
+          toast({
+            title: "⚠️ Partial Update",
+            description: "Profile updated but password update failed. Try updating password separately.",
+            variant: "destructive"
+          });
+        } else {
+          console.log('Password updated successfully');
+        }
+      }
+
+      console.log('User updated successfully');
+      toast({
+        title: "✅ User Updated",
+        description: `${editUserData.display_name} has been updated successfully`,
+      });
+      
+      setEditingUser(null);
+      setEditUserData({
+        username: '',
+        display_name: '',
+        user_type: 'org_admin',
+        organization_id: '',
+        department_id: '',
+        new_password: ''
+      });
+      
+      await refetchProfiles();
+    } catch (error) {
+      console.error('Unexpected error updating user:', error);
+      toast({
+        title: "❌ Unexpected Error",
+        description: "An unexpected error occurred while updating the user",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdatingUser(false);
+    }
+  };
+
   const getUserOrganization = (orgId: string) => {
     return organizations.find(org => org.id === orgId)?.name || 'Unknown';
   };
@@ -693,6 +843,113 @@ export default function SuperAdminUserManagement() {
         </Card>
       )}
 
+      {/* Edit User Dialog */}
+      <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit User Account</DialogTitle>
+            <DialogDescription>
+              Update user details, role, or password
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="editUsername">Username *</Label>
+              <Input
+                id="editUsername"
+                value={editUserData.username}
+                onChange={(e) => setEditUserData({...editUserData, username: e.target.value})}
+                placeholder="john.admin"
+                disabled={isUpdatingUser}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="editDisplayName">Full Name *</Label>
+              <Input
+                id="editDisplayName"
+                value={editUserData.display_name}
+                onChange={(e) => setEditUserData({...editUserData, display_name: e.target.value})}
+                placeholder="John Administrator"
+                disabled={isUpdatingUser}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="editPassword">New Password (optional)</Label>
+              <Input
+                id="editPassword"
+                type="password"
+                value={editUserData.new_password}
+                onChange={(e) => setEditUserData({...editUserData, new_password: e.target.value})}
+                placeholder="Leave blank to keep current password"
+                disabled={isUpdatingUser}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="editUserType">Role *</Label>
+                <Select 
+                  value={editUserData.user_type} 
+                  onValueChange={(value: 'org_admin' | 'manager' | 'employee') => 
+                    setEditUserData({...editUserData, user_type: value})
+                  }
+                  disabled={isUpdatingUser}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="org_admin">Organization Admin</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="employee">Employee</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="editOrganization">Organization *</Label>
+                <Select 
+                  value={editUserData.organization_id} 
+                  onValueChange={(value) => setEditUserData({...editUserData, organization_id: value})}
+                  disabled={isUpdatingUser}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Organization" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {organizations.map((org) => (
+                      <SelectItem key={org.id} value={org.id}>
+                        {org.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex space-x-2">
+              <Button 
+                onClick={handleUpdateUser}
+                disabled={isUpdatingUser || !editUserData.username.trim() || !editUserData.display_name.trim() || !editUserData.organization_id}
+                className="flex-1"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                {isUpdatingUser ? "Updating..." : "Update User"}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setEditingUser(null)}
+                disabled={isUpdatingUser}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Organizations List with delete functionality */}
       <Card>
         <CardHeader>
@@ -755,7 +1012,7 @@ export default function SuperAdminUserManagement() {
         </CardContent>
       </Card>
 
-      {/* Users List with delete functionality */}
+      {/* Users List with edit and delete functionality */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -805,18 +1062,27 @@ export default function SuperAdminUserManagement() {
                         <Eye className="h-4 w-4" />
                       </Button>
                       {user.user_type !== 'super_admin' && (
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          onClick={() => handleDeleteUser(user.id, user.display_name)}
-                          disabled={deletingUserId === user.id}
-                        >
-                          {deletingUserId === user.id ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
+                        <>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEditUser(user)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => handleDeleteUser(user.id, user.display_name)}
+                            disabled={deletingUserId === user.id}
+                          >
+                            {deletingUserId === user.id ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
