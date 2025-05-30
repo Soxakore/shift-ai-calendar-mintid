@@ -9,6 +9,53 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action_type: string
+          created_at: string
+          id: string
+          ip_address: unknown | null
+          location_data: Json | null
+          metadata: Json | null
+          target_organization_id: string | null
+          target_user_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          location_data?: Json | null
+          metadata?: Json | null
+          target_organization_id?: string | null
+          target_user_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          location_data?: Json | null
+          metadata?: Json | null
+          target_organization_id?: string | null
+          target_user_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_target_organization_id_fkey"
+            columns: ["target_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           created_at: string
@@ -242,6 +289,45 @@ export type Database = {
           },
         ]
       }
+      session_logs: {
+        Row: {
+          action: string
+          created_at: string
+          failure_reason: string | null
+          id: string
+          ip_address: unknown | null
+          location_data: Json | null
+          session_id: string | null
+          success: boolean | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          ip_address?: unknown | null
+          location_data?: Json | null
+          session_id?: string | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          ip_address?: unknown | null
+          location_data?: Json | null
+          session_id?: string | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       sick_notices: {
         Row: {
           created_at: string
@@ -378,6 +464,32 @@ export type Database = {
       }
       get_user_role: {
         Args: { user_id: string }
+        Returns: string
+      }
+      log_audit_event: {
+        Args: {
+          p_user_id: string
+          p_action_type: string
+          p_target_user_id?: string
+          p_target_organization_id?: string
+          p_ip_address?: string
+          p_user_agent?: string
+          p_location_data?: Json
+          p_metadata?: Json
+        }
+        Returns: string
+      }
+      log_session_event: {
+        Args: {
+          p_user_id: string
+          p_session_id: string
+          p_action: string
+          p_ip_address?: string
+          p_user_agent?: string
+          p_location_data?: Json
+          p_success?: boolean
+          p_failure_reason?: string
+        }
         Returns: string
       }
     }

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -16,17 +15,21 @@ import {
   AlertTriangle,
   CheckCircle,
   Edit,
-  Trash2
+  Trash2,
+  History
 } from 'lucide-react';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useToast } from '@/hooks/use-toast';
+import { useAuditLogger } from '@/hooks/useAuditLogger';
 import { supabase } from '@/integrations/supabase/client';
+import HistoryButton from './HistoryButton';
 
 export default function RoleBasedUserManagement() {
   const { profile, createUser } = useSupabaseAuth();
   const { profiles, departments, organizations, refetchProfiles } = useSupabaseData();
   const { toast } = useToast();
+  const { logAuditEvent } = useAuditLogger();
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
@@ -127,6 +130,18 @@ export default function RoleBasedUserManagement() {
       const result = await createUser(userData);
       
       if (result.success) {
+        // Log audit event for user creation
+        await logAuditEvent({
+          actionType: 'user_created',
+          targetOrganizationId: effectiveOrgId,
+          metadata: {
+            target_username: userData.username,
+            target_display_name: userData.display_name,
+            target_user_type: userData.user_type,
+            target_department_id: userData.department_id
+          }
+        });
+
         toast({
           title: "✅ User Created",
           description: `${newUser.display_name} has been created successfully`,
@@ -187,6 +202,19 @@ export default function RoleBasedUserManagement() {
           variant: "destructive"
         });
       } else {
+        // Log audit event for user update
+        await logAuditEvent({
+          actionType: 'user_updated',
+          targetUserId: editingUser.id,
+          targetOrganizationId: effectiveOrgId,
+          metadata: {
+            target_username: userData.username,
+            target_display_name: userData.display_name,
+            previous_user_type: editingUser.user_type,
+            new_user_type: userData.user_type
+          }
+        });
+
         toast({
           title: "✅ User Updated",
           description: `${userData.display_name} has been updated`,
@@ -230,12 +258,34 @@ export default function RoleBasedUserManagement() {
             variant: "destructive"
           });
         } else {
+          // Log audit event for user deletion
+          await logAuditEvent({
+            actionType: 'user_deleted',
+            targetUserId: userId,
+            targetOrganizationId: effectiveOrgId,
+            metadata: {
+              target_username: userName,
+              deletion_method: 'profile_only'
+            }
+          });
+
           toast({
             title: "⚠️ Profile Deleted",
             description: `${userName} profile removed (auth account may remain)`,
           });
         }
       } else {
+        // Log audit event for complete user deletion
+        await logAuditEvent({
+          actionType: 'user_deleted',
+          targetUserId: userId,
+          targetOrganizationId: effectiveOrgId,
+          metadata: {
+            target_username: userName,
+            deletion_method: 'complete'
+          }
+        });
+
         toast({
           title: "🗑️ User Deleted",
           description: `${userName} has been completely removed`,
@@ -278,6 +328,12 @@ export default function RoleBasedUserManagement() {
         </div>
 
         <div className="flex items-center space-x-2">
+          <HistoryButton 
+            targetOrgId={effectiveOrgId} 
+            variant="outline"
+            size="default"
+            showBadge={true}
+          />
           <Shield className="h-5 w-5" />
           <Badge variant={isViewingAsAdmin ? 'destructive' : 'default'}>
             {isViewingAsAdmin ? 'SUPER ADMIN VIEW' : effectiveUserType?.replace('_', ' ').toUpperCase()}
@@ -291,7 +347,7 @@ export default function RoleBasedUserManagement() {
           <Shield className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-blue-800 dark:text-blue-200">
             <strong>Super Admin Powers Active:</strong> You can create, edit, and delete users for {superAdminContext.name}. 
-            All changes will be attributed to your super admin account.
+            All changes will be attributed to your super admin account and logged for security.
           </AlertDescription>
         </Alert>
       )}
@@ -440,6 +496,13 @@ export default function RoleBasedUserManagement() {
                   <Badge variant={user.is_active ? "default" : "destructive"}>
                     {user.is_active ? "Active" : "Inactive"}
                   </Badge>
+                  
+                  {/* History Button for individual user */}
+                  <HistoryButton 
+                    targetUserId={user.id} 
+                    variant="ghost"
+                    size="sm"
+                  />
                   
                   {canEditUsers && (
                     <Button variant="ghost" size="sm" onClick={() => handleEditUser(user)}>

@@ -43,6 +43,30 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  // Helper function for audit logging
+  const logSessionEvent = async (
+    userId: string,
+    action: 'login' | 'logout' | 'session_refresh',
+    sessionId?: string,
+    success: boolean = true,
+    failureReason?: string
+  ) => {
+    try {
+      await supabase.rpc('log_session_event', {
+        p_user_id: userId,
+        p_session_id: sessionId,
+        p_action: action,
+        p_ip_address: null, // Client-side can't get real IP
+        p_user_agent: navigator.userAgent,
+        p_location_data: null,
+        p_success: success,
+        p_failure_reason: failureReason
+      });
+    } catch (error) {
+      console.error('Failed to log session event:', error);
+    }
+  };
+
   useEffect(() => {
     console.log('🔄 Setting up auth state listener...');
     
@@ -56,6 +80,36 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         console.log('🔄 Auth state change:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
+        
+        // Log session events
+        if (session?.user && event === 'SIGNED_IN') {
+          setTimeout(() => {
+            logSessionEvent(
+              session.user.id,
+              'login',
+              session.access_token.slice(-16),
+              true
+            );
+          }, 0);
+        } else if (event === 'SIGNED_OUT' && user) {
+          setTimeout(() => {
+            logSessionEvent(
+              user.id,
+              'logout',
+              session?.access_token?.slice(-16),
+              true
+            );
+          }, 0);
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          setTimeout(() => {
+            logSessionEvent(
+              session.user.id,
+              'session_refresh',
+              session.access_token.slice(-16),
+              true
+            );
+          }, 0);
+        }
         
         if (session?.user) {
           // Use setTimeout to prevent auth deadlock
@@ -172,6 +226,14 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
 
         if (error) {
           console.error('Super admin login error:', error);
+          // Log failed login attempt
+          await logSessionEvent(
+            'unknown',
+            'login',
+            undefined,
+            false,
+            'Invalid super admin credentials'
+          );
           setLoading(false);
           return { success: false, error: 'Invalid super admin credentials' };
         }
