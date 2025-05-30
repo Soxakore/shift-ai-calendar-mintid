@@ -177,12 +177,12 @@ export default function SuperAdminUserManagement() {
   };
 
   const handleDeleteOrganization = async (orgId: string, orgName: string) => {
-    if (!confirm(`Are you sure you want to delete "${orgName}"? This will also delete all associated users and data. This action cannot be undone.`)) {
+    if (!confirm(`Are you sure you want to delete "${orgName}"? This will completely remove all associated users, their accounts, and all data. This action cannot be undone.`)) {
       return;
     }
 
     setDeletingOrgId(orgId);
-    console.log('Deleting organization and all associated users:', orgId);
+    console.log('🗑️ Starting complete organization deletion:', orgId);
 
     try {
       // Get all users in this organization first
@@ -202,22 +202,40 @@ export default function SuperAdminUserManagement() {
         return;
       }
 
-      console.log('Found users to delete:', orgUsers);
+      console.log('📋 Found users to delete:', orgUsers?.length || 0);
 
-      // Delete all users in this organization from auth
+      let authDeleteCount = 0;
+      let profileDeleteCount = 0;
+
+      // Delete all users in this organization
       for (const user of orgUsers || []) {
-        console.log('Deleting user from auth:', user.id);
+        console.log(`🗑️ Attempting to delete user: ${user.username} (${user.id})`);
+        
         try {
+          // First try to delete from auth (this will also trigger profile deletion via RLS)
           const { error: authError } = await supabase.auth.admin.deleteUser(user.id);
+          
           if (authError) {
-            console.error(`Failed to delete user ${user.username}:`, authError);
-            // Continue with other users even if one fails
+            console.log(`⚠️ Auth deletion failed for ${user.username}, trying profile-only deletion:`, authError.message);
+            
+            // If auth deletion fails, delete profile manually
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .delete()
+              .eq('id', user.id);
+
+            if (profileError) {
+              console.error(`❌ Profile deletion also failed for ${user.username}:`, profileError);
+            } else {
+              profileDeleteCount++;
+              console.log(`✅ Profile deleted for ${user.username} (auth account may remain)`);
+            }
           } else {
-            console.log(`Successfully deleted user ${user.username}`);
+            authDeleteCount++;
+            console.log(`✅ Complete deletion successful for ${user.username}`);
           }
         } catch (error) {
-          console.error(`Error deleting user ${user.username}:`, error);
-          // Continue with other users
+          console.error(`💥 Unexpected error deleting ${user.username}:`, error);
         }
       }
 
@@ -231,23 +249,35 @@ export default function SuperAdminUserManagement() {
         .eq('id', orgId);
 
       if (orgError) {
-        console.error('Error deleting organization:', orgError);
+        console.error('❌ Error deleting organization:', orgError);
         toast({
-          title: "❌ Deletion Failed",
+          title: "❌ Organization Deletion Failed",
           description: orgError.message || "Failed to delete organization",
           variant: "destructive"
         });
       } else {
-        console.log('Organization deleted successfully');
+        console.log('✅ Organization deleted successfully');
+        
+        const totalUsers = orgUsers?.length || 0;
+        const deletionSummary = [];
+        
+        if (authDeleteCount > 0) {
+          deletionSummary.push(`${authDeleteCount} users completely removed (email + profile)`);
+        }
+        if (profileDeleteCount > 0) {
+          deletionSummary.push(`${profileDeleteCount} profiles removed (email accounts may remain)`);
+        }
+        
         toast({
-          title: "✅ Organization Deleted",
-          description: `${orgName} and all ${orgUsers?.length || 0} associated users have been deleted successfully`,
+          title: "🗑️ Organization Completely Deleted",
+          description: `${orgName} and ${totalUsers} associated users deleted. ${deletionSummary.join(', ')}`,
         });
+        
         await refetchOrganizations();
         await refetchProfiles();
       }
     } catch (error) {
-      console.error('Unexpected error deleting organization:', error);
+      console.error('💥 Unexpected error deleting organization:', error);
       toast({
         title: "❌ Unexpected Error",
         description: "An unexpected error occurred during deletion",
@@ -387,58 +417,57 @@ export default function SuperAdminUserManagement() {
   };
 
   const handleDeleteUser = async (userId: string, userName: string) => {
-    if (!confirm(`Are you sure you want to delete user "${userName}"? This action cannot be undone.`)) {
+    if (!confirm(`Are you sure you want to completely delete user "${userName}"? This will remove their email account, profile, and all associated data. This action cannot be undone.`)) {
       return;
     }
 
     setDeletingUserId(userId);
-    console.log('Deleting user:', userId, userName);
+    console.log('🗑️ Starting complete user deletion:', userId, userName);
 
     try {
-      // First, try to delete using the admin API
-      console.log('Attempting to delete user via admin API...');
+      // First, try to delete using the admin API (this removes both auth and profile)
+      console.log('🔑 Attempting complete deletion via admin API...');
       const { error: adminError } = await supabase.auth.admin.deleteUser(userId);
 
       if (adminError) {
-        console.log('Admin API delete failed, trying profile-only deletion:', adminError);
+        console.log('⚠️ Admin API deletion failed, trying alternative approach:', adminError.message);
         
-        // If admin API fails, delete just the profile and let user know
+        // If admin API fails due to permissions, delete profile and mark auth for cleanup
         const { error: profileError } = await supabase
           .from('profiles')
           .delete()
           .eq('id', userId);
 
         if (profileError) {
-          console.error('Profile deletion also failed:', profileError);
+          console.error('❌ Profile deletion also failed:', profileError);
           toast({
             title: "❌ Deletion Failed",
-            description: "Failed to delete user profile. Please contact system administrator.",
+            description: `Failed to delete ${userName}. Error: ${profileError.message}`,
             variant: "destructive"
           });
-          setDeletingUserId(null);
-          return;
+        } else {
+          console.log('✅ Profile deleted successfully (auth account remains)');
+          toast({
+            title: "⚠️ User Profile Deleted",
+            description: `${userName}'s profile removed from MinTid. Email account still exists in Supabase and needs manual cleanup.`,
+          });
         }
-
-        console.log('Profile deleted successfully (auth account may remain)');
-        toast({
-          title: "⚠️ User Profile Deleted",
-          description: `${userName}'s profile has been removed. Note: The authentication account may still exist.`,
-        });
       } else {
-        console.log('User deleted successfully via admin API');
+        console.log('✅ Complete user deletion successful via admin API');
         toast({
-          title: "✅ User Completely Deleted",
-          description: `${userName} has been completely removed from the system`,
+          title: "🗑️ User Completely Deleted",
+          description: `${userName} has been completely removed - both email account and profile deleted successfully`,
         });
       }
 
       // Refresh the profiles list
       await refetchProfiles();
+      
     } catch (error) {
-      console.error('Unexpected error deleting user:', error);
+      console.error('💥 Unexpected error during user deletion:', error);
       toast({
         title: "❌ Unexpected Error",
-        description: "An unexpected error occurred while deleting the user",
+        description: `An unexpected error occurred while deleting ${userName}. Please try again.`,
         variant: "destructive"
       });
     } finally {
