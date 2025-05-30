@@ -13,9 +13,16 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
   const { user, profile, loading } = useSupabaseAuth();
   const location = useLocation();
 
-  console.log('ProtectedRoute - Loading:', loading, 'User:', user?.email, 'Profile:', profile?.user_type);
+  console.log('ProtectedRoute Debug:', {
+    loading,
+    user: user?.email,
+    profile: profile?.user_type,
+    requireRole,
+    currentPath: location.pathname
+  });
 
   if (loading) {
+    console.log('ProtectedRoute: Still loading auth state...');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner text="Checking authentication..." />
@@ -24,12 +31,12 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
   }
 
   if (!user || !profile) {
-    console.log('No user or profile, redirecting to auth');
-    // Redirect to auth page with return url
+    console.log('ProtectedRoute: No user or profile, redirecting to auth');
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
   if (!profile.is_active) {
+    console.log('ProtectedRoute: User account is inactive');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -45,18 +52,18 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
     
     // Super admin has access to everything
     if (profile.user_type === 'super_admin') {
-      console.log('Super admin access granted');
+      console.log('ProtectedRoute: Super admin access granted');
       return <>{children}</>;
     }
     
     // Check specific roles
     if (!roles.includes(profile.user_type)) {
-      console.log('Role check failed. Required:', roles, 'User has:', profile.user_type);
+      console.log('ProtectedRoute: Role check failed. Required:', roles, 'User has:', profile.user_type);
       return <Navigate to="/" replace />;
     }
   }
 
-  console.log('Access granted for user type:', profile.user_type);
+  console.log('ProtectedRoute: Access granted for user type:', profile.user_type);
   return <>{children}</>;
 };
 

@@ -3,7 +3,7 @@ import { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
-import { ThemeProvider } from '@/hooks/useTheme';
+import { ThemeProvider } from '@/components/ThemeToggle';
 import { SupabaseAuthProvider } from '@/hooks/useSupabaseAuth';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import LoadingSpinner from '@/components/LoadingSpinner';
@@ -43,7 +43,7 @@ function App() {
                     <Route
                       path="/super-admin"
                       element={
-                        <ProtectedRoute requireRole={['super_admin']}>
+                        <ProtectedRoute requireRole="super_admin">
                           <SuperAdminDashboard />
                         </ProtectedRoute>
                       }
@@ -51,7 +51,7 @@ function App() {
                     <Route
                       path="/org-admin"
                       element={
-                        <ProtectedRoute requireRole={['org_admin']}>
+                        <ProtectedRoute requireRole="org_admin">
                           <OrgAdminDashboard />
                         </ProtectedRoute>
                       }
@@ -59,7 +59,7 @@ function App() {
                     <Route
                       path="/manager"
                       element={
-                        <ProtectedRoute requireRole={['manager']}>
+                        <ProtectedRoute requireRole="manager">
                           <ManagerDashboard />
                         </ProtectedRoute>
                       }
@@ -67,7 +67,7 @@ function App() {
                     <Route
                       path="/employee"
                       element={
-                        <ProtectedRoute requireRole={['employee']}>
+                        <ProtectedRoute requireRole="employee">
                           <EmployeeDashboard />
                         </ProtectedRoute>
                       }
