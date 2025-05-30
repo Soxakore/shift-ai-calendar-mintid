@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -110,9 +111,9 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
     try {
       console.log('Attempting sign in for username:', username);
       
-      // Special case for super admin - direct email authentication
+      // Special case for super admin
       if (username === 'tiktok') {
-        console.log('Super admin login attempt with direct email');
+        console.log('Super admin login with tiktok518@gmail.com');
         const { data, error } = await supabase.auth.signInWithPassword({
           email: 'tiktok518@gmail.com',
           password: password,
@@ -120,34 +121,40 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
 
         if (error) {
           console.error('Super admin login failed:', error);
-          return { success: false, error: error.message };
+          return { success: false, error: 'Invalid super admin credentials' };
         }
 
         console.log('Super admin login successful');
         return { success: true };
       }
 
-      // For regular users, find profile first, then get email from metadata
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, username')
-        .eq('username', username)
-        .eq('is_active', true)
-        .maybeSingle();
+      // For regular users - try direct email first
+      console.log('Attempting regular user login');
+      let email = username;
+      
+      // If username doesn't contain @, try to find profile and construct email
+      if (!username.includes('@')) {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, username')
+          .eq('username', username)
+          .eq('is_active', true)
+          .maybeSingle();
 
-      if (profileError) {
-        console.error('Profile lookup error:', profileError);
-        return { success: false, error: 'Database error occurred' };
+        if (profileError) {
+          console.error('Profile lookup error:', profileError);
+          return { success: false, error: 'Database error occurred' };
+        }
+
+        if (!profileData) {
+          console.log('No profile found for username:', username);
+          return { success: false, error: 'Invalid username or account is inactive' };
+        }
+
+        // Construct email from username and user ID
+        email = `${username}@${profileData.id}.mintid.local`;
+        console.log('Constructed email:', email);
       }
-
-      if (!profileData) {
-        console.log('No profile found for username:', username);
-        return { success: false, error: 'Invalid username or account is inactive' };
-      }
-
-      // Try to sign in with constructed email
-      const email = `${username}@${profileData.id}.mintid.local`;
-      console.log('Attempting login with constructed email:', email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
@@ -159,6 +166,7 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         return { success: false, error: 'Invalid credentials' };
       }
 
+      console.log('Login successful for:', email);
       return { success: true };
     } catch (error) {
       console.error('Unexpected error:', error);

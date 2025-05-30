@@ -49,22 +49,32 @@ const SuperAdminInitial = () => {
     console.log('Login attempt with username:', username);
     setLoading(true);
     
-    const result = await signIn(username, password);
-    
-    if (result.success) {
+    try {
+      const result = await signIn(username, password);
+      
+      if (result.success) {
+        toast({
+          title: "✅ Login Successful",
+          description: "Welcome to MinTid Super Admin!",
+        });
+      } else {
+        console.error('Login failed:', result.error);
+        toast({
+          title: "❌ Login Failed",
+          description: result.error || "Invalid username or password",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Login error:', error);
       toast({
-        title: "✅ Login Successful",
-        description: "Welcome to MinTid Super Admin!",
-      });
-    } else {
-      console.error('Login failed:', result.error);
-      toast({
-        title: "❌ Login Failed",
-        description: result.error || "Invalid username or password",
+        title: "❌ Login Error",
+        description: "An unexpected error occurred",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -93,6 +103,7 @@ const SuperAdminInitial = () => {
                 onChange={(e) => setUsername(e.target.value)}
                 disabled={loading}
                 className="bg-white"
+                placeholder="Enter username"
               />
             </div>
             
