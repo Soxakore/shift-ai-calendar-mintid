@@ -110,17 +110,17 @@ const NotificationDropdown = () => {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 max-h-96 overflow-y-auto z-50" align="end">
+      <PopoverContent className="w-80 max-h-96 overflow-y-auto z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700" align="end">
         <Card className="border-0 shadow-none">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Notifications</CardTitle>
+              <CardTitle className="text-lg text-slate-900 dark:text-slate-100">Notifications</CardTitle>
               {unreadCount > 0 && (
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   onClick={markAllAsRead}
-                  className="text-xs"
+                  className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
                 >
                   Mark all read
                 </Button>

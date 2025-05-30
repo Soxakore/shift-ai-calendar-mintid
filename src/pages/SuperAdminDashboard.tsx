@@ -249,7 +249,7 @@ const SuperAdminDashboard = () => {
                 variant="destructive" 
                 size="sm" 
                 onClick={handleLogout}
-                className="shadow-sm hover:shadow-md transition-shadow"
+                className="shadow-sm hover:shadow-md transition-shadow text-white"
               >
                 <LogOut className="w-4 h-4 mr-2" />
                 Logout
@@ -270,30 +270,30 @@ const SuperAdminDashboard = () => {
       {/* Main Content with Enhanced Tabs */}
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 lg:w-auto">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-6 lg:w-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+            <TabsTrigger value="overview" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
               <BarChart3 className="h-4 w-4" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2">
+            <TabsTrigger value="users" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
               <Users className="h-4 w-4" />
               Users
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <TabsTrigger value="analytics" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
               <BarChart3 className="h-4 w-4" />
               Analytics
             </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center gap-2">
+            <TabsTrigger value="security" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
               <Shield className="h-4 w-4" />
               Security
-              <Badge variant="destructive" className="text-xs">New</Badge>
+              <Badge variant="destructive" className="text-xs text-white">New</Badge>
             </TabsTrigger>
-            <TabsTrigger value="2fa" className="flex items-center gap-2">
+            <TabsTrigger value="2fa" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
               <Shield className="h-4 w-4" />
               2FA
               <Badge className="bg-blue-500 text-white text-xs">New</Badge>
             </TabsTrigger>
-            <TabsTrigger value="system" className="flex items-center gap-2">
+            <TabsTrigger value="system" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
               <Settings className="h-4 w-4" />
               System
             </TabsTrigger>

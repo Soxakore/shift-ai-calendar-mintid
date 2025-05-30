@@ -591,8 +591,39 @@ const TwoFactorManagement = () => {
     }
   };
 
+  const [loading, setLoading] = useState(true);
+  const [sendResult, setSendResult] = useState<{ success: boolean, message: string } | null>(null);
+  const [isSendingTest, setIsSendingTest] = useState(false);
+
+  const fetchTwoFactorData = async () => {
+    try {
+      // ... keep existing code (fetch logic)
+    } catch (error) {
+      console.error('Error fetching 2FA data:', error);
+      toast({
+        title: "❌ 2FA Data Error",
+        description: "Failed to load two-factor authentication data",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTwoFactorData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Enhanced header section */}
       <div className="bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 p-6 rounded-lg border border-red-200 dark:border-red-800">
         <div className="flex items-center gap-3 mb-4">
@@ -762,198 +793,162 @@ const TwoFactorManagement = () => {
           </Card>
 
           {/* Enhanced Email Testing Section with Validation */}
-          <Card className="border-0 shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20">
-              <CardTitle className="flex items-center gap-2 text-emerald-900 dark:text-emerald-100">
-                <Mail className="w-5 h-5" />
-                Email Functions Testing
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                <Mail className="h-5 w-5" />
+                Email System Testing
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-gray-700 dark:text-gray-300">Test Password Reset Email</Label>
-                  <div className="flex gap-2">
-                    <Input 
-                      placeholder="Enter email or username"
-                      value={testEmail}
-                      onChange={(e) => {
-                        setTestEmail(e.target.value);
-                        setEmailValidationResult(null); // Reset validation when email changes
-                      }}
-                      className="dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-                    />
-                    <Button 
-                      onClick={() => validateEmailInDatabase(testEmail)}
-                      disabled={isValidatingEmail}
-                      variant="outline"
-                      className="dark:border-gray-600 dark:text-gray-100"
-                    >
-                      {isValidatingEmail ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
-                      ) : (
-                        <CheckCircle className="w-4 h-4" />
-                      )}
-                    </Button>
-                    <Button 
-                      onClick={() => handleSendPasswordReset(testEmail)}
-                      disabled={!emailValidationResult?.isValid}
-                      className="dark:border-gray-600 dark:text-gray-100"
-                    >
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  
-                  {/* Email validation result */}
-                  {emailValidationResult && (
-                    <div className={`p-3 rounded-lg ${
-                      emailValidationResult.isValid 
-                        ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
-                        : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
-                    }`}>
-                      <div className="flex items-center gap-2">
-                        {emailValidationResult.isValid ? (
-                          <CheckCircle className="w-4 h-4 text-green-600" />
-                        ) : (
-                          <XCircle className="w-4 h-4 text-red-600" />
-                        )}
-                        <span className={`text-sm ${
-                          emailValidationResult.isValid 
-                            ? 'text-green-700 dark:text-green-300'
-                            : 'text-red-700 dark:text-red-300'
-                        }`}>
-                          {emailValidationResult.message}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Enter username or email address. Click check button to validate against database before sending.
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-gray-700 dark:text-gray-300">Test Security Alert (to {adminEmail})</Label>
-                  <div className="flex gap-2">
-                    <Select onValueChange={(value) => handleSendSecurityAlert(value)}>
-                      <SelectTrigger className="dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100">
-                        <SelectValue placeholder="Select alert type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Suspicious login attempt detected from unknown location">Suspicious Login</SelectItem>
-                        <SelectItem value="Password changed successfully for admin account">Password Changed</SelectItem>
-                        <SelectItem value="2FA has been disabled on administrator account">2FA Disabled</SelectItem>
-                        <SelectItem value="Multiple failed login attempts detected from same IP">Failed Login Attempts</SelectItem>
-                        <SelectItem value="Emergency lockdown initiated by system administrator">Emergency Lockdown</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-4">
+                <input
+                  type="text"
+                  placeholder="Enter email address or username"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400"
+                />
+                <Button
+                  onClick={() => sendTestEmail('reset')}
+                  disabled={isSendingTest}
+                  variant="outline"
+                  className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
+                >
+                  {isSendingTest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                  Test Reset Email
+                </Button>
+                <Button
+                  onClick={() => sendTestEmail('security')}
+                  disabled={isSendingTest}
+                  variant="outline"
+                  className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
+                >
+                  {isSendingTest ? <Loader2 className="h-4 w-4 animate-spin" /> : <AlertTriangle className="h-4 w-4" />}
+                  Test Security Alert
+                </Button>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions Sidebar */}
-        <div className="space-y-6">
-          <Card className="border-0 shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20">
-              <CardTitle className="flex items-center gap-2 text-orange-900 dark:text-orange-100">
-                <Settings className="w-5 h-5" />
-                Quick Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-3">
-              <Button 
-                onClick={handleForce2FAReset}
-                className="w-full justify-start bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <UserCheck className="w-4 h-4 mr-2" />
-                Force 2FA Reset
-              </Button>
-              <Button 
-                onClick={handleBulkEnable2FA}
-                className="w-full justify-start bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Bulk Enable 2FA
-              </Button>
-              <Button 
-                onClick={handleSecurityAudit}
-                className="w-full justify-start bg-orange-600 hover:bg-orange-700 text-white"
-              >
-                <AlertTriangle className="w-4 h-4 mr-2" />
-                Security Audit
-              </Button>
-              <Button 
-                onClick={handleEmergencyLockdown}
-                className="w-full justify-start bg-red-600 hover:bg-red-700 text-white"
-              >
-                <Lock className="w-4 h-4 mr-2" />
-                Emergency Lockdown
-              </Button>
+              
+              {sendResult && (
+                <Alert className={sendResult.success ? "border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800" : "border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-800"}>
+                  <AlertDescription className={sendResult.success ? "text-green-800 dark:text-green-200" : "text-red-800 dark:text-red-200"}>
+                    {sendResult.message}
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              <div className="text-sm text-slate-600 dark:text-slate-400">
+                <p><strong>Instructions:</strong></p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>Enter an email address or username that exists in your system</li>
+                  <li>The system will validate the user exists before sending</li>
+                  <li>You'll get a confirmation dialog showing the user details</li>
+                  <li>Test emails are sent to verify the email system functionality</li>
+                </ul>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-900/20 dark:to-slate-900/20">
-              <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
-                <AlertCircle className="w-5 h-5" />
-                System Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {systemStatus.emailService ? (
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                  ) : (
-                    <XCircle className="w-4 h-4 text-red-500" />
-                  )}
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Email Service</span>
+          {/* Quick Actions Sidebar */}
+          <div className="space-y-6">
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20">
+                <CardTitle className="flex items-center gap-2 text-orange-900 dark:text-orange-100">
+                  <Settings className="w-5 h-5" />
+                  Quick Actions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 space-y-3">
+                <Button 
+                  onClick={handleForce2FAReset}
+                  className="w-full justify-start bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <UserCheck className="w-4 h-4 mr-2" />
+                  Force 2FA Reset
+                </Button>
+                <Button 
+                  onClick={handleBulkEnable2FA}
+                  className="w-full justify-start bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Bulk Enable 2FA
+                </Button>
+                <Button 
+                  onClick={handleSecurityAudit}
+                  className="w-full justify-start bg-orange-600 hover:bg-orange-700 text-white"
+                >
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                  Security Audit
+                </Button>
+                <Button 
+                  onClick={handleEmergencyLockdown}
+                  className="w-full justify-start bg-red-600 hover:bg-red-700 text-white"
+                >
+                  <Lock className="w-4 h-4 mr-2" />
+                  Emergency Lockdown
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-900/20 dark:to-slate-900/20">
+                <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                  <AlertCircle className="w-5 h-5" />
+                  System Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {systemStatus.emailService ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-red-500" />
+                    )}
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Email Service</span>
+                  </div>
+                  <Switch 
+                    checked={systemStatus.emailService}
+                    onCheckedChange={(checked) => 
+                      setSystemStatus(prev => ({ ...prev, emailService: checked }))
+                    }
+                  />
                 </div>
-                <Switch 
-                  checked={systemStatus.emailService}
-                  onCheckedChange={(checked) => 
-                    setSystemStatus(prev => ({ ...prev, emailService: checked }))
-                  }
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {systemStatus.twoFactorService ? (
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                  ) : (
-                    <XCircle className="w-4 h-4 text-red-500" />
-                  )}
-                  <span className="text-sm text-gray-700 dark:text-gray-300">2FA Service</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {systemStatus.twoFactorService ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-red-500" />
+                    )}
+                    <span className="text-sm text-gray-700 dark:text-gray-300">2FA Service</span>
+                  </div>
+                  <Switch 
+                    checked={systemStatus.twoFactorService}
+                    onCheckedChange={(checked) => 
+                      setSystemStatus(prev => ({ ...prev, twoFactorService: checked }))
+                    }
+                  />
                 </div>
-                <Switch 
-                  checked={systemStatus.twoFactorService}
-                  onCheckedChange={(checked) => 
-                    setSystemStatus(prev => ({ ...prev, twoFactorService: checked }))
-                  }
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {systemStatus.backupSystem ? (
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                  ) : (
-                    <AlertTriangle className="w-4 h-4 text-yellow-500" />
-                  )}
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Backup System</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {systemStatus.backupSystem ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                    )}
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Backup System</span>
+                  </div>
+                  <Switch 
+                    checked={systemStatus.backupSystem}
+                    onCheckedChange={(checked) => 
+                      setSystemStatus(prev => ({ ...prev, backupSystem: checked }))
+                    }
+                  />
                 </div>
-                <Switch 
-                  checked={systemStatus.backupSystem}
-                  onCheckedChange={(checked) => 
-                    setSystemStatus(prev => ({ ...prev, backupSystem: checked }))
-                  }
-                />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 

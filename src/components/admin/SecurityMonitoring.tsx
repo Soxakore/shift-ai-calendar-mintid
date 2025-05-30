@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import SystemStartupRecovery from './SystemStartupRecovery';
+import HackingAttemptMonitor from './HackingAttemptMonitor';
 
 interface SecurityEvent {
   id: string;
@@ -38,6 +40,7 @@ export default function SecurityMonitoring() {
   });
   const [loading, setLoading] = useState(true);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
   const { toast } = useToast();
 
   const fetchSecurityData = async () => {
@@ -150,161 +153,209 @@ export default function SecurityMonitoring() {
 
   return (
     <div className="space-y-6">
-      {/* Security Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Sessions</CardTitle>
-            <Wifi className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{sessionInfo.active_sessions}</div>
-            <p className="text-xs text-muted-foreground">
-              {sessionInfo.super_admin_sessions} super admin
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Security Events</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{securityEvents.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Last 24 hours
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Blocked IPs</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{sessionInfo.blocked_ips.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Currently blocked
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Alert Status</CardTitle>
-            <Bell className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Badge variant={alertsEnabled ? "default" : "secondary"}>
-                {alertsEnabled ? "Enabled" : "Disabled"}
-              </Badge>
-            </div>
-            <Button 
-              onClick={() => setAlertsEnabled(!alertsEnabled)}
-              variant="outline" 
-              size="sm" 
-              className="mt-2"
-            >
-              {alertsEnabled ? "Disable" : "Enable"}
-            </Button>
-          </CardContent>
-        </Card>
+      {/* Tab Navigation */}
+      <div className="border-b border-slate-200 dark:border-slate-700">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'overview'
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+            }`}
+          >
+            Security Overview
+          </button>
+          <button
+            onClick={() => setActiveTab('recovery')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'recovery'
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+            }`}
+          >
+            System Recovery
+          </button>
+          <button
+            onClick={() => setActiveTab('threats')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'threats'
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+            }`}
+          >
+            Threat Detection
+          </button>
+        </nav>
       </div>
 
-      {/* Security Alerts */}
-      {securityEvents.filter(e => e.severity === 'critical' || e.severity === 'high').length > 0 && (
-        <Alert className="border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-800">
-          <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
-          <AlertDescription className="text-red-800 dark:text-red-200">
-            <strong>High Priority Security Events Detected</strong><br />
-            {securityEvents.filter(e => e.severity === 'critical' || e.severity === 'high').length} critical/high severity events require immediate attention.
-          </AlertDescription>
-        </Alert>
-      )}
+      {activeTab === 'overview' && (
+        <>
+          {/* Security Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-slate-900 dark:text-slate-100">Active Sessions</CardTitle>
+                <Wifi className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{sessionInfo.active_sessions}</div>
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  {sessionInfo.super_admin_sessions} super admin
+                </p>
+              </CardContent>
+            </Card>
 
-      {/* Recent Security Events */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Recent Security Events
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {securityEvents.map((event) => (
-              <div key={event.id} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  {getEventIcon(event.type)}
-                  <div>
-                    <p className="font-medium">{event.description}</p>
-                    <div className="flex items-center gap-2 text-sm text-slate-500">
-                      <span>{new Date(event.timestamp).toLocaleString()}</span>
-                      {event.ip_address && (
-                        <>
-                          <span>•</span>
-                          <span className="font-mono">{event.ip_address}</span>
-                        </>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-slate-900 dark:text-slate-100">Security Events</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{securityEvents.length}</div>
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  Last 24 hours
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-slate-900 dark:text-slate-100">Blocked IPs</CardTitle>
+                <Shield className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{sessionInfo.blocked_ips.length}</div>
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  Currently blocked
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-slate-900 dark:text-slate-100">Alert Status</CardTitle>
+                <Bell className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2">
+                  <Badge variant={alertsEnabled ? "default" : "secondary"}>
+                    {alertsEnabled ? "Enabled" : "Disabled"}
+                  </Badge>
+                </div>
+                <Button 
+                  onClick={() => setAlertsEnabled(!alertsEnabled)}
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
+                >
+                  {alertsEnabled ? "Disable" : "Enable"}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Security Alerts */}
+          {securityEvents.filter(e => e.severity === 'critical' || e.severity === 'high').length > 0 && (
+            <Alert className="border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-800">
+              <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              <AlertDescription className="text-red-800 dark:text-red-200">
+                <strong>High Priority Security Events Detected</strong><br />
+                {securityEvents.filter(e => e.severity === 'critical' || e.severity === 'high').length} critical/high severity events require immediate attention.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Recent Security Events */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                <Shield className="h-5 w-5" />
+                Recent Security Events
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {securityEvents.map((event) => (
+                  <div key={event.id} className="flex items-center justify-between p-3 border rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                    <div className="flex items-center gap-3">
+                      {getEventIcon(event.type)}
+                      <div>
+                        <p className="font-medium text-slate-900 dark:text-slate-100">{event.description}</p>
+                        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                          <span>{new Date(event.timestamp).toLocaleString()}</span>
+                          {event.ip_address && (
+                            <>
+                              <span>•</span>
+                              <span className="font-mono">{event.ip_address}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className={getSeverityColor(event.severity)}>
+                        {event.severity.toUpperCase()}
+                      </Badge>
+                      {event.ip_address && event.type === 'failed_login' && (
+                        <Button 
+                          onClick={() => blockIP(event.ip_address!)}
+                          variant="outline" 
+                          size="sm"
+                          className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
+                        >
+                          Block IP
+                        </Button>
                       )}
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge className={getSeverityColor(event.severity)}>
-                    {event.severity.toUpperCase()}
-                  </Badge>
-                  {event.ip_address && event.type === 'failed_login' && (
+                ))}
+                
+                {securityEvents.length === 0 && (
+                  <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                    No security events in the last 24 hours
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Blocked IPs Management */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                <Globe className="h-5 w-5" />
+                Blocked IP Addresses
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {sessionInfo.blocked_ips.map((ip) => (
+                  <div key={ip} className="flex items-center justify-between p-2 border rounded bg-white dark:bg-slate-800">
+                    <span className="font-mono text-slate-900 dark:text-slate-100">{ip}</span>
                     <Button 
-                      onClick={() => blockIP(event.ip_address!)}
                       variant="outline" 
                       size="sm"
+                      className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
                     >
-                      Block IP
+                      Unblock
                     </Button>
-                  )}
-                </div>
+                  </div>
+                ))}
+                
+                {sessionInfo.blocked_ips.length === 0 && (
+                  <div className="text-center py-4 text-slate-500 dark:text-slate-400">
+                    No IP addresses currently blocked
+                  </div>
+                )}
               </div>
-            ))}
-            
-            {securityEvents.length === 0 && (
-              <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                No security events in the last 24 hours
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </>
+      )}
 
-      {/* Blocked IPs Management */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5" />
-            Blocked IP Addresses
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {sessionInfo.blocked_ips.map((ip) => (
-              <div key={ip} className="flex items-center justify-between p-2 border rounded">
-                <span className="font-mono">{ip}</span>
-                <Button variant="outline" size="sm">
-                  Unblock
-                </Button>
-              </div>
-            ))}
-            
-            {sessionInfo.blocked_ips.length === 0 && (
-              <div className="text-center py-4 text-slate-500 dark:text-slate-400">
-                No IP addresses currently blocked
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {activeTab === 'recovery' && <SystemStartupRecovery />}
+      {activeTab === 'threats' && <HackingAttemptMonitor />}
     </div>
   );
 }
