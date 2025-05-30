@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -17,7 +16,8 @@ import {
   CheckCircle,
   RefreshCw,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Mail
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
@@ -35,6 +35,7 @@ export default function SuperAdminUserManagement() {
   const [deletingOrgId, setDeletingOrgId] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [newUser, setNewUser] = useState({
+    email: '',
     username: '',
     password: '',
     display_name: '',
@@ -223,10 +224,10 @@ export default function SuperAdminUserManagement() {
   };
 
   const handleCreateUser = async () => {
-    if (!newUser.username.trim() || !newUser.password.trim() || !newUser.display_name.trim()) {
+    if (!newUser.email.trim() || !newUser.username.trim() || !newUser.password.trim() || !newUser.display_name.trim()) {
       toast({
         title: "❌ Missing Information",
-        description: "Username, password, and display name are required",
+        description: "Email, username, password, and display name are required",
         variant: "destructive"
       });
       return;
@@ -241,18 +242,86 @@ export default function SuperAdminUserManagement() {
       return;
     }
 
-    setIsCreatingUser(true);
-    console.log('Creating user:', { ...newUser, password: '[HIDDEN]' });
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newUser.email)) {
+      toast({
+        title: "❌ Invalid Email",
+        description: "Please enter a valid email address",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    const result = await createUser(newUser);
-    
-    if (result.success) {
-      console.log('User created successfully');
+    setIsCreatingUser(true);
+    console.log('Creating user with email:', { ...newUser, password: '[HIDDEN]' });
+
+    try {
+      // Check if username already exists
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('username', newUser.username.trim())
+        .maybeSingle();
+      
+      if (checkError) {
+        console.error('Error checking username:', checkError);
+        toast({
+          title: "❌ Error",
+          description: "Error checking username availability",
+          variant: "destructive"
+        });
+        setIsCreatingUser(false);
+        return;
+      }
+      
+      if (existingProfile) {
+        toast({
+          title: "❌ Username Taken",
+          description: "Username already exists. Please choose another.",
+          variant: "destructive"
+        });
+        setIsCreatingUser(false);
+        return;
+      }
+
+      // Create user with actual email (not constructed)
+      console.log('Creating auth user with email:', newUser.email);
+      
+      const { data, error } = await supabase.auth.signUp({
+        email: newUser.email.trim(),
+        password: newUser.password,
+        options: {
+          data: {
+            username: newUser.username.trim(),
+            display_name: newUser.display_name.trim(),
+            user_type: newUser.user_type,
+            organization_id: newUser.organization_id,
+            department_id: newUser.department_id,
+            created_by: profile?.id
+          }
+        }
+      });
+
+      if (error) {
+        console.error('User creation error:', error);
+        toast({
+          title: "❌ Creation Failed",
+          description: error.message,
+          variant: "destructive"
+        });
+        setIsCreatingUser(false);
+        return;
+      }
+
+      console.log('User created successfully:', data.user?.id);
       toast({
         title: "✅ User Created",
-        description: `${newUser.display_name} has been created successfully`,
+        description: `${newUser.display_name} has been created and activated successfully`,
       });
+      
       setNewUser({
+        email: '',
         username: '',
         password: '',
         display_name: '',
@@ -262,15 +331,16 @@ export default function SuperAdminUserManagement() {
       });
       setShowCreateUser(false);
       await refetchProfiles();
-    } else {
-      console.error('User creation failed:', result.error);
+    } catch (error) {
+      console.error('Unexpected error creating user:', error);
       toast({
-        title: "❌ Creation Failed",
-        description: result.error || "Failed to create user",
+        title: "❌ Unexpected Error",
+        description: "An unexpected error occurred",
         variant: "destructive"
       });
+    } finally {
+      setIsCreatingUser(false);
     }
-    setIsCreatingUser(false);
   };
 
   const handleDeleteUser = async (userId: string, userName: string) => {
@@ -405,8 +475,8 @@ export default function SuperAdminUserManagement() {
         >
           <UserPlus className="h-6 w-6 mr-3" />
           <div>
-            <div className="font-semibold">Create Admin User</div>
-            <div className="text-sm text-muted-foreground">Add organization admin</div>
+            <div className="font-semibold">Create User Account</div>
+            <div className="text-sm text-muted-foreground">Add user with email & credentials</div>
           </div>
         </Button>
       </div>
@@ -467,12 +537,27 @@ export default function SuperAdminUserManagement() {
       {showCreateUser && (
         <Card>
           <CardHeader>
-            <CardTitle>Create New User</CardTitle>
+            <CardTitle>Create New User Account</CardTitle>
             <CardDescription>
-              Create a new user account with assigned role and organization
+              Register a new user with email, username, and password - account will be automatically activated
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="email">Email Address *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={newUser.email}
+                onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                placeholder="user@company.com"
+                disabled={isCreatingUser}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                User will log in with username, but email is required for account creation
+              </p>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="username">Username *</Label>
@@ -483,6 +568,9 @@ export default function SuperAdminUserManagement() {
                   placeholder="john.admin"
                   disabled={isCreatingUser}
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  User will use this to log in
+                </p>
               </div>
               <div>
                 <Label htmlFor="displayName">Full Name *</Label>
@@ -503,7 +591,7 @@ export default function SuperAdminUserManagement() {
                 type="password"
                 value={newUser.password}
                 onChange={(e) => setNewUser({...newUser, password: e.target.value})}
-                placeholder="Secure password"
+                placeholder="Secure password (min 6 characters)"
                 disabled={isCreatingUser}
               />
             </div>
@@ -550,13 +638,20 @@ export default function SuperAdminUserManagement() {
               </div>
             </div>
 
+            <Alert>
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription>
+                Account will be automatically activated and ready for immediate use
+              </AlertDescription>
+            </Alert>
+
             <div className="flex space-x-2">
               <Button 
                 onClick={handleCreateUser}
-                disabled={isCreatingUser || !newUser.username.trim() || !newUser.password.trim() || !newUser.display_name.trim() || !newUser.organization_id}
+                disabled={isCreatingUser || !newUser.email.trim() || !newUser.username.trim() || !newUser.password.trim() || !newUser.display_name.trim() || !newUser.organization_id}
               >
                 <UserPlus className="h-4 w-4 mr-2" />
-                {isCreatingUser ? "Creating..." : "Create User"}
+                {isCreatingUser ? "Creating..." : "Create User Account"}
               </Button>
               <Button 
                 variant="outline" 
