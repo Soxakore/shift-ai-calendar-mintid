@@ -1,11 +1,12 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Building, Users, UserPlus } from 'lucide-react';
-import { CreateOrganizationForm } from './CreateOrganizationForm';
-import { CreateUserForm } from './CreateUserForm';
-import { OrganizationsList } from './OrganizationsList';
-import { UsersList } from './UsersList';
+import CreateOrganizationForm from './CreateOrganizationForm';
+import CreateUserForm from './CreateUserForm';
+import OrganizationsList from './OrganizationsList';
+import UsersList from './UsersList';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -47,7 +48,7 @@ export default function RoleBasedUserManagement() {
     try {
       const { data, error } = await supabase
         .from('organizations')
-        .select('*, users(id)')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {

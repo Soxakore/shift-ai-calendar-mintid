@@ -3,7 +3,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Users, Edit, Trash2, Phone, Building, Calendar } from 'lucide-react';
+import { Users, Edit, Trash2, Phone, Building, Calendar, Copy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface UsersListProps {
   users: Array<{
@@ -35,6 +36,8 @@ export default function UsersList({
   onDelete,
   getUserOrganization
 }: UsersListProps) {
+  const { toast } = useToast();
+
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'super_admin': return 'destructive';
@@ -42,6 +45,22 @@ export default function UsersList({
       case 'manager': return 'secondary';
       case 'employee': return 'outline';
       default: return 'outline';
+    }
+  };
+
+  const handleCopyTrackingId = async (trackingId: string) => {
+    try {
+      await navigator.clipboard.writeText(trackingId);
+      toast({
+        title: "✅ Copied!",
+        description: `Tracking ID ${trackingId} copied to clipboard`,
+      });
+    } catch (error) {
+      toast({
+        title: "❌ Copy failed",
+        description: "Could not copy tracking ID to clipboard",
+        variant: "destructive"
+      });
     }
   };
 
@@ -71,9 +90,20 @@ export default function UsersList({
                       <Badge variant="destructive">Inactive</Badge>
                     )}
                     {user.tracking_id && (
-                      <Badge variant="outline" className="font-mono text-xs">
-                        {user.tracking_id}
-                      </Badge>
+                      <div className="flex items-center gap-1">
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {user.tracking_id}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 hover:bg-slate-200 dark:hover:bg-slate-700"
+                          onClick={() => handleCopyTrackingId(user.tracking_id!)}
+                          title="Copy tracking ID"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
                     )}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-slate-600 dark:text-slate-400">
