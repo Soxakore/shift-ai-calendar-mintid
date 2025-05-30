@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/hooks/useTheme';
+import { SupabaseAuthProvider } from '@/hooks/useSupabaseAuth';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -30,55 +31,57 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <ThemeProvider defaultTheme="system" storageKey="mintid-theme">
-      <QueryClientProvider client={queryClient}>
-        <ErrorBoundary>
-          <Router>
-            <div className="min-h-screen bg-background text-foreground">
-              <Suspense fallback={<LoadingSpinner />}>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route
-                    path="/super-admin"
-                    element={
-                      <ProtectedRoute requireRole={['super_admin']}>
-                        <SuperAdminDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/org-admin"
-                    element={
-                      <ProtectedRoute requireRole={['org_admin']}>
-                        <OrgAdminDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/manager"
-                    element={
-                      <ProtectedRoute requireRole={['manager']}>
-                        <ManagerDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/employee"
-                    element={
-                      <ProtectedRoute requireRole={['employee']}>
-                        <EmployeeDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route path="/404" element={<NotFound />} />
-                  <Route path="*" element={<Navigate to="/404" replace />} />
-                </Routes>
-              </Suspense>
-            </div>
-          </Router>
-          <Toaster />
-        </ErrorBoundary>
-      </QueryClientProvider>
+      <SupabaseAuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <ErrorBoundary>
+            <Router>
+              <div className="min-h-screen bg-background text-foreground">
+                <Suspense fallback={<LoadingSpinner />}>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route
+                      path="/super-admin"
+                      element={
+                        <ProtectedRoute requireRole={['super_admin']}>
+                          <SuperAdminDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/org-admin"
+                      element={
+                        <ProtectedRoute requireRole={['org_admin']}>
+                          <OrgAdminDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/manager"
+                      element={
+                        <ProtectedRoute requireRole={['manager']}>
+                          <ManagerDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/employee"
+                      element={
+                        <ProtectedRoute requireRole={['employee']}>
+                          <EmployeeDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route path="/404" element={<NotFound />} />
+                    <Route path="*" element={<Navigate to="/404" replace />} />
+                  </Routes>
+                </Suspense>
+              </div>
+            </Router>
+            <Toaster />
+          </ErrorBoundary>
+        </QueryClientProvider>
+      </SupabaseAuthProvider>
     </ThemeProvider>
   );
 }
