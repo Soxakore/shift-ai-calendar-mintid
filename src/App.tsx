@@ -19,8 +19,6 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import RoleSelector from "./pages/RoleSelector";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
-import WorkerLogin from "./pages/WorkerLogin";
-import AdminLogin from "./pages/AdminLogin";
 import Register from "./pages/Register";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
@@ -61,7 +59,9 @@ const AnalyticsTracker = () => {
 
   useEffect(() => {
     // Track page views
-    trackPageView(document.title);
+    if (typeof trackPageView !== 'undefined') {
+      trackPageView(document.title);
+    }
   }, [location]);
 
   return null;
@@ -83,8 +83,7 @@ const AppRoutes = () => {
     <BrowserRouter>
       <AnalyticsTracker />
       <Routes>
-        <Route path="/login" element={<WorkerLogin />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route
           path="/"
