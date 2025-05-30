@@ -158,7 +158,7 @@ export default function EnhancedUserManagement({
           <select
             value={filterRole}
             onChange={(e) => setFilterRole(e.target.value)}
-            className="px-3 py-2 border rounded-md"
+            className="px-3 py-2 border rounded-md bg-blue-50 border-blue-300 text-blue-900 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="all">All Roles</option>
             <option value="super_admin">Super Admin</option>
@@ -169,7 +169,7 @@ export default function EnhancedUserManagement({
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-2 border rounded-md"
+            className="px-3 py-2 border rounded-md bg-blue-50 border-blue-300 text-blue-900 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
