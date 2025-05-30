@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +21,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import SEOHead from '@/components/SEOHead';
 import { getPageMetadata } from '@/lib/seo';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface AuditLog {
   id: string;
@@ -75,7 +85,11 @@ const HistoryPage = () => {
           variant: "destructive"
         });
       } else {
-        setAuditLogs(data || []);
+        // Type cast to handle the ip_address field properly
+        setAuditLogs(data?.map(log => ({
+          ...log,
+          ip_address: log.ip_address ? String(log.ip_address) : null
+        })) || []);
       }
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -106,7 +120,11 @@ const HistoryPage = () => {
           variant: "destructive"
         });
       } else {
-        setSessionLogs(data || []);
+        // Type cast to handle the ip_address field properly
+        setSessionLogs(data?.map(log => ({
+          ...log,
+          ip_address: log.ip_address ? String(log.ip_address) : null
+        })) || []);
       }
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -117,6 +135,130 @@ const HistoryPage = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteAuditLog = async (logId: string) => {
+    try {
+      const { error } = await supabase
+        .from('audit_logs')
+        .delete()
+        .eq('id', logId);
+
+      if (error) {
+        console.error('Error deleting audit log:', error);
+        toast({
+          title: "❌ Error deleting audit log",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        setAuditLogs(auditLogs.filter(log => log.id !== logId));
+        toast({
+          title: "✅ Audit log deleted",
+          description: "The audit log entry has been deleted successfully.",
+        });
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "💥 Unexpected error",
+        description: 'Failed to delete audit log.',
+        variant: "destructive"
+      });
+    }
+  };
+
+  const deleteSessionLog = async (logId: string) => {
+    try {
+      const { error } = await supabase
+        .from('session_logs')
+        .delete()
+        .eq('id', logId);
+
+      if (error) {
+        console.error('Error deleting session log:', error);
+        toast({
+          title: "❌ Error deleting session log",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        setSessionLogs(sessionLogs.filter(log => log.id !== logId));
+        toast({
+          title: "✅ Session log deleted",
+          description: "The session log entry has been deleted successfully.",
+        });
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "💥 Unexpected error",
+        description: 'Failed to delete session log.',
+        variant: "destructive"
+      });
+    }
+  };
+
+  const deleteAllAuditLogs = async () => {
+    try {
+      const { error } = await supabase
+        .from('audit_logs')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all records
+
+      if (error) {
+        console.error('Error deleting all audit logs:', error);
+        toast({
+          title: "❌ Error deleting audit logs",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        setAuditLogs([]);
+        toast({
+          title: "✅ All audit logs deleted",
+          description: "All audit log entries have been deleted successfully.",
+        });
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "💥 Unexpected error",
+        description: 'Failed to delete all audit logs.',
+        variant: "destructive"
+      });
+    }
+  };
+
+  const deleteAllSessionLogs = async () => {
+    try {
+      const { error } = await supabase
+        .from('session_logs')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all records
+
+      if (error) {
+        console.error('Error deleting all session logs:', error);
+        toast({
+          title: "❌ Error deleting session logs",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        setSessionLogs([]);
+        toast({
+          title: "✅ All session logs deleted",
+          description: "All session log entries have been deleted successfully.",
+        });
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "💥 Unexpected error",
+        description: 'Failed to delete all session logs.',
+        variant: "destructive"
+      });
     }
   };
 
@@ -243,23 +385,56 @@ const HistoryPage = () => {
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="space-y-6">
           {/* Tab Navigation */}
-          <div className="flex space-x-4">
-            <Button
-              variant={activeTab === 'audit' ? 'default' : 'outline'}
-              onClick={() => setActiveTab('audit')}
-              className="flex items-center gap-2"
-            >
-              <Shield className="h-4 w-4" />
-              Audit Logs ({filteredAuditLogs.length})
-            </Button>
-            <Button
-              variant={activeTab === 'session' ? 'default' : 'outline'}
-              onClick={() => setActiveTab('session')}
-              className="flex items-center gap-2"
-            >
-              <User className="h-4 w-4" />
-              Session Logs ({filteredSessionLogs.length})
-            </Button>
+          <div className="flex items-center justify-between">
+            <div className="flex space-x-4">
+              <Button
+                variant={activeTab === 'audit' ? 'default' : 'outline'}
+                onClick={() => setActiveTab('audit')}
+                className="flex items-center gap-2"
+              >
+                <Shield className="h-4 w-4" />
+                Audit Logs ({filteredAuditLogs.length})
+              </Button>
+              <Button
+                variant={activeTab === 'session' ? 'default' : 'outline'}
+                onClick={() => setActiveTab('session')}
+                className="flex items-center gap-2"
+              >
+                <User className="h-4 w-4" />
+                Session Logs ({filteredSessionLogs.length})
+              </Button>
+            </div>
+
+            {/* Delete All Button */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Clear All {activeTab === 'audit' ? 'Audit' : 'Session'} Logs
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Clear All {activeTab === 'audit' ? 'Audit' : 'Session'} Logs</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete all {activeTab === 'audit' ? 'audit' : 'session'} log entries from the database.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={activeTab === 'audit' ? deleteAllAuditLogs : deleteAllSessionLogs}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Delete All
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
 
           {/* Audit Logs */}
@@ -284,6 +459,7 @@ const HistoryPage = () => {
                         <TableHead>Description</TableHead>
                         <TableHead>IP Address</TableHead>
                         <TableHead>Timestamp</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -313,11 +489,37 @@ const HistoryPage = () => {
                               {new Date(log.created_at).toLocaleString()}
                             </div>
                           </TableCell>
+                          <TableCell>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Audit Log</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete this audit log entry? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => deleteAuditLog(log.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </TableCell>
                         </TableRow>
                       ))}
                       {filteredAuditLogs.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center py-8 text-slate-500">
+                          <TableCell colSpan={5} className="text-center py-8 text-slate-500">
                             No audit events found
                           </TableCell>
                         </TableRow>
@@ -351,6 +553,7 @@ const HistoryPage = () => {
                         <TableHead>Success</TableHead>
                         <TableHead>IP Address</TableHead>
                         <TableHead>Timestamp</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -383,11 +586,37 @@ const HistoryPage = () => {
                               {new Date(log.created_at).toLocaleString()}
                             </div>
                           </TableCell>
+                          <TableCell>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Session Log</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete this session log entry? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => deleteSessionLog(log.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </TableCell>
                         </TableRow>
                       ))}
                       {filteredSessionLogs.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center py-8 text-slate-500">
+                          <TableCell colSpan={5} className="text-center py-8 text-slate-500">
                             No session events found
                           </TableCell>
                         </TableRow>
