@@ -16,12 +16,13 @@ import {
 import Footer from '@/components/Footer';
 import SEOHead from '@/components/SEOHead';
 import { getPageMetadata } from '@/lib/seo';
+import SuperAdminUserManagement from '@/components/admin/SuperAdminUserManagement';
 
 const SuperAdminDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50">
       <SEOHead
         title={pageMetadata.title}
         description={pageMetadata.description}
@@ -52,176 +53,8 @@ const SuperAdminDashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          
-          {/* System Overview */}
-          <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-red-700">
-                <Globe className="w-5 h-5" />
-                System Overview
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="text-sm">
-                  <p className="font-medium">Total Organizations</p>
-                  <p className="text-2xl font-bold text-red-600">12</p>
-                </div>
-                <div className="text-sm">
-                  <p className="font-medium">Active Users</p>
-                  <p className="text-2xl font-bold text-red-600">1,247</p>
-                </div>
-                <Button size="sm" className="w-full bg-red-500 hover:bg-red-600">
-                  <Database className="w-4 h-4 mr-2" />
-                  Manage System
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Organizations Management */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="w-5 h-5" />
-                Organizations
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="text-sm">
-                  <p className="font-medium">McDonald's Corp</p>
-                  <p className="text-gray-600">156 users, 8 departments</p>
-                </div>
-                <div className="text-sm">
-                  <p className="font-medium">Burger King</p>
-                  <p className="text-gray-600">89 users, 5 departments</p>
-                </div>
-                <Button variant="outline" size="sm" className="w-full">
-                  <Building2 className="w-4 h-4 mr-2" />
-                  Manage All Organizations
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* User Management */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Global User Management
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="text-sm">
-                  <p className="font-medium">Organization Admins</p>
-                  <p className="text-gray-600">12 active</p>
-                </div>
-                <div className="text-sm">
-                  <p className="font-medium">Department Managers</p>
-                  <p className="text-gray-600">67 active</p>
-                </div>
-                <Button variant="outline" size="sm" className="w-full">
-                  <Users className="w-4 h-4 mr-2" />
-                  View All Users
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Create New Organization */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Plus className="w-5 h-5" />
-                Quick Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <Button size="sm" className="w-full">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Organization
-                </Button>
-                <Button variant="outline" size="sm" className="w-full">
-                  <Users className="w-4 h-4 mr-2" />
-                  Create Admin Account
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-        </div>
-
-        {/* System Analytics */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5" />
-              System Analytics
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <p className="font-medium text-blue-800">Total Revenue</p>
-                <p className="text-2xl font-bold text-blue-600">$127K</p>
-                <p className="text-blue-600">This month</p>
-              </div>
-              <div className="bg-green-50 p-4 rounded-lg">
-                <p className="font-medium text-green-800">Active Sessions</p>
-                <p className="text-2xl font-bold text-green-600">847</p>
-                <p className="text-green-600">Right now</p>
-              </div>
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <p className="font-medium text-yellow-800">System Health</p>
-                <p className="text-2xl font-bold text-yellow-600">99.8%</p>
-                <p className="text-yellow-600">Uptime</p>
-              </div>
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <p className="font-medium text-purple-800">Data Usage</p>
-                <p className="text-2xl font-bold text-purple-600">2.4TB</p>
-                <p className="text-purple-600">This month</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Recent Activities */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Recent System Activities</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium">New organization registered</p>
-                  <p className="text-sm text-gray-600">Subway Inc. - 5 minutes ago</p>
-                </div>
-                <Badge variant="outline">New</Badge>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium">User account created</p>
-                  <p className="text-sm text-gray-600">Admin for Pizza Hut - 12 minutes ago</p>
-                </div>
-                <Badge variant="outline">User</Badge>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium">System backup completed</p>
-                  <p className="text-sm text-gray-600">Daily backup - 1 hour ago</p>
-                </div>
-                <Badge variant="outline">System</Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <SuperAdminUserManagement />
       </main>
 
       {/* Footer */}

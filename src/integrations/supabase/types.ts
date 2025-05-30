@@ -9,13 +9,361 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      departments: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          department_id: string | null
+          display_name: string
+          id: string
+          is_active: boolean | null
+          organization_id: string | null
+          updated_at: string
+          user_type: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          display_name: string
+          id: string
+          is_active?: boolean | null
+          organization_id?: string | null
+          updated_at?: string
+          user_type: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          display_name?: string
+          id?: string
+          is_active?: boolean | null
+          organization_id?: string | null
+          updated_at?: string
+          user_type?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qr_codes: {
+        Row: {
+          code: string
+          created_at: string
+          department_id: string | null
+          id: string
+          is_active: boolean | null
+          location: string
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          location: string
+          name: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          location?: string
+          name?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_codes_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qr_codes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedules: {
+        Row: {
+          created_at: string
+          date: string
+          department_id: string
+          end_time: string
+          id: string
+          organization_id: string
+          shift: string | null
+          start_time: string
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          department_id: string
+          end_time: string
+          id?: string
+          organization_id: string
+          shift?: string | null
+          start_time: string
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          department_id?: string
+          end_time?: string
+          id?: string
+          organization_id?: string
+          shift?: string | null
+          start_time?: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedules_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedules_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sick_notices: {
+        Row: {
+          created_at: string
+          department_id: string
+          end_date: string
+          id: string
+          organization_id: string
+          reason: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          start_date: string
+          status: string | null
+          submitted_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          department_id: string
+          end_date: string
+          id?: string
+          organization_id: string
+          reason: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date: string
+          status?: string | null
+          submitted_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string
+          end_date?: string
+          id?: string
+          organization_id?: string
+          reason?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date?: string
+          status?: string | null
+          submitted_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sick_notices_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sick_notices_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      time_logs: {
+        Row: {
+          clock_in: string | null
+          clock_out: string | null
+          created_at: string
+          date: string
+          department_id: string
+          id: string
+          location: string | null
+          method: string | null
+          organization_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          clock_in?: string | null
+          clock_out?: string | null
+          created_at?: string
+          date: string
+          department_id: string
+          id?: string
+          location?: string | null
+          method?: string | null
+          organization_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          clock_in?: string | null
+          clock_out?: string | null
+          created_at?: string
+          date?: string
+          department_id?: string
+          id?: string
+          location?: string | null
+          method?: string | null
+          organization_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_logs_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_department: {
+        Args: { user_id: string }
+        Returns: string
+      }
+      get_user_organization: {
+        Args: { user_id: string }
+        Returns: string
+      }
+      get_user_role: {
+        Args: { user_id: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
