@@ -81,18 +81,21 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching profile:', error);
         setProfile(null);
-      } else {
+      } else if (data) {
         console.log('Profile fetched:', data);
         const profileData: Profile = {
           ...data,
           user_type: data.user_type as 'super_admin' | 'org_admin' | 'manager' | 'employee'
         };
         setProfile(profileData);
+      } else {
+        console.log('No profile found for user:', userId);
+        setProfile(null);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -193,15 +196,35 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
     department_id?: string;
   }) => {
     try {
-      // Generate a temporary email for the user
-      const email = `${userData.username}@${userData.organization_id || 'system'}.mintid.local`;
+      console.log('Creating user:', { ...userData, password: '[HIDDEN]' });
       
+      // Check if username already exists
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('username', userData.username.trim())
+        .maybeSingle();
+      
+      if (checkError) {
+        console.error('Error checking username:', checkError);
+        return { success: false, error: 'Error checking username availability' };
+      }
+      
+      if (existingProfile) {
+        return { success: false, error: 'Username already exists' };
+      }
+
+      // Generate a temporary email for the user
+      const email = `${userData.username.trim()}@${userData.organization_id || 'system'}.mintid.local`;
+      
+      console.log('Creating auth user with email:', email);
       const { data, error } = await supabase.auth.admin.createUser({
         email: email,
         password: userData.password,
+        email_confirm: true,
         user_metadata: {
-          username: userData.username,
-          display_name: userData.display_name,
+          username: userData.username.trim(),
+          display_name: userData.display_name.trim(),
           user_type: userData.user_type,
           organization_id: userData.organization_id,
           department_id: userData.department_id,
@@ -210,11 +233,14 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
       });
 
       if (error) {
+        console.error('Auth user creation error:', error);
         return { success: false, error: error.message };
       }
 
+      console.log('User created successfully:', data.user?.id);
       return { success: true };
     } catch (error) {
+      console.error('Unexpected error creating user:', error);
       return { success: false, error: 'Failed to create user' };
     }
   };

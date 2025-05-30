@@ -14,7 +14,9 @@ import {
   Crown,
   Building,
   Trash2,
-  Eye
+  Eye,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
@@ -27,6 +29,8 @@ export default function SuperAdminUserManagement() {
   const { toast } = useToast();
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [showCreateOrg, setShowCreateOrg] = useState(false);
+  const [isCreatingOrg, setIsCreatingOrg] = useState(false);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [newUser, setNewUser] = useState({
     username: '',
     password: '',
@@ -40,8 +44,43 @@ export default function SuperAdminUserManagement() {
     description: ''
   });
 
+  // Set up real-time subscriptions
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'organizations'
+        },
+        (payload) => {
+          console.log('Organization change:', payload);
+          refetch();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        (payload) => {
+          console.log('Profile change:', payload);
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refetch]);
+
   const handleCreateOrganization = async () => {
-    if (!newOrg.name) {
+    if (!newOrg.name.trim()) {
       toast({
         title: "❌ Missing Information",
         description: "Organization name is required",
@@ -50,45 +89,74 @@ export default function SuperAdminUserManagement() {
       return;
     }
 
-    const { data, error } = await supabase
-      .from('organizations')
-      .insert([{
-        name: newOrg.name,
-        description: newOrg.description
-      }])
-      .select()
-      .single();
+    setIsCreatingOrg(true);
+    console.log('Creating organization:', newOrg);
 
-    if (error) {
+    try {
+      const { data, error } = await supabase
+        .from('organizations')
+        .insert([{
+          name: newOrg.name.trim(),
+          description: newOrg.description.trim() || null
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Organization creation error:', error);
+        toast({
+          title: "❌ Creation Failed",
+          description: error.message || "Failed to create organization",
+          variant: "destructive"
+        });
+      } else {
+        console.log('Organization created successfully:', data);
+        toast({
+          title: "✅ Organization Created",
+          description: `${newOrg.name} has been created successfully`,
+        });
+        setNewOrg({ name: '', description: '' });
+        setShowCreateOrg(false);
+        // Refetch will be triggered by real-time subscription
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
       toast({
-        title: "❌ Creation Failed",
-        description: error.message,
+        title: "❌ Unexpected Error",
+        description: "An unexpected error occurred",
         variant: "destructive"
       });
-    } else {
-      toast({
-        title: "✅ Organization Created",
-        description: `${newOrg.name} has been created successfully`,
-      });
-      setNewOrg({ name: '', description: '' });
-      setShowCreateOrg(false);
-      refetch();
+    } finally {
+      setIsCreatingOrg(false);
     }
   };
 
   const handleCreateUser = async () => {
-    if (!newUser.username || !newUser.password || !newUser.display_name) {
+    if (!newUser.username.trim() || !newUser.password.trim() || !newUser.display_name.trim()) {
       toast({
         title: "❌ Missing Information",
-        description: "All fields are required",
+        description: "Username, password, and display name are required",
         variant: "destructive"
       });
       return;
     }
 
+    if (!newUser.organization_id) {
+      toast({
+        title: "❌ Missing Organization",
+        description: "Please select an organization",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsCreatingUser(true);
+    console.log('Creating user:', { ...newUser, password: '[HIDDEN]' });
+
     const result = await createUser(newUser);
     
     if (result.success) {
+      console.log('User created successfully');
       toast({
         title: "✅ User Created",
         description: `${newUser.display_name} has been created successfully`,
@@ -102,14 +170,16 @@ export default function SuperAdminUserManagement() {
         department_id: ''
       });
       setShowCreateUser(false);
-      refetch();
+      // Refetch will be triggered by real-time subscription
     } else {
+      console.error('User creation failed:', result.error);
       toast({
         title: "❌ Creation Failed",
         description: result.error || "Failed to create user",
         variant: "destructive"
       });
     }
+    setIsCreatingUser(false);
   };
 
   const getUserOrganization = (orgId: string) => {
@@ -133,7 +203,7 @@ export default function SuperAdminUserManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with live stats */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Crown className="h-8 w-8 text-yellow-600" />
@@ -144,10 +214,16 @@ export default function SuperAdminUserManagement() {
             </p>
           </div>
         </div>
-        <Badge variant="destructive" className="flex items-center gap-1">
-          <Shield className="h-3 w-3" />
-          SUPER ADMIN
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="destructive" className="flex items-center gap-1">
+            <Shield className="h-3 w-3" />
+            SUPER ADMIN
+          </Badge>
+          <div className="flex items-center gap-1 text-sm text-green-600">
+            <CheckCircle className="h-3 w-3" />
+            Live Updates Active
+          </div>
+        </div>
       </div>
 
       {/* Quick Actions */}
@@ -156,6 +232,7 @@ export default function SuperAdminUserManagement() {
           onClick={() => setShowCreateOrg(!showCreateOrg)}
           className="h-16 text-left justify-start"
           variant="outline"
+          disabled={isCreatingOrg}
         >
           <Building className="h-6 w-6 mr-3" />
           <div>
@@ -168,6 +245,7 @@ export default function SuperAdminUserManagement() {
           onClick={() => setShowCreateUser(!showCreateUser)}
           className="h-16 text-left justify-start"
           variant="outline"
+          disabled={isCreatingUser}
         >
           <UserPlus className="h-6 w-6 mr-3" />
           <div>
@@ -188,12 +266,13 @@ export default function SuperAdminUserManagement() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="orgName">Organization Name</Label>
+              <Label htmlFor="orgName">Organization Name *</Label>
               <Input
                 id="orgName"
                 value={newOrg.name}
                 onChange={(e) => setNewOrg({...newOrg, name: e.target.value})}
                 placeholder="Company Name Inc."
+                disabled={isCreatingOrg}
               />
             </div>
             
@@ -204,15 +283,23 @@ export default function SuperAdminUserManagement() {
                 value={newOrg.description}
                 onChange={(e) => setNewOrg({...newOrg, description: e.target.value})}
                 placeholder="Brief description of the organization"
+                disabled={isCreatingOrg}
               />
             </div>
 
             <div className="flex space-x-2">
-              <Button onClick={handleCreateOrganization}>
+              <Button 
+                onClick={handleCreateOrganization}
+                disabled={isCreatingOrg || !newOrg.name.trim()}
+              >
                 <Building className="h-4 w-4 mr-2" />
-                Create Organization
+                {isCreatingOrg ? "Creating..." : "Create Organization"}
               </Button>
-              <Button variant="outline" onClick={() => setShowCreateOrg(false)}>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowCreateOrg(false)}
+                disabled={isCreatingOrg}
+              >
                 Cancel
               </Button>
             </div>
@@ -232,44 +319,48 @@ export default function SuperAdminUserManagement() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="username">Username *</Label>
                 <Input
                   id="username"
                   value={newUser.username}
                   onChange={(e) => setNewUser({...newUser, username: e.target.value})}
                   placeholder="john.admin"
+                  disabled={isCreatingUser}
                 />
               </div>
               <div>
-                <Label htmlFor="displayName">Full Name</Label>
+                <Label htmlFor="displayName">Full Name *</Label>
                 <Input
                   id="displayName"
                   value={newUser.display_name}
                   onChange={(e) => setNewUser({...newUser, display_name: e.target.value})}
                   placeholder="John Administrator"
+                  disabled={isCreatingUser}
                 />
               </div>
             </div>
             
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Password *</Label>
               <Input
                 id="password"
                 type="password"
                 value={newUser.password}
                 onChange={(e) => setNewUser({...newUser, password: e.target.value})}
                 placeholder="Secure password"
+                disabled={isCreatingUser}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="userType">Role</Label>
+                <Label htmlFor="userType">Role *</Label>
                 <Select 
                   value={newUser.user_type} 
                   onValueChange={(value: 'org_admin' | 'manager' | 'employee') => 
                     setNewUser({...newUser, user_type: value})
                   }
+                  disabled={isCreatingUser}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -283,10 +374,11 @@ export default function SuperAdminUserManagement() {
               </div>
               
               <div>
-                <Label htmlFor="organization">Organization</Label>
+                <Label htmlFor="organization">Organization *</Label>
                 <Select 
                   value={newUser.organization_id} 
                   onValueChange={(value) => setNewUser({...newUser, organization_id: value})}
+                  disabled={isCreatingUser}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select Organization" />
@@ -303,11 +395,18 @@ export default function SuperAdminUserManagement() {
             </div>
 
             <div className="flex space-x-2">
-              <Button onClick={handleCreateUser}>
+              <Button 
+                onClick={handleCreateUser}
+                disabled={isCreatingUser || !newUser.username.trim() || !newUser.password.trim() || !newUser.display_name.trim() || !newUser.organization_id}
+              >
                 <UserPlus className="h-4 w-4 mr-2" />
-                Create User
+                {isCreatingUser ? "Creating..." : "Create User"}
               </Button>
-              <Button variant="outline" onClick={() => setShowCreateUser(false)}>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowCreateUser(false)}
+                disabled={isCreatingUser}
+              >
                 Cancel
               </Button>
             </div>
@@ -315,90 +414,111 @@ export default function SuperAdminUserManagement() {
         </Card>
       )}
 
-      {/* Organizations List */}
+      {/* Organizations List with live updates */}
       <Card>
         <CardHeader>
-          <CardTitle>Organizations ({organizations.length})</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            Organizations ({organizations.length})
+            <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+          </CardTitle>
           <CardDescription>
-            All organizations in the system
+            All organizations in the system - Updates in real-time
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4">
-            {organizations.map((org) => {
-              const orgUsers = profiles.filter(p => p.organization_id === org.id);
-              const orgDepts = departments.filter(d => d.organization_id === org.id);
-              
-              return (
-                <div key={org.id} className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold">{org.name}</h3>
-                      <p className="text-sm text-muted-foreground">{org.description}</p>
-                      <div className="flex gap-4 mt-2">
-                        <Badge variant="outline">{orgUsers.length} users</Badge>
-                        <Badge variant="outline">{orgDepts.length} departments</Badge>
+          {organizations.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No organizations found. Create one to get started.
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {organizations.map((org) => {
+                const orgUsers = profiles.filter(p => p.organization_id === org.id);
+                const orgDepts = departments.filter(d => d.organization_id === org.id);
+                
+                return (
+                  <div key={org.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold">{org.name}</h3>
+                        <p className="text-sm text-muted-foreground">{org.description || 'No description'}</p>
+                        <div className="flex gap-4 mt-2">
+                          <Badge variant="outline">{orgUsers.length} users</Badge>
+                          <Badge variant="outline">{orgDepts.length} departments</Badge>
+                          <Badge variant="outline" className="text-xs">
+                            Created: {new Date(org.created_at).toLocaleDateString()}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Users List with live updates */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            All System Users ({profiles.length})
+            <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+          </CardTitle>
+          <CardDescription>
+            Complete user management across all organizations - Updates in real-time
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {profiles.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No users found.
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {profiles.map((user) => (
+                <div key={user.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
+                        <Users className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">{user.display_name}</p>
+                        <p className="text-sm text-muted-foreground">@{user.username}</p>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <Badge variant="outline">{getUserOrganization(user.organization_id!)}</Badge>
+                          <span className="text-muted-foreground">→</span>
+                          <Badge variant={
+                            user.user_type === 'super_admin' ? 'destructive' :
+                            user.user_type === 'org_admin' ? 'default' :
+                            user.user_type === 'manager' ? 'secondary' : 'outline'
+                          }>
+                            {user.user_type.replace('_', ' ')}
+                          </Badge>
+                          <Badge variant={user.is_active ? "default" : "destructive"}>
+                            {user.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
                       <Button variant="ghost" size="sm">
                         <Eye className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Users List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All System Users ({profiles.length})</CardTitle>
-          <CardDescription>
-            Complete user management across all organizations
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4">
-            {profiles.map((user) => (
-              <div key={user.id} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
-                      <Users className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-semibold">{user.display_name}</p>
-                      <p className="text-sm text-muted-foreground">@{user.username}</p>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <Badge variant="outline">{getUserOrganization(user.organization_id!)}</Badge>
-                        <span className="text-muted-foreground">→</span>
-                        <Badge variant={
-                          user.user_type === 'super_admin' ? 'destructive' :
-                          user.user_type === 'org_admin' ? 'default' :
-                          user.user_type === 'manager' ? 'secondary' : 'outline'
-                        }>
-                          {user.user_type.replace('_', ' ')}
-                        </Badge>
-                        <Badge variant={user.is_active ? "default" : "destructive"}>
-                          {user.is_active ? "Active" : "Inactive"}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Button variant="ghost" size="sm">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
