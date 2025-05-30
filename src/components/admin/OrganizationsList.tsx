@@ -50,11 +50,14 @@ export default function OrganizationsList({
       <CardContent>
         <div className="grid gap-4">
           {organizations.map((org) => (
-            <div key={org.id} className="p-4 border rounded-lg hover:bg-slate-50">
+            <div 
+              key={org.id} 
+              className="p-4 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            >
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-semibold text-lg">{org.name}</h3>
+                    <h3 className="font-semibold text-lg text-slate-900 dark:text-slate-100">{org.name}</h3>
                     {org.alias && (
                       <Badge variant="secondary">
                         {org.alias}
@@ -67,20 +70,20 @@ export default function OrganizationsList({
                     )}
                   </div>
                   {org.description && (
-                    <p className="text-slate-600 mb-2">{org.description}</p>
+                    <p className="text-slate-600 dark:text-slate-400 mb-2">{org.description}</p>
                   )}
-                  <div className="flex items-center gap-4 text-sm text-slate-500">
+                  <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
                     <div className="flex items-center gap-1">
                       <Users className="h-4 w-4" />
-                      {getUserCount(org.id)} users
+                      <span className="text-slate-900 dark:text-slate-100">{getUserCount(org.id)} users</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Building className="h-4 w-4" />
-                      {getDepartmentCount(org.id)} departments
+                      <span className="text-slate-900 dark:text-slate-100">{getDepartmentCount(org.id)} departments</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
-                      Created {new Date(org.created_at).toLocaleDateString()}
+                      <span className="text-slate-900 dark:text-slate-100">Created {new Date(org.created_at).toLocaleDateString()}</span>
                     </div>
                   </div>
                 </div>
@@ -104,7 +107,7 @@ export default function OrganizationsList({
             </div>
           ))}
           {organizations.length === 0 && (
-            <div className="text-center py-8 text-slate-500">
+            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
               No organizations found
             </div>
           )}

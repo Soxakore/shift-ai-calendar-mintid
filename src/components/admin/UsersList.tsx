@@ -56,11 +56,14 @@ export default function UsersList({
       <CardContent>
         <div className="grid gap-4">
           {users.map((user) => (
-            <div key={user.id} className="p-4 border rounded-lg hover:bg-slate-50">
+            <div 
+              key={user.id} 
+              className="p-4 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            >
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-semibold">{user.display_name}</h3>
+                    <h3 className="font-semibold text-slate-900 dark:text-slate-100">{user.display_name}</h3>
                     <Badge variant={getRoleColor(user.user_type)}>
                       {user.user_type.replace('_', ' ')}
                     </Badge>
@@ -73,21 +76,21 @@ export default function UsersList({
                       </Badge>
                     )}
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-slate-600">
-                    <div>Username: <span className="font-mono">{user.username}</span></div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-slate-600 dark:text-slate-400">
+                    <div>Username: <span className="font-mono text-slate-900 dark:text-slate-100">{user.username}</span></div>
                     {user.phone_number && (
                       <div className="flex items-center gap-1">
                         <Phone className="h-3 w-3" />
-                        {user.phone_number}
+                        <span className="text-slate-900 dark:text-slate-100">{user.phone_number}</span>
                       </div>
                     )}
                     <div className="flex items-center gap-1">
                       <Building className="h-3 w-3" />
-                      {getUserOrganization(user.organization_id!)}
+                      <span className="text-slate-900 dark:text-slate-100">{getUserOrganization(user.organization_id!)}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      {new Date(user.created_at).toLocaleDateString()}
+                      <span className="text-slate-900 dark:text-slate-100">{new Date(user.created_at).toLocaleDateString()}</span>
                     </div>
                   </div>
                 </div>
@@ -120,7 +123,7 @@ export default function UsersList({
             </div>
           ))}
           {users.length === 0 && (
-            <div className="text-center py-8 text-slate-500">
+            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
               No users found
             </div>
           )}
