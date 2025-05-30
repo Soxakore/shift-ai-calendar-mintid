@@ -46,9 +46,11 @@ export default function RoleBasedUserManagement() {
   const [loading, setLoading] = useState(false);
   const [isCreatingOrg, setIsCreatingOrg] = useState(false);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [deletingOrgId, setDeletingOrgId] = useState<string | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
-  const { logOrganizationCreation } = useAuditLogger();
+  const { logOrganizationCreation, logUserDeletion, logOrganizationDeletion } = useAuditLogger();
 
   const fetchOrganizations = useCallback(async () => {
     setLoading(true);
@@ -111,6 +113,54 @@ export default function RoleBasedUserManagement() {
       setLoading(false);
     }
   }, [toast]);
+
+  // Set up real-time subscriptions for immediate updates
+  useEffect(() => {
+    console.log('Setting up real-time subscriptions...');
+    
+    const channel = supabase
+      .channel('role-based-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'organizations'
+        },
+        (payload) => {
+          console.log('Organization change:', payload);
+          fetchOrganizations();
+          toast({
+            title: "🔄 Live Update",
+            description: "Organizations updated in real-time",
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        (payload) => {
+          console.log('Profile change:', payload);
+          fetchUsers();
+          toast({
+            title: "🔄 Live Update",
+            description: "Users updated in real-time",
+          });
+        }
+      )
+      .subscribe((status) => {
+        console.log('Real-time subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up real-time subscriptions...');
+      supabase.removeChannel(channel);
+    };
+  }, [fetchOrganizations, fetchUsers, toast]);
 
   useEffect(() => {
     fetchOrganizations();
@@ -231,6 +281,129 @@ export default function RoleBasedUserManagement() {
     }
   };
 
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`Are you sure you want to delete user "${userName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingUserId(userId);
+    console.log('🗑️ Starting user deletion:', userId, userName);
+
+    try {
+      // Get user details for logging
+      const userToDelete = allUsers.find(user => user.id === userId);
+      
+      // Try to delete using the admin API first
+      const { error: adminError } = await supabase.auth.admin.deleteUser(userId);
+
+      if (adminError) {
+        console.log('⚠️ Admin API deletion failed, trying profile deletion:', adminError.message);
+        
+        // If admin API fails, delete profile manually
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', userId);
+
+        if (profileError) {
+          console.error('❌ Profile deletion also failed:', profileError);
+          toast({
+            title: "❌ Deletion Failed",
+            description: `Failed to delete ${userName}`,
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+
+      // Log user deletion with who performed it
+      if (userToDelete) {
+        await logUserDeletion(
+          userId, 
+          userName, 
+          userToDelete.organization_id
+        );
+      }
+
+      toast({
+        title: "🗑️ User Deleted",
+        description: `${userName} has been successfully deleted`,
+      });
+      
+      fetchUsers();
+    } catch (error) {
+      console.error('💥 Unexpected error during user deletion:', error);
+      toast({
+        title: "❌ Unexpected Error",
+        description: `An unexpected error occurred while deleting ${userName}`,
+        variant: "destructive"
+      });
+    } finally {
+      setDeletingUserId(null);
+    }
+  };
+
+  const handleDeleteOrganization = async (orgId: string, orgName: string) => {
+    if (!confirm(`Are you sure you want to delete "${orgName}"? This will remove all associated users. This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingOrgId(orgId);
+    console.log('🗑️ Starting organization deletion:', orgId, orgName);
+
+    try {
+      // Get all users in this organization for logging
+      const orgUsers = allUsers.filter(user => user.organization_id === orgId);
+      
+      // Delete all users first
+      for (const user of orgUsers) {
+        await logUserDeletion(user.id, user.display_name, orgId);
+        
+        // Try auth deletion first, then profile
+        const { error: authError } = await supabase.auth.admin.deleteUser(user.id);
+        if (authError) {
+          await supabase.from('profiles').delete().eq('id', user.id);
+        }
+      }
+
+      // Delete the organization
+      const { error: orgError } = await supabase
+        .from('organizations')
+        .delete()
+        .eq('id', orgId);
+
+      if (orgError) {
+        console.error('❌ Error deleting organization:', orgError);
+        toast({
+          title: "❌ Organization Deletion Failed",
+          description: orgError.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Log organization deletion
+      await logOrganizationDeletion(orgId, orgName);
+
+      toast({
+        title: "🗑️ Organization Deleted",
+        description: `${orgName} and ${orgUsers.length} associated users have been deleted`,
+      });
+      
+      fetchOrganizations();
+      fetchUsers();
+    } catch (error) {
+      console.error('💥 Unexpected error deleting organization:', error);
+      toast({
+        title: "❌ Unexpected Error",
+        description: "An unexpected error occurred during deletion",
+        variant: "destructive"
+      });
+    } finally {
+      setDeletingOrgId(null);
+    }
+  };
+
   return (
     <div className="space-y-6 p-6">
       {/* Header Section with Search */}
@@ -295,8 +468,8 @@ export default function RoleBasedUserManagement() {
                 organizations={filteredOrganizations}
                 profiles={allUsers}
                 departments={[]}
-                deletingOrgId={null}
-                onDelete={() => {}}
+                deletingOrgId={deletingOrgId}
+                onDelete={handleDeleteOrganization}
               />
             </CardContent>
           </Card>
@@ -332,9 +505,9 @@ export default function RoleBasedUserManagement() {
               <UsersList
                 users={filteredUsers}
                 organizations={organizations}
-                deletingUserId={null}
+                deletingUserId={deletingUserId}
                 onEdit={() => {}}
-                onDelete={() => {}}
+                onDelete={handleDeleteUser}
                 getUserOrganization={(orgId: string) => {
                   const org = organizations.find(o => o.id === orgId);
                   return org?.name || 'Unknown Organization';

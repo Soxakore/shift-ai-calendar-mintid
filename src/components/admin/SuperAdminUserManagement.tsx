@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useToast } from '@/hooks/use-toast';
+import { useAuditLogger } from '@/hooks/useAuditLogger';
 import SuperAdminHeader from './SuperAdminHeader';
 import QuickActions from './QuickActions';
 import CreateOrganizationForm from './CreateOrganizationForm';
@@ -19,6 +20,7 @@ export default function SuperAdminUserManagement() {
   const { profile } = useSupabaseAuth();
   const { organizations, departments, profiles, loading, refetch, refetchOrganizations, refetchProfiles } = useSupabaseData();
   const { toast } = useToast();
+  const { logOrganizationCreation, logUserDeletion, logOrganizationDeletion } = useAuditLogger();
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [showCreateOrg, setShowCreateOrg] = useState(false);
   const [isCreatingOrg, setIsCreatingOrg] = useState(false);
@@ -192,6 +194,10 @@ export default function SuperAdminUserManagement() {
         });
       } else {
         console.log('Organization created successfully:', data);
+        
+        // Log organization creation
+        await logOrganizationCreation(data.id, data.name);
+        
         toast({
           title: "✅ Organization Created",
           description: `${orgData.name} has been created with number: ${data.organization_number}`,
@@ -242,11 +248,14 @@ export default function SuperAdminUserManagement() {
       let authDeleteCount = 0;
       let profileDeleteCount = 0;
 
-      // Delete all users in this organization
+      // Delete all users in this organization and log each deletion
       for (const user of orgUsers || []) {
         console.log(`🗑️ Attempting to delete user: ${user.username} (${user.id})`);
         
         try {
+          // Log user deletion before actually deleting
+          await logUserDeletion(user.id, user.display_name, orgId);
+          
           // First try to delete from auth (this will also trigger profile deletion via RLS)
           const { error: authError } = await supabase.auth.admin.deleteUser(user.id);
           
@@ -292,6 +301,9 @@ export default function SuperAdminUserManagement() {
         });
       } else {
         console.log('✅ Organization deleted successfully');
+        
+        // Log organization deletion
+        await logOrganizationDeletion(orgId, orgName);
         
         const totalUsers = orgUsers?.length || 0;
         const deletionSummary = [];
@@ -452,6 +464,14 @@ export default function SuperAdminUserManagement() {
     console.log('🗑️ Starting complete user deletion:', userId, userName);
 
     try {
+      // Get user details for logging
+      const userToDelete = profiles.find(user => user.id === userId);
+      
+      // Log user deletion before actually deleting
+      if (userToDelete) {
+        await logUserDeletion(userId, userName, userToDelete.organization_id);
+      }
+
       // First, try to delete using the admin API (this removes both auth and profile)
       console.log('🔑 Attempting complete deletion via admin API...');
       const { error: adminError } = await supabase.auth.admin.deleteUser(userId);

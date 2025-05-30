@@ -25,7 +25,7 @@ interface SessionEventParams {
 }
 
 export const useAuditLogger = () => {
-  const { user } = useSupabaseAuth();
+  const { user, profile } = useSupabaseAuth();
 
   const getClientInfo = useCallback(() => {
     return {
@@ -103,17 +103,22 @@ export const useAuditLogger = () => {
     }
   }, [user, getClientInfo]);
 
-  // Helper function to log user deletion
-  const logUserDeletion = useCallback(async (deletedUserId: string, organizationId?: string) => {
+  // Helper function to log user deletion with who deleted them
+  const logUserDeletion = useCallback(async (deletedUserId: string, deletedUserName: string, organizationId?: string) => {
     return logAuditEvent({
       actionType: 'user_deleted',
       targetUserId: deletedUserId,
       targetOrganizationId: organizationId,
       metadata: {
-        action: 'User account deleted'
+        deleted_user_name: deletedUserName,
+        deleted_by_user_id: user?.id,
+        deleted_by_username: profile?.username,
+        deleted_by_display_name: profile?.display_name,
+        action: 'User account deleted',
+        timestamp: new Date().toISOString()
       }
     });
-  }, [logAuditEvent]);
+  }, [logAuditEvent, user, profile]);
 
   // Helper function to log organization creation
   const logOrganizationCreation = useCallback(async (organizationId: string, organizationName: string) => {
@@ -122,15 +127,36 @@ export const useAuditLogger = () => {
       targetOrganizationId: organizationId,
       metadata: {
         organization_name: organizationName,
-        action: 'New organization created'
+        created_by_user_id: user?.id,
+        created_by_username: profile?.username,
+        created_by_display_name: profile?.display_name,
+        action: 'New organization created',
+        timestamp: new Date().toISOString()
       }
     });
-  }, [logAuditEvent]);
+  }, [logAuditEvent, user, profile]);
+
+  // Helper function to log organization deletion
+  const logOrganizationDeletion = useCallback(async (organizationId: string, organizationName: string) => {
+    return logAuditEvent({
+      actionType: 'organization_deleted',
+      targetOrganizationId: organizationId,
+      metadata: {
+        organization_name: organizationName,
+        deleted_by_user_id: user?.id,
+        deleted_by_username: profile?.username,
+        deleted_by_display_name: profile?.display_name,
+        action: 'Organization deleted',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }, [logAuditEvent, user, profile]);
 
   return {
     logAuditEvent,
     logSessionEvent,
     logUserDeletion,
-    logOrganizationCreation
+    logOrganizationCreation,
+    logOrganizationDeletion
   };
 };
