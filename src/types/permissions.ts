@@ -1,4 +1,7 @@
+
 // Role-based permission definitions
+import { EnhancedUser } from './organization';
+
 export interface Permission {
   id: string;
   name: string;

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -19,9 +20,9 @@ import {
   demoUsersWithRoles,
   rolePermissions,
   checkPermission,
-  getUIPermissions,
-  type EnhancedUser
+  getUIPermissions
 } from '../../types/permissions';
+import { type EnhancedUser } from '../../types/organization';
 import { demoDepartments, demoOrganizations } from '../../types/organization';
 
 interface RoleBasedUserManagementProps {

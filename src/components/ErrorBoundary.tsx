@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface ErrorBoundaryState {
@@ -8,6 +9,15 @@ interface ErrorBoundaryState {
 interface ErrorBoundaryProps {
   children: React.ReactNode;
   fallback?: React.ComponentType<{ error: Error; retry: () => void }>;
+}
+
+// Type declaration for Sentry on window
+declare global {
+  interface Window {
+    Sentry?: {
+      captureException: (error: Error, context?: any) => void;
+    };
+  }
 }
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {

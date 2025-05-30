@@ -5,12 +5,25 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
-  trackWebVitals, 
-  trackPerformanceMetrics, 
-  analyzeBundlePerformance,
-  type PerformanceMetrics,
-  type WebVitalsMetrics 
+  getPerformanceMetrics, 
+  analyzeBundlePerformance
 } from '@/lib/performance';
+
+export interface WebVitalsMetrics {
+  lcp: number | null; // Largest Contentful Paint
+  fid: number | null; // First Input Delay
+  cls: number | null; // Cumulative Layout Shift
+  fcp: number | null; // First Contentful Paint
+  ttfb: number | null; // Time to First Byte
+}
+
+export interface PerformanceMetrics {
+  LCP: number | null;
+  FID: number | null;
+  CLS: number | null;
+  FCP: number | null;
+  TTFB: number | null;
+}
 
 export interface UsePerformanceMetricsReturn {
   // Current metrics
@@ -52,6 +65,33 @@ const DEFAULT_THRESHOLDS: PerformanceThresholds = {
   cls: { good: 0.1, poor: 0.25 },
   fcp: { good: 1800, poor: 3000 },
   ttfb: { good: 800, poor: 1800 }
+};
+
+/**
+ * Mock Web Vitals tracking function
+ */
+const trackWebVitals = (callback: (metric: any) => void) => {
+  // Mock implementation for development
+  setTimeout(() => {
+    callback({ name: 'LCP', value: Math.random() * 3000 + 1000 });
+    callback({ name: 'FID', value: Math.random() * 200 + 50 });
+    callback({ name: 'CLS', value: Math.random() * 0.3 });
+    callback({ name: 'FCP', value: Math.random() * 2000 + 800 });
+    callback({ name: 'TTFB', value: Math.random() * 1000 + 200 });
+  }, 1000);
+};
+
+/**
+ * Mock performance metrics tracking
+ */
+const trackPerformanceMetrics = (): PerformanceMetrics => {
+  return {
+    LCP: Math.random() * 3000 + 1000,
+    FID: Math.random() * 200 + 50,
+    CLS: Math.random() * 0.3,
+    FCP: Math.random() * 2000 + 800,
+    TTFB: Math.random() * 1000 + 200
+  };
 };
 
 /**

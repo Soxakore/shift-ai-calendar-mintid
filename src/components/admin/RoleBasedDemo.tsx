@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -14,7 +15,8 @@ import {
   User
 } from 'lucide-react';
 import RoleBasedUserManagement from './RoleBasedUserManagement';
-import { demoUsersWithRoles, type EnhancedUser } from '../../types/permissions';
+import { demoUsersWithRoles } from '../../types/permissions';
+import { type EnhancedUser } from '../../types/organization';
 
 export default function RoleBasedDemo() {
   const [selectedUser, setSelectedUser] = useState<EnhancedUser>(demoUsersWithRoles[0]); // Default to super admin

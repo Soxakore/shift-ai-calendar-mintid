@@ -1,3 +1,4 @@
+
 // Enhanced data types for organizational hierarchy
 export interface Organization {
   id: string;
@@ -56,6 +57,7 @@ export interface EnhancedUser {
   phoneNumber?: string;
   hireDate?: Date;
   metadata?: Record<string, any>;
+  userType: 'super_admin' | 'org_admin' | 'manager' | 'employee';
 }
 
 export interface AuthContextEnhanced {
@@ -100,11 +102,11 @@ export const demoOrganizations: Organization[] = [
 ];
 
 export const demoDepartments: Department[] = [
-  { id: '1', organizationId: '1', name: 'Kitchen', description: 'Food preparation area', color: '#ff6b35' },
-  { id: '2', organizationId: '1', name: 'Front Counter', description: 'Customer service', color: '#f7931e' },
-  { id: '3', organizationId: '1', name: 'Management', description: 'Store management', color: '#27ae60' },
-  { id: '4', organizationId: '2', name: 'Baristas', description: 'Coffee preparation', color: '#00704a' },
-  { id: '5', organizationId: '2', name: 'Shift Supervisors', description: 'Floor supervision', color: '#d4af37' },
+  { id: '1', organizationId: '1', name: 'Kitchen', description: 'Food preparation area', color: '#ff6b35', createdAt: new Date() },
+  { id: '2', organizationId: '1', name: 'Front Counter', description: 'Customer service', color: '#f7931e', createdAt: new Date() },
+  { id: '3', organizationId: '1', name: 'Management', description: 'Store management', color: '#27ae60', createdAt: new Date() },
+  { id: '4', organizationId: '2', name: 'Baristas', description: 'Coffee preparation', color: '#00704a', createdAt: new Date() },
+  { id: '5', organizationId: '2', name: 'Shift Supervisors', description: 'Floor supervision', color: '#d4af37', createdAt: new Date() },
 ];
 
 export const demoRoles: Role[] = [
@@ -150,6 +152,7 @@ export const demoUsersEnhanced: EnhancedUser[] = [
     isActive: true,
     createdBy: 'admin',
     lastLogin: new Date(),
+    userType: 'manager',
   },
   {
     id: '2',
@@ -161,6 +164,7 @@ export const demoUsersEnhanced: EnhancedUser[] = [
     password: 'worker123',
     isActive: true,
     createdBy: 'john.manager',
+    userType: 'employee',
   },
   {
     id: '3',
@@ -172,5 +176,6 @@ export const demoUsersEnhanced: EnhancedUser[] = [
     password: 'coffee123',
     isActive: true,
     createdBy: 'admin',
+    userType: 'employee',
   },
 ];
