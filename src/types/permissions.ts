@@ -107,20 +107,22 @@ export const rolePermissions: Record<string, Permission[]> = {
 };
 
 // Enhanced demo users with specific roles
-export const demoUsersWithRoles: EnhancedUser[] = [
+export const demoUsersWithRoles: (EnhancedUser & { role: 'super_admin' | 'org_admin' | 'manager' | 'employee' })[] = [
   // Super Admin (You)
   {
     id: 'super_1',
     organizationId: 'system',
     departmentId: 'admin',
     roleId: 'super_admin',
+    role: 'super_admin',
     username: 'super.admin',
     displayName: 'System Administrator (You)',
     email: 'admin@workflow.com',
     password: 'admin123',
     isActive: true,
     createdBy: 'system',
-    userType: 'super_admin'
+    userType: 'super_admin',
+    createdAt: new Date().toISOString()
   },
 
   {
@@ -128,13 +130,15 @@ export const demoUsersWithRoles: EnhancedUser[] = [
     organizationId: '1',
     departmentId: '3',
     roleId: 'org_admin',
+    role: 'org_admin',
     username: 'mc.admin',
     displayName: 'McDonald\'s Admin',
     email: 'admin@mcdonalds.com',
     password: 'mcadmin123',
     isActive: true,
     createdBy: 'super_1',
-    userType: 'org_admin'
+    userType: 'org_admin',
+    createdAt: new Date().toISOString()
   },
 
   {
@@ -142,13 +146,15 @@ export const demoUsersWithRoles: EnhancedUser[] = [
     organizationId: '1',
     departmentId: '1',
     roleId: 'manager',
+    role: 'manager',
     username: 'kitchen.manager',
     displayName: 'John - Kitchen Manager',
     email: 'john@mcdonalds.com',
     password: 'manager123',
     isActive: true,
     createdBy: 'mc_admin',
-    userType: 'manager'
+    userType: 'manager',
+    createdAt: new Date().toISOString()
   },
 
   {
@@ -156,36 +162,50 @@ export const demoUsersWithRoles: EnhancedUser[] = [
     organizationId: '1',
     departmentId: '1',
     roleId: 'employee',
+    role: 'employee',
     username: 'mary.cook',
     displayName: 'Mary - Cook',
     password: 'worker123',
     isActive: true,
     createdBy: 'mc_kitchen_mgr',
-    userType: 'employee'
+    userType: 'employee',
+    createdAt: new Date().toISOString()
   },
 
   {
     id: 'sb_manager',
     organizationId: '2',
     departmentId: '4',
-    roleId: 'manager', 
+    roleId: 'manager',
+    role: 'manager',
     username: 'starbucks.manager',
     displayName: 'Sarah - Store Manager',
     password: 'sbmanager123',
     isActive: true,
     createdBy: 'super_1',
-    userType: 'manager'
+    userType: 'manager',
+    createdAt: new Date().toISOString()
   }
 ];
 
+// Helper function to get role from user
+const getUserRole = (user: AuthUser | (EnhancedUser & { role: string })): string => {
+  if ('role' in user) {
+    return user.role;
+  }
+  // Fallback to roleId for EnhancedUser without role
+  return (user as any).roleId || 'employee';
+};
+
 // Permission checking utility - works with both AuthUser and EnhancedUser
 export const checkPermission = (
-  user: AuthUser | EnhancedUser,
+  user: AuthUser | (EnhancedUser & { role: string }),
   requiredPermission: string,
   action: string,
-  targetUser?: AuthUser | EnhancedUser
+  targetUser?: AuthUser | (EnhancedUser & { role: string })
 ): boolean => {
-  const userPermissions = rolePermissions[user.role] || [];
+  const userRole = getUserRole(user);
+  const userPermissions = rolePermissions[userRole] || [];
   
   for (const permission of userPermissions) {
     if (permission.id === requiredPermission && permission.actions.includes(action as any)) {
@@ -208,18 +228,19 @@ export const checkPermission = (
 };
 
 // UI visibility rules - works with both AuthUser and EnhancedUser
-export const getUIPermissions = (user: AuthUser | EnhancedUser) => {
-  const permissions = rolePermissions[user.role] || [];
+export const getUIPermissions = (user: AuthUser | (EnhancedUser & { role: string })) => {
+  const userRole = getUserRole(user);
+  const permissions = rolePermissions[userRole] || [];
   
   return {
     // Navigation items
-    canViewOrganizations: user.role === 'super_admin',
-    canViewAllOrganizations: user.role === 'super_admin',
-    canViewAllUsers: user.role === 'super_admin',
-    canViewOrgUsers: ['super_admin', 'org_admin'].includes(user.role),
-    canViewDeptUsers: ['super_admin', 'org_admin', 'manager'].includes(user.role),
+    canViewOrganizations: userRole === 'super_admin',
+    canViewAllOrganizations: userRole === 'super_admin',
+    canViewAllUsers: userRole === 'super_admin',
+    canViewOrgUsers: ['super_admin', 'org_admin'].includes(userRole),
+    canViewDeptUsers: ['super_admin', 'org_admin', 'manager'].includes(userRole),
     canViewReports: permissions.some(p => p.category === 'reports'),
-    canViewSettings: ['super_admin', 'org_admin'].includes(user.role),
+    canViewSettings: ['super_admin', 'org_admin'].includes(userRole),
     
     // User management
     canCreateUsers: permissions.some(p => p.id.includes('users') && p.actions.includes('create')),
@@ -227,12 +248,12 @@ export const getUIPermissions = (user: AuthUser | EnhancedUser) => {
     canDeleteUsers: permissions.some(p => p.id.includes('users') && p.actions.includes('delete')),
     
     // Organization management
-    canManageOrganizations: user.role === 'super_admin',
-    canAccessSystemSettings: user.role === 'super_admin',
+    canManageOrganizations: userRole === 'super_admin',
+    canAccessSystemSettings: userRole === 'super_admin',
     
     // Data scope
-    dataScope: user.role === 'super_admin' ? 'all' :
-               user.role === 'org_admin' ? 'organization' : 
-               user.role === 'manager' ? 'department' : 'self'
+    dataScope: userRole === 'super_admin' ? 'all' :
+               userRole === 'org_admin' ? 'organization' : 
+               userRole === 'manager' ? 'department' : 'self'
   };
 };

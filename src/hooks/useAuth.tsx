@@ -6,7 +6,7 @@ export interface AuthUser {
   name: string;
   username: string;
   email: string;
-  role: 'super_admin' | 'org_admin' | 'manager' | 'employee' | 'admin';
+  role: 'super_admin' | 'org_admin' | 'manager' | 'employee';
   organizationId?: string;
   departmentId?: string;
 }
@@ -210,11 +210,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     // Check specific roles
     if (roles.includes('admin')) {
-      return ['admin', 'super_admin', 'org_admin'].includes(user.role);
+      return ['org_admin', 'super_admin'].includes(user.role);
     }
     
     if (roles.includes('manager')) {
-      return ['admin', 'super_admin', 'org_admin', 'manager'].includes(user.role);
+      return ['org_admin', 'super_admin', 'manager'].includes(user.role);
     }
     
     return roles.includes(user.role);
