@@ -169,7 +169,7 @@ export default function AnalyticsDashboard() {
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value)}
-            className="px-3 py-2 border rounded-md"
+            className="px-3 py-2 border rounded-md bg-blue-50 border-blue-300 text-blue-900 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="1d">Last 24 Hours</option>
             <option value="7d">Last 7 Days</option>
