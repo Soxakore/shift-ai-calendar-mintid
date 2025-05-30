@@ -67,6 +67,31 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
+  // Helper function for audit logging
+  const logAuditEvent = async (
+    actionType: string,
+    targetUserId?: string,
+    targetOrganizationId?: string,
+    metadata?: Record<string, any>
+  ) => {
+    try {
+      if (!user) return;
+      
+      await supabase.rpc('log_audit_event', {
+        p_user_id: user.id,
+        p_action_type: actionType,
+        p_target_user_id: targetUserId || null,
+        p_target_organization_id: targetOrganizationId || null,
+        p_ip_address: null, // Client-side can't get real IP
+        p_user_agent: navigator.userAgent,
+        p_location_data: null,
+        p_metadata: metadata ? JSON.stringify(metadata) : null
+      });
+    } catch (error) {
+      console.error('Failed to log audit event:', error);
+    }
+  };
+
   useEffect(() => {
     console.log('🔄 Setting up auth state listener...');
     
@@ -358,6 +383,23 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
       }
 
       console.log('User created successfully:', data.user?.id);
+      
+      // Log audit event for user creation
+      if (data.user?.id) {
+        setTimeout(() => {
+          logAuditEvent(
+            'user_created',
+            data.user?.id,
+            userData.organization_id,
+            {
+              username: userData.username,
+              display_name: userData.display_name,
+              user_type: userData.user_type
+            }
+          );
+        }, 0);
+      }
+      
       return { success: true };
     } catch (error) {
       console.error('Unexpected error creating user:', error);

@@ -103,8 +103,34 @@ export const useAuditLogger = () => {
     }
   }, [user, getClientInfo]);
 
+  // Helper function to log user deletion
+  const logUserDeletion = useCallback(async (deletedUserId: string, organizationId?: string) => {
+    return logAuditEvent({
+      actionType: 'user_deleted',
+      targetUserId: deletedUserId,
+      targetOrganizationId: organizationId,
+      metadata: {
+        action: 'User account deleted'
+      }
+    });
+  }, [logAuditEvent]);
+
+  // Helper function to log organization creation
+  const logOrganizationCreation = useCallback(async (organizationId: string, organizationName: string) => {
+    return logAuditEvent({
+      actionType: 'organization_created',
+      targetOrganizationId: organizationId,
+      metadata: {
+        organization_name: organizationName,
+        action: 'New organization created'
+      }
+    });
+  }, [logAuditEvent]);
+
   return {
     logAuditEvent,
-    logSessionEvent
+    logSessionEvent,
+    logUserDeletion,
+    logOrganizationCreation
   };
 };

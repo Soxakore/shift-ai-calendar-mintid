@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import HistoryButton from './HistoryButton';
 import SuperAdminHeader from './SuperAdminHeader';
+import { useAuditLogger } from '@/hooks/useAuditLogger';
 
 interface Organization {
   id: string;
@@ -46,6 +48,7 @@ export default function RoleBasedUserManagement() {
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
+  const { logOrganizationCreation } = useAuditLogger();
 
   const fetchOrganizations = useCallback(async () => {
     setLoading(true);
@@ -144,7 +147,9 @@ export default function RoleBasedUserManagement() {
             description: orgData.description,
             alias: orgData.alias
           }
-        ]);
+        ])
+        .select()
+        .single();
 
       if (error) {
         console.error('Error creating organization:', error);
@@ -154,6 +159,11 @@ export default function RoleBasedUserManagement() {
           variant: "destructive"
         });
         return;
+      }
+
+      // Log organization creation
+      if (data) {
+        await logOrganizationCreation(data.id, data.name);
       }
 
       fetchOrganizations();
