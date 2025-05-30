@@ -65,100 +65,97 @@ export default function UsersList({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5" />
-          Users ({users.length})
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-4">
-          {users.map((user) => (
-            <div 
-              key={user.id} 
-              className="p-4 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-semibold text-slate-900 dark:text-slate-100">{user.display_name}</h3>
-                    <Badge variant={getRoleColor(user.user_type)}>
-                      {user.user_type.replace('_', ' ')}
-                    </Badge>
-                    {!user.is_active && (
-                      <Badge variant="destructive">Inactive</Badge>
-                    )}
-                    {user.tracking_id && (
-                      <div className="flex items-center gap-1">
-                        <Badge variant="outline" className="font-mono text-xs">
-                          {user.tracking_id}
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 hover:bg-slate-200 dark:hover:bg-slate-700"
-                          onClick={() => handleCopyTrackingId(user.tracking_id!)}
-                          title="Copy tracking ID"
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-slate-600 dark:text-slate-400">
-                    <div>Username: <span className="font-mono text-slate-900 dark:text-slate-100">{user.username}</span></div>
-                    {user.phone_number && (
-                      <div className="flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        <span className="text-slate-900 dark:text-slate-100">{user.phone_number}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-1">
-                      <Building className="h-3 w-3" />
-                      <span className="text-slate-900 dark:text-slate-100">{getUserOrganization(user.organization_id!)}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      <span className="text-slate-900 dark:text-slate-100">{new Date(user.created_at).toLocaleDateString()}</span>
-                    </div>
-                  </div>
+    <div className="space-y-4">
+      {users.map((user) => (
+        <div 
+          key={user.id} 
+          className="p-6 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors bg-white dark:bg-slate-900 shadow-sm"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-3">
+                <h3 className="font-semibold text-lg text-slate-900 dark:text-slate-100">{user.display_name}</h3>
+                <Badge variant={getRoleColor(user.user_type)}>
+                  {user.user_type.replace('_', ' ')}
+                </Badge>
+                {!user.is_active && (
+                  <Badge variant="destructive">Inactive</Badge>
+                )}
+              </div>
+              
+              {/* Tracking ID Section - Always visible */}
+              <div className="mb-3">
+                <div className="flex items-center gap-2 p-2 bg-slate-100 dark:bg-slate-800 rounded-md w-fit">
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Tracking ID:</span>
+                  <Badge variant="outline" className="font-mono text-xs">
+                    {user.tracking_id || 'Not assigned'}
+                  </Badge>
+                  {user.tracking_id && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 hover:bg-slate-200 dark:hover:bg-slate-700"
+                      onClick={() => handleCopyTrackingId(user.tracking_id!)}
+                      title="Copy tracking ID"
+                    >
+                      <Copy className="h-4 w-4 text-blue-600" />
+                    </Button>
+                  )}
                 </div>
-                <div className="flex items-center gap-2 ml-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onEdit(user)}
-                  >
-                    <Edit className="h-4 w-4 mr-1" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => onDelete(user.id, user.display_name)}
-                    disabled={deletingUserId === user.id}
-                  >
-                    {deletingUserId === user.id ? (
-                      'Deleting...'
-                    ) : (
-                      <>
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Delete
-                      </>
-                    )}
-                  </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-slate-600 dark:text-slate-400">
+                <div>Username: <span className="font-mono text-slate-900 dark:text-slate-100">{user.username}</span></div>
+                {user.phone_number && (
+                  <div className="flex items-center gap-1">
+                    <Phone className="h-3 w-3" />
+                    <span className="text-slate-900 dark:text-slate-100">{user.phone_number}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1">
+                  <Building className="h-3 w-3" />
+                  <span className="text-slate-900 dark:text-slate-100">{getUserOrganization(user.organization_id!)}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  <span className="text-slate-900 dark:text-slate-100">{new Date(user.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
             </div>
-          ))}
-          {users.length === 0 && (
-            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-              No users found
+            <div className="flex items-center gap-2 ml-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEdit(user)}
+                className="hover:bg-blue-50 hover:border-blue-300"
+              >
+                <Edit className="h-4 w-4 mr-1" />
+                Edit
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => onDelete(user.id, user.display_name)}
+                disabled={deletingUserId === user.id}
+              >
+                {deletingUserId === user.id ? (
+                  'Deleting...'
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </>
+                )}
+              </Button>
             </div>
-          )}
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      ))}
+      {users.length === 0 && (
+        <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+          No users found
+        </div>
+      )}
+    </div>
   );
 }
