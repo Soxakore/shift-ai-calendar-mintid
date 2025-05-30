@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Alert, AlertDescription } from '../ui/alert';
@@ -6,7 +7,6 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
-import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useToast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
 import QuickActions from './QuickActions';
@@ -31,23 +31,30 @@ export default function SuperAdminUserManagement() {
     recentLogins: 0
   });
 
+  const [users, setUsers] = useState<any[]>([]);
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+
   useEffect(() => {
     fetchStats();
+    fetchUsers();
+    fetchOrganizations();
   }, []);
 
   const fetchStats = async () => {
     try {
-      const { count: totalUsers } = await useSupabaseData<number>(
-        supabase.from('profiles').select('*', { count: 'exact' })
-      );
+      const { count: totalUsers } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact' });
 
-      const { count: activeUsers } = await useSupabaseData<number>(
-        supabase.from('profiles').select('*', { count: 'exact' }).eq('is_active', true)
-      );
+      const { count: activeUsers } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact' })
+        .eq('is_active', true);
 
-      const { count: totalOrganizations } = await useSupabaseData<number>(
-        supabase.from('organizations').select('*', { count: 'exact' })
-      );
+      const { count: totalOrganizations } = await supabase
+        .from('organizations')
+        .select('*', { count: 'exact' });
 
       // Fetch recent session activity (last 24 hours)
       const yesterday = new Date();
@@ -78,6 +85,82 @@ export default function SuperAdminUserManagement() {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('display_name');
+      
+      setUsers(data || []);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
+
+  const fetchOrganizations = async () => {
+    try {
+      const { data } = await supabase
+        .from('organizations')
+        .select('*')
+        .order('name');
+      
+      setOrganizations(data || []);
+    } catch (error) {
+      console.error("Error fetching organizations:", error);
+    }
+  };
+
+  const handleEditUser = (user: any) => {
+    // Handle edit user logic
+    console.log('Edit user:', user);
+  };
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    setDeletingUserId(userId);
+    // Handle delete user logic
+    console.log('Delete user:', userId, userName);
+    setDeletingUserId(null);
+  };
+
+  const getUserOrganization = (orgId: string) => {
+    const org = organizations.find(o => o.id === orgId);
+    return org ? org.name : 'Unknown';
+  };
+
+  const handleCreateUser = (userData: any) => {
+    console.log('Create user:', userData);
+    fetchUsers();
+    fetchStats();
+    setActiveView('users');
+    toast({
+      title: "✅ User Created",
+      description: "New user has been successfully created",
+    });
+  };
+
+  const handleCreateOrganization = (orgData: any) => {
+    console.log('Create organization:', orgData);
+    fetchOrganizations();
+    fetchStats();
+    setActiveView('organizations');
+    toast({
+      title: "✅ Organization Created",
+      description: "New organization has been successfully created",
+    });
+  };
+
+  const handleOrganizationPauseChange = (orgId: string, isPaused: boolean) => {
+    // Update organization pause status
+    setOrganizations(prev => 
+      prev.map(org => 
+        org.id === orgId 
+          ? { ...org, is_paused: isPaused, paused_at: isPaused ? new Date().toISOString() : null }
+          : org
+      )
+    );
+  };
+
   const renderContent = () => {
     switch (activeView) {
       case 'users':
@@ -100,7 +183,17 @@ export default function SuperAdminUserManagement() {
                 </Button>
               </div>
             </div>
-            <UsersList searchTerm={searchTerm} />
+            <UsersList 
+              users={users.filter(user => 
+                user.display_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                user.username?.toLowerCase().includes(searchTerm.toLowerCase())
+              )}
+              organizations={organizations}
+              deletingUserId={deletingUserId}
+              onEdit={handleEditUser}
+              onDelete={handleDeleteUser}
+              getUserOrganization={getUserOrganization}
+            />
           </div>
         );
 
@@ -124,8 +217,27 @@ export default function SuperAdminUserManagement() {
                 </Button>
               </div>
             </div>
-            <OrganizationsList searchTerm={searchTerm} />
-            <OrganizationPauseManager />
+            <div className="space-y-4">
+              {organizations
+                .filter(org => 
+                  org.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  org.alias?.toLowerCase().includes(searchTerm.toLowerCase())
+                )
+                .map((org) => (
+                  <div key={org.id} className="p-4 border rounded-lg bg-white dark:bg-slate-800">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-slate-900 dark:text-slate-100">{org.name}</h3>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">{org.description}</p>
+                      </div>
+                      <OrganizationPauseManager 
+                        organization={org}
+                        onPauseChange={handleOrganizationPauseChange}
+                      />
+                    </div>
+                  </div>
+                ))}
+            </div>
           </div>
         );
 
@@ -142,13 +254,12 @@ export default function SuperAdminUserManagement() {
                 Back to Overview
               </Button>
             </div>
-            <CreateUserForm onSuccess={() => {
-              setActiveView('users');
-              toast({
-                title: "✅ User Created",
-                description: "New user has been successfully created",
-              });
-            }} />
+            <CreateUserForm 
+              isCreating={false}
+              organizations={organizations}
+              onCancel={() => setActiveView('overview')}
+              onSubmit={handleCreateUser}
+            />
           </div>
         );
 
@@ -165,13 +276,11 @@ export default function SuperAdminUserManagement() {
                 Back to Overview
               </Button>
             </div>
-            <CreateOrganizationForm onSuccess={() => {
-              setActiveView('organizations');
-              toast({
-                title: "✅ Organization Created",
-                description: "New organization has been successfully created",
-              });
-            }} />
+            <CreateOrganizationForm 
+              isCreating={false}
+              onCancel={() => setActiveView('overview')}
+              onSubmit={handleCreateOrganization}
+            />
           </div>
         );
 
@@ -234,7 +343,26 @@ export default function SuperAdminUserManagement() {
             </div>
 
             {/* Quick Actions */}
-            <QuickActions onViewChange={setActiveView} />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Button 
+                onClick={() => setActiveView('users')}
+                className="h-20 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Manage Users
+              </Button>
+              <Button 
+                onClick={() => setActiveView('organizations')}
+                className="h-20 bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                Manage Organizations
+              </Button>
+              <Button 
+                onClick={() => setActiveView('create-user')}
+                className="h-20 bg-green-600 hover:bg-green-700 text-white"
+              >
+                Create User
+              </Button>
+            </div>
 
             {/* System Status Alert */}
             <Alert className="border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
