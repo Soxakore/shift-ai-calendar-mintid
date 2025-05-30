@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,8 +10,7 @@ import {
   Building,
   BarChart3,
   Shield,
-  Settings,
-  Bell
+  Settings
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Footer from '@/components/Footer';
@@ -24,6 +22,7 @@ import EnhancedUserManagement from '@/components/admin/EnhancedUserManagement';
 import SecurityMonitoring from '@/components/admin/SecurityMonitoring';
 import SystemSettings from '@/components/admin/SystemSettings';
 import GlobalNavigation from '@/components/admin/GlobalNavigation';
+import NotificationDropdown from '@/components/admin/NotificationDropdown';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -120,13 +119,7 @@ const SuperAdminDashboard = () => {
             </div>
             
             <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm" className="relative">
-                <Bell className="w-4 h-4 mr-2" />
-                Alerts
-                <Badge className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                  3
-                </Badge>
-              </Button>
+              <NotificationDropdown />
               <ThemeToggle />
               <Button 
                 variant="destructive" 

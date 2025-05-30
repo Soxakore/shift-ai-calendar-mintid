@@ -188,9 +188,9 @@ const TwoFactorManagement = () => {
       </div>
 
       {/* Organization 2FA Settings */}
-      <Card>
+      <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
             <Building className="w-5 h-5" />
             Organization 2FA Settings
           </CardTitle>
@@ -198,7 +198,7 @@ const TwoFactorManagement = () => {
         <CardContent>
           <div className="space-y-4">
             {organizations.map((org) => (
-              <div key={org.id} className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
+              <div key={org.id} className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900">
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
                     <h3 className="font-medium text-slate-900 dark:text-slate-100">{org.name}</h3>
@@ -227,9 +227,9 @@ const TwoFactorManagement = () => {
       </Card>
 
       {/* User 2FA Management */}
-      <Card>
+      <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
             <Users className="w-5 h-5" />
             User 2FA Management
           </CardTitle>
@@ -243,13 +243,13 @@ const TwoFactorManagement = () => {
                 placeholder="Search users..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
               />
             </div>
             <select
               value={selectedOrg}
               onChange={(e) => setSelectedOrg(e.target.value)}
-              className="px-3 py-2 border rounded-md"
+              className="px-3 py-2 border rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700"
             >
               <option value="all">All Organizations</option>
               {organizations.map((org) => (
@@ -261,12 +261,12 @@ const TwoFactorManagement = () => {
           {/* Users List */}
           <div className="space-y-3">
             {filteredUsers.map((user) => (
-              <div key={user.id} className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
+              <div key={user.id} className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900">
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
                     <div>
                       <p className="font-medium text-slate-900 dark:text-slate-100">{user.display_name}</p>
-                      <p className="text-sm text-slate-500">@{user.username} • {user.organization_name}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">@{user.username} • {user.organization_name}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {user.twofa_enabled ? (
@@ -371,7 +371,7 @@ const TwoFactorManagement = () => {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+        <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-green-600" />
@@ -381,7 +381,7 @@ const TwoFactorManagement = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-red-600" />
@@ -391,7 +391,7 @@ const TwoFactorManagement = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <Building className="w-4 h-4 text-blue-600" />
@@ -401,7 +401,7 @@ const TwoFactorManagement = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-orange-600" />
