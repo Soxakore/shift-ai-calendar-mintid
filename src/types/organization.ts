@@ -152,6 +152,7 @@ export const demoUsersEnhanced: EnhancedUser[] = [
     password: 'manager123',
     isActive: true,
     createdBy: 'admin',
+    createdAt: new Date().toISOString(),
     lastLogin: new Date(),
     userType: 'manager',
   },
@@ -165,6 +166,7 @@ export const demoUsersEnhanced: EnhancedUser[] = [
     password: 'worker123',
     isActive: true,
     createdBy: 'john.manager',
+    createdAt: new Date().toISOString(),
     userType: 'employee',
   },
   {
@@ -177,6 +179,7 @@ export const demoUsersEnhanced: EnhancedUser[] = [
     password: 'coffee123',
     isActive: true,
     createdBy: 'admin',
+    createdAt: new Date().toISOString(),
     userType: 'employee',
   },
 ];

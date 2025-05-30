@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -187,7 +188,7 @@ const RoleBasedUIDemo = () => {
                   </div>
                   <div className="flex items-center justify-between">
                     <span>View All Organizations</span>
-                    {permissions.canViewAllOrganizations ? 
+                    {permissions.canViewOrganizations ? 
                       <Unlock className="w-4 h-4 text-green-500" /> : 
                       <Lock className="w-4 h-4 text-red-500" />
                     }
@@ -247,14 +248,14 @@ const RoleBasedUIDemo = () => {
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Manage Organizations</span>
-                    {permissions.canManageOrganizations ? 
+                    {permissions.canViewOrganizations ? 
                       <Unlock className="w-4 h-4 text-green-500" /> : 
                       <Lock className="w-4 h-4 text-red-500" />
                     }
                   </div>
                   <div className="flex items-center justify-between">
                     <span>System Settings</span>
-                    {permissions.canAccessSystemSettings ? 
+                    {permissions.canViewSettings ? 
                       <Unlock className="w-4 h-4 text-green-500" /> : 
                       <Lock className="w-4 h-4 text-red-500" />
                     }
