@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +21,7 @@ import SuperAdminUserManagement from '@/components/admin/SuperAdminUserManagemen
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
 import EnhancedUserManagement from '@/components/admin/EnhancedUserManagement';
 import SecurityMonitoring from '@/components/admin/SecurityMonitoring';
+import SystemSettings from '@/components/admin/SystemSettings';
 import GlobalNavigation from '@/components/admin/GlobalNavigation';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -241,16 +241,7 @@ const SuperAdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="system" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>System Settings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-slate-600 dark:text-slate-400">
-                  System configuration options will be available here.
-                </p>
-              </CardContent>
-            </Card>
+            <SystemSettings />
           </TabsContent>
         </Tabs>
       </main>
