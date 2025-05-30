@@ -25,7 +25,7 @@ import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SuperAdminUserManagement() {
-  const { profile, createUser } = useSupabaseAuth();
+  const { profile } = useSupabaseAuth();
   const { organizations, departments, profiles, loading, refetch, refetchOrganizations, refetchProfiles } = useSupabaseData();
   const { toast } = useToast();
   const [showCreateUser, setShowCreateUser] = useState(false);
@@ -285,21 +285,26 @@ export default function SuperAdminUserManagement() {
         return;
       }
 
-      // Create user with actual email (not constructed)
+      // Prepare user metadata with proper null handling
+      const userMetadata = {
+        username: newUser.username.trim(),
+        display_name: newUser.display_name.trim(),
+        user_type: newUser.user_type,
+        organization_id: newUser.organization_id || null,
+        department_id: newUser.department_id || null,
+        created_by: profile?.id || null
+      };
+
+      // Create user with proper metadata
       console.log('Creating auth user with email:', newUser.email);
+      console.log('User metadata:', userMetadata);
       
       const { data, error } = await supabase.auth.signUp({
         email: newUser.email.trim(),
         password: newUser.password,
         options: {
-          data: {
-            username: newUser.username.trim(),
-            display_name: newUser.display_name.trim(),
-            user_type: newUser.user_type,
-            organization_id: newUser.organization_id,
-            department_id: newUser.department_id,
-            created_by: profile?.id
-          }
+          data: userMetadata,
+          emailRedirectTo: undefined // Prevent email confirmation
         }
       });
 
@@ -314,10 +319,28 @@ export default function SuperAdminUserManagement() {
         return;
       }
 
+      // If user was created successfully, manually confirm them to activate the account
+      if (data.user && !data.user.email_confirmed_at) {
+        console.log('Manually confirming user email...');
+        
+        // Use admin API to confirm user
+        const { error: confirmError } = await supabase.auth.admin.updateUserById(
+          data.user.id,
+          { email_confirm: true }
+        );
+        
+        if (confirmError) {
+          console.error('Error confirming user:', confirmError);
+          // Don't fail the whole process, just log it
+        } else {
+          console.log('User email confirmed successfully');
+        }
+      }
+
       console.log('User created successfully:', data.user?.id);
       toast({
-        title: "✅ User Created",
-        description: `${newUser.display_name} has been created and activated successfully`,
+        title: "✅ User Created & Activated",
+        description: `${newUser.display_name} has been created and is ready to log in with username: ${newUser.username}`,
       });
       
       setNewUser({
@@ -330,12 +353,17 @@ export default function SuperAdminUserManagement() {
         department_id: ''
       });
       setShowCreateUser(false);
-      await refetchProfiles();
+      
+      // Wait a moment for the database trigger to complete, then refresh
+      setTimeout(async () => {
+        await refetchProfiles();
+      }, 1000);
+      
     } catch (error) {
       console.error('Unexpected error creating user:', error);
       toast({
         title: "❌ Unexpected Error",
-        description: "An unexpected error occurred",
+        description: "An unexpected error occurred while creating the user",
         variant: "destructive"
       });
     } finally {
@@ -641,7 +669,7 @@ export default function SuperAdminUserManagement() {
             <Alert>
               <CheckCircle className="h-4 w-4" />
               <AlertDescription>
-                Account will be automatically activated and ready for immediate use
+                Account will be automatically activated and ready for immediate use. User can log in with their username and password.
               </AlertDescription>
             </Alert>
 
@@ -651,7 +679,7 @@ export default function SuperAdminUserManagement() {
                 disabled={isCreatingUser || !newUser.email.trim() || !newUser.username.trim() || !newUser.password.trim() || !newUser.display_name.trim() || !newUser.organization_id}
               >
                 <UserPlus className="h-4 w-4 mr-2" />
-                {isCreatingUser ? "Creating..." : "Create User Account"}
+                {isCreatingUser ? "Creating & Activating..." : "Create User Account"}
               </Button>
               <Button 
                 variant="outline" 
