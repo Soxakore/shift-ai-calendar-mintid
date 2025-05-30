@@ -14,7 +14,8 @@ import {
   Shield,
   Phone,
   Hash,
-  User
+  User,
+  ChevronRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,6 +52,7 @@ const HistoryPage = () => {
   
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -74,7 +76,7 @@ const HistoryPage = () => {
         setOrganizations(orgsData || []);
       }
 
-      // Fetch users
+      // Fetch all users
       const { data: usersData, error: usersError } = await supabase
         .from('profiles')
         .select('*')
@@ -114,18 +116,19 @@ const HistoryPage = () => {
     (org.organization_number && org.organization_number.toLowerCase().includes(cleanSearchTerm.toLowerCase()))
   );
 
-  const filteredUsers = users.filter(user =>
-    user.display_name.toLowerCase().includes(cleanSearchTerm.toLowerCase()) ||
-    user.username.toLowerCase().includes(cleanSearchTerm.toLowerCase()) ||
-    user.user_type.toLowerCase().includes(cleanSearchTerm.toLowerCase()) ||
-    (user.tracking_id && user.tracking_id.toLowerCase().includes(cleanSearchTerm.toLowerCase())) ||
-    (user.phone_number && user.phone_number.includes(cleanSearchTerm))
-  );
-
-  const getOrganizationName = (orgId: string) => {
-    const org = organizations.find(o => o.id === orgId);
-    return org?.name || 'Unknown Organization';
+  const getOrganizationUsers = (orgId: string) => {
+    return users.filter(user => user.organization_id === orgId);
   };
+
+  const filteredUsersForSelectedOrg = selectedOrganization 
+    ? getOrganizationUsers(selectedOrganization.id).filter(user =>
+        user.display_name.toLowerCase().includes(cleanSearchTerm.toLowerCase()) ||
+        user.username.toLowerCase().includes(cleanSearchTerm.toLowerCase()) ||
+        user.user_type.toLowerCase().includes(cleanSearchTerm.toLowerCase()) ||
+        (user.tracking_id && user.tracking_id.toLowerCase().includes(cleanSearchTerm.toLowerCase())) ||
+        (user.phone_number && user.phone_number.includes(cleanSearchTerm))
+      )
+    : [];
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -135,6 +138,16 @@ const HistoryPage = () => {
       case 'employee': return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
     }
+  };
+
+  const handleOrganizationClick = (org: Organization) => {
+    setSelectedOrganization(org);
+    setSearchTerm(''); // Clear search when switching views
+  };
+
+  const handleBackToOrganizations = () => {
+    setSelectedOrganization(null);
+    setSearchTerm(''); // Clear search when going back
   };
 
   return (
@@ -161,16 +174,30 @@ const HistoryPage = () => {
                 <ArrowLeft className="h-4 w-4" />
                 Back to Dashboard
               </Button>
+              {selectedOrganization && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBackToOrganizations}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Organizations
+                </Button>
+              )}
               <div className="flex items-center space-x-3">
                 <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
                   <Shield className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                    System History
+                    {selectedOrganization ? `${selectedOrganization.name} - Users` : 'System History'}
                   </h1>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Complete overview of organizations and users
+                    {selectedOrganization 
+                      ? `Users in ${selectedOrganization.name} organization`
+                      : 'Complete overview of organizations and users'
+                    }
                   </p>
                 </div>
               </div>
@@ -181,7 +208,7 @@ const HistoryPage = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
-                  placeholder="Search organizations, users, roles..."
+                  placeholder={selectedOrganization ? "Search users..." : "Search organizations..."}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 w-80"
@@ -195,140 +222,147 @@ const HistoryPage = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="space-y-8">
-          {/* Organizations Section */}
-          <Card className="border-0 shadow-xl bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-800 dark:to-blue-700 border-b">
-              <CardTitle className="flex items-center gap-2">
-                <Building className="h-5 w-5 text-blue-600" />
-                Organizations ({filteredOrganizations.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {loading ? (
-                <div className="flex items-center justify-center h-32">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Organization ID</TableHead>
-                      <TableHead>Alias</TableHead>
-                      <TableHead>Users Count</TableHead>
-                      <TableHead>Created</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredOrganizations.map((org) => (
-                      <TableRow key={org.id}>
-                        <TableCell className="font-medium">{org.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="font-mono text-xs">
-                            {org.organization_number || 'Not assigned'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {org.alias && (
-                            <Badge variant="secondary">{org.alias}</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {users.filter(u => u.organization_id === org.id).length} users
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1 text-sm text-slate-500">
-                            <Calendar className="h-4 w-4" />
-                            {new Date(org.created_at).toLocaleDateString()}
-                          </div>
-                        </TableCell>
+          {!selectedOrganization ? (
+            /* Organizations View */
+            <Card className="border-0 shadow-xl bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm">
+              <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-800 dark:to-blue-700 border-b">
+                <CardTitle className="flex items-center gap-2">
+                  <Building className="h-5 w-5 text-blue-600" />
+                  Organizations ({filteredOrganizations.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {loading ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Organization ID</TableHead>
+                        <TableHead>Alias</TableHead>
+                        <TableHead>Users Count</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Users Section */}
-          <Card className="border-0 shadow-xl bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm">
-            <CardHeader className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-800 dark:to-green-700 border-b">
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-green-600" />
-                Users ({filteredUsers.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {loading ? (
-                <div className="flex items-center justify-center h-32">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Organization</TableHead>
-                      <TableHead>Tracking ID</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Created</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{user.display_name}</div>
-                            <div className="text-sm text-slate-500">@{user.username}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getRoleColor(user.user_type)}>
-                            {user.user_type.replace('_', ' ').toUpperCase()}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Building className="h-4 w-4 text-slate-400" />
-                            {getOrganizationName(user.organization_id)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {user.tracking_id && (
+                    </TableHeader>
+                    <TableBody>
+                      {filteredOrganizations.map((org) => (
+                        <TableRow key={org.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                          <TableCell className="font-medium">{org.name}</TableCell>
+                          <TableCell>
                             <Badge variant="outline" className="font-mono text-xs">
-                              {user.tracking_id}
+                              {org.organization_number || 'Not assigned'}
                             </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {user.phone_number && (
-                            <div className="flex items-center gap-1">
-                              <Phone className="h-4 w-4 text-slate-400" />
-                              <span className="text-sm">{user.phone_number}</span>
+                          </TableCell>
+                          <TableCell>
+                            {org.alias && (
+                              <Badge variant="secondary">{org.alias}</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {getOrganizationUsers(org.id).length} users
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1 text-sm text-slate-500">
+                              <Calendar className="h-4 w-4" />
+                              {new Date(org.created_at).toLocaleDateString()}
                             </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={user.is_active ? "default" : "secondary"}>
-                            {user.is_active ? "Active" : "Inactive"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1 text-sm text-slate-500">
-                            <Calendar className="h-4 w-4" />
-                            {new Date(user.created_at).toLocaleDateString()}
-                          </div>
-                        </TableCell>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOrganizationClick(org)}
+                              className="flex items-center gap-2"
+                            >
+                              View Users
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            /* Users View for Selected Organization */
+            <Card className="border-0 shadow-xl bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm">
+              <CardHeader className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-800 dark:to-green-700 border-b">
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-green-600" />
+                  Users in {selectedOrganization.name} ({filteredUsersForSelectedOrg.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {loading ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Tracking ID</TableHead>
+                        <TableHead>Phone</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Created</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsersForSelectedOrg.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{user.display_name}</div>
+                              <div className="text-sm text-slate-500">@{user.username}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getRoleColor(user.user_type)}>
+                              {user.user_type.replace('_', ' ').toUpperCase()}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {user.tracking_id && (
+                              <Badge variant="outline" className="font-mono text-xs">
+                                {user.tracking_id}
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {user.phone_number && (
+                              <div className="flex items-center gap-1">
+                                <Phone className="h-4 w-4 text-slate-400" />
+                                <span className="text-sm">{user.phone_number}</span>
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={user.is_active ? "default" : "secondary"}>
+                              {user.is_active ? "Active" : "Inactive"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1 text-sm text-slate-500">
+                              <Calendar className="h-4 w-4" />
+                              {new Date(user.created_at).toLocaleDateString()}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </main>
     </div>
