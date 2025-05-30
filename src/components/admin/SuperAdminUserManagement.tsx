@@ -27,6 +27,15 @@ export default function SuperAdminUserManagement() {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [isUpdatingUser, setIsUpdatingUser] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editUserData, setEditUserData] = useState({
+    username: '',
+    display_name: '',
+    phone_number: '',
+    user_type: 'org_admin',
+    organization_id: '',
+    department_id: '',
+    new_password: ''
+  });
 
   // Filter data based on search term
   const filteredOrganizations = organizations.filter(org =>
@@ -272,7 +281,7 @@ export default function SuperAdminUserManagement() {
     }
   };
 
-  const handleCreateUser = async (userData) => {
+  const handleCreateUser = async (userData: any) => {
     if (!userData.email.trim() || !userData.username.trim() || !userData.password.trim() || !userData.display_name.trim()) {
       toast({
         title: "❌ Missing Information",
@@ -373,16 +382,6 @@ export default function SuperAdminUserManagement() {
         description: `${userData.display_name} has been created and is immediately ready to log in with username: ${userData.username}`,
       });
       
-      setNewUser({
-        email: '',
-        username: '',
-        password: '',
-        display_name: '',
-        phone_number: '',
-        user_type: 'org_admin',
-        organization_id: '',
-        department_id: ''
-      });
       setShowCreateUser(false);
       
       // Wait a moment for the database trigger to complete, then refresh
@@ -695,7 +694,7 @@ export default function SuperAdminUserManagement() {
           users={filteredProfiles}
           organizations={organizations}
           deletingUserId={deletingUserId}
-          onEdit={setEditingUser}
+          onEdit={handleEditUser}
           onDelete={handleDeleteUser}
           getUserOrganization={getUserOrganization}
         />
