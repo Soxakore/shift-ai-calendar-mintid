@@ -1,34 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Alert, AlertDescription } from '../ui/alert';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
-import { 
-  Users, 
-  UserPlus, 
-  Shield,
-  Crown,
-  Building,
-  Eye,
-  CheckCircle,
-  RefreshCw,
-  Trash2,
-  AlertTriangle,
-  Mail,
-  Edit,
-  Search,
-  Phone,
-  Hash,
-  Tag
-} from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useToast } from '@/hooks/use-toast';
+import SuperAdminHeader from './SuperAdminHeader';
+import QuickActions from './QuickActions';
+import CreateOrganizationForm from './CreateOrganizationForm';
+import CreateUserForm from './CreateUserForm';
+import EditUserDialog from './EditUserDialog';
+import OrganizationsList from './OrganizationsList';
+import UsersList from './UsersList';
 
 export default function SuperAdminUserManagement() {
   const { profile } = useSupabaseAuth();
@@ -43,30 +27,6 @@ export default function SuperAdminUserManagement() {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [isUpdatingUser, setIsUpdatingUser] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [newUser, setNewUser] = useState({
-    email: '',
-    username: '',
-    password: '',
-    display_name: '',
-    phone_number: '',
-    user_type: 'org_admin' as 'org_admin' | 'manager' | 'employee',
-    organization_id: '',
-    department_id: ''
-  });
-  const [editUserData, setEditUserData] = useState({
-    username: '',
-    display_name: '',
-    phone_number: '',
-    user_type: 'org_admin' as 'org_admin' | 'manager' | 'employee',
-    organization_id: '',
-    department_id: '',
-    new_password: ''
-  });
-  const [newOrg, setNewOrg] = useState({
-    name: '',
-    description: '',
-    alias: ''
-  });
 
   // Filter data based on search term
   const filteredOrganizations = organizations.filter(org =>
@@ -148,8 +108,8 @@ export default function SuperAdminUserManagement() {
     };
   }, [refetchOrganizations, refetchProfiles, refetch, toast]);
 
-  const handleCreateOrganization = async () => {
-    if (!newOrg.name.trim()) {
+  const handleCreateOrganization = async (orgData) => {
+    if (!orgData.name.trim()) {
       toast({
         title: "❌ Missing Information",
         description: "Organization name is required",
@@ -159,15 +119,15 @@ export default function SuperAdminUserManagement() {
     }
 
     setIsCreatingOrg(true);
-    console.log('Creating organization:', newOrg);
+    console.log('Creating organization:', orgData);
 
     try {
       const { data, error } = await supabase
         .from('organizations')
         .insert([{
-          name: newOrg.name.trim(),
-          description: newOrg.description.trim() || null,
-          alias: newOrg.alias.trim() || null
+          name: orgData.name.trim(),
+          description: orgData.description.trim() || null,
+          alias: orgData.alias.trim() || null
         }])
         .select()
         .single();
@@ -183,9 +143,8 @@ export default function SuperAdminUserManagement() {
         console.log('Organization created successfully:', data);
         toast({
           title: "✅ Organization Created",
-          description: `${newOrg.name} has been created with number: ${data.organization_number}`,
+          description: `${orgData.name} has been created with number: ${data.organization_number}`,
         });
-        setNewOrg({ name: '', description: '', alias: '' });
         setShowCreateOrg(false);
         await refetchOrganizations();
       }
@@ -313,8 +272,8 @@ export default function SuperAdminUserManagement() {
     }
   };
 
-  const handleCreateUser = async () => {
-    if (!newUser.email.trim() || !newUser.username.trim() || !newUser.password.trim() || !newUser.display_name.trim()) {
+  const handleCreateUser = async (userData) => {
+    if (!userData.email.trim() || !userData.username.trim() || !userData.password.trim() || !userData.display_name.trim()) {
       toast({
         title: "❌ Missing Information",
         description: "Email, username, password, and display name are required",
@@ -323,7 +282,7 @@ export default function SuperAdminUserManagement() {
       return;
     }
 
-    if (!newUser.organization_id) {
+    if (!userData.organization_id) {
       toast({
         title: "❌ Missing Organization",
         description: "Please select an organization",
@@ -334,7 +293,7 @@ export default function SuperAdminUserManagement() {
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newUser.email)) {
+    if (!emailRegex.test(userData.email)) {
       toast({
         title: "❌ Invalid Email",
         description: "Please enter a valid email address",
@@ -344,14 +303,14 @@ export default function SuperAdminUserManagement() {
     }
 
     setIsCreatingUser(true);
-    console.log('Creating fully automated user:', { ...newUser, password: '[HIDDEN]' });
+    console.log('Creating fully automated user:', { ...userData, password: '[HIDDEN]' });
 
     try {
       // Check if username already exists
       const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
         .select('username')
-        .eq('username', newUser.username.trim())
+        .eq('username', userData.username.trim())
         .maybeSingle();
       
       if (checkError) {
@@ -377,22 +336,22 @@ export default function SuperAdminUserManagement() {
 
       // Prepare user metadata with proper null handling
       const userMetadata = {
-        username: newUser.username.trim(),
-        display_name: newUser.display_name.trim(),
-        phone_number: newUser.phone_number.trim() || null,
-        user_type: newUser.user_type,
-        organization_id: newUser.organization_id || null,
-        department_id: newUser.department_id || null,
+        username: userData.username.trim(),
+        display_name: userData.display_name.trim(),
+        phone_number: userData.phone_number.trim() || null,
+        user_type: userData.user_type,
+        organization_id: userData.organization_id || null,
+        department_id: userData.department_id || null,
         created_by: profile?.id || null
       };
 
       // Create user with automatic confirmation (no email verification needed)
-      console.log('Creating auto-confirmed user with email:', newUser.email);
+      console.log('Creating auto-confirmed user with email:', userData.email);
       console.log('User metadata:', userMetadata);
       
       const { data, error } = await supabase.auth.admin.createUser({
-        email: newUser.email.trim(),
-        password: newUser.password,
+        email: userData.email.trim(),
+        password: userData.password,
         email_confirm: true, // Automatically confirm email
         user_metadata: userMetadata
       });
@@ -411,7 +370,7 @@ export default function SuperAdminUserManagement() {
       console.log('User created and auto-confirmed successfully:', data.user?.id);
       toast({
         title: "🚀 User Created & Auto-Activated",
-        description: `${newUser.display_name} has been created and is immediately ready to log in with username: ${newUser.username}`,
+        description: `${userData.display_name} has been created and is immediately ready to log in with username: ${userData.username}`,
       });
       
       setNewUser({
@@ -665,584 +624,92 @@ export default function SuperAdminUserManagement() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-          <p>Loading system data...</p>
+          <p className="text-slate-600">Loading system data...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header with live stats and search */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center space-x-4">
-          <Crown className="h-8 w-8 text-yellow-600" />
-          <div>
-            <h1 className="text-2xl font-bold">Super Admin Management</h1>
-            <p className="text-muted-foreground">
-              Fully Automated System - Organizations: {filteredOrganizations.length}/{organizations.length}, Users: {filteredProfiles.length}/{profiles.length}, Departments: {departments.length}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-80">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search users, organizations, tracking IDs..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Button onClick={handleRefresh} variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-          <Badge variant="destructive" className="flex items-center gap-1">
-            <Shield className="h-3 w-3" />
-            SUPER ADMIN
-          </Badge>
-          <div className="flex items-center gap-1 text-sm text-green-600">
-            <CheckCircle className="h-3 w-3" />
-            Auto-System Active
-          </div>
-        </div>
-      </div>
+    <div className="space-y-0">
+      {/* Header with Statistics and Search */}
+      <SuperAdminHeader
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onRefresh={handleRefresh}
+        organizationsCount={organizations.length}
+        usersCount={profiles.length}
+        departmentsCount={departments.length}
+        filteredOrganizationsCount={filteredOrganizations.length}
+        filteredUsersCount={filteredProfiles.length}
+      />
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Button 
-          onClick={() => setShowCreateOrg(!showCreateOrg)}
-          className="h-16 text-left justify-start"
-          variant="outline"
-          disabled={isCreatingOrg}
-        >
-          <Building className="h-6 w-6 mr-3" />
-          <div>
-            <div className="font-semibold">Create Organization</div>
-            <div className="text-sm text-muted-foreground">Add new company/business with auto-numbering</div>
-          </div>
-        </Button>
-        
-        <Button 
-          onClick={() => setShowCreateUser(!showCreateUser)}
-          className="h-16 text-left justify-start"
-          variant="outline"
-          disabled={isCreatingUser}
-        >
-          <UserPlus className="h-6 w-6 mr-3" />
-          <div>
-            <div className="font-semibold">Auto-Create User</div>
-            <div className="text-sm text-muted-foreground">Instant activation with tracking ID</div>
-          </div>
-        </Button>
+      <QuickActions
+        onCreateOrganization={() => setShowCreateOrg(!showCreateOrg)}
+        onCreateUser={() => setShowCreateUser(!showCreateUser)}
+        isCreatingOrg={isCreatingOrg}
+        isCreatingUser={isCreatingUser}
+      />
+
+      <div className="p-6 space-y-8">
+        {/* Create Organization Form */}
+        {showCreateOrg && (
+          <CreateOrganizationForm
+            isCreating={isCreatingOrg}
+            onCancel={() => setShowCreateOrg(false)}
+            onSubmit={handleCreateOrganization}
+          />
+        )}
+
+        {/* Create User Form */}
+        {showCreateUser && (
+          <CreateUserForm
+            isCreating={isCreatingUser}
+            organizations={organizations}
+            onCancel={() => setShowCreateUser(false)}
+            onSubmit={handleCreateUser}
+          />
+        )}
+
+        {/* Edit User Dialog */}
+        <EditUserDialog
+          user={editingUser}
+          isUpdating={isUpdatingUser}
+          organizations={organizations}
+          onClose={() => setEditingUser(null)}
+          onSubmit={handleUpdateUser}
+        />
+
+        {/* Organizations List */}
+        <OrganizationsList
+          organizations={filteredOrganizations}
+          profiles={profiles}
+          departments={departments}
+          deletingOrgId={deletingOrgId}
+          onDelete={handleDeleteOrganization}
+        />
+
+        {/* Users List */}
+        <UsersList
+          users={filteredProfiles}
+          organizations={organizations}
+          deletingUserId={deletingUserId}
+          onEdit={setEditingUser}
+          onDelete={handleDeleteUser}
+          getUserOrganization={getUserOrganization}
+        />
+
+        {/* Success Alert */}
+        <Alert className="border-green-200 bg-green-50">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800">
+            🚀 <strong>Enhanced Management Active:</strong> Complete system with phone numbers, organization numbers, 
+            auto-generated tracking IDs, aliases, and powerful search functionality. Professional interface with 
+            real-time updates and comprehensive user management.
+          </AlertDescription>
+        </Alert>
       </div>
-
-      {/* Create Organization Form */}
-      {showCreateOrg && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Create New Organization</CardTitle>
-            <CardDescription>
-              Add a new company or business to the MinTid system (organization number will be auto-generated)
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="orgName">Organization Name *</Label>
-                <Input
-                  id="orgName"
-                  value={newOrg.name}
-                  onChange={(e) => setNewOrg({...newOrg, name: e.target.value})}
-                  placeholder="Company Name Inc."
-                  disabled={isCreatingOrg}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="orgAlias">Alias (Optional)</Label>
-                <Input
-                  id="orgAlias"
-                  value={newOrg.alias}
-                  onChange={(e) => setNewOrg({...newOrg, alias: e.target.value})}
-                  placeholder="Short name or abbreviation"
-                  disabled={isCreatingOrg}
-                />
-              </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="orgDescription">Description (Optional)</Label>
-              <Input
-                id="orgDescription"
-                value={newOrg.description}
-                onChange={(e) => setNewOrg({...newOrg, description: e.target.value})}
-                placeholder="Brief description of the organization"
-                disabled={isCreatingOrg}
-              />
-            </div>
-
-            <div className="flex space-x-2">
-              <Button 
-                onClick={handleCreateOrganization}
-                disabled={isCreatingOrg || !newOrg.name.trim()}
-              >
-                <Building className="h-4 w-4 mr-2" />
-                {isCreatingOrg ? "Creating..." : "Create Organization"}
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => setShowCreateOrg(false)}
-                disabled={isCreatingOrg}
-              >
-                Cancel
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Create User Form */}
-      {showCreateUser && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Auto-Create User Account</CardTitle>
-            <CardDescription>
-              Create a fully activated user account with auto-generated tracking ID - No email confirmation required
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="email">Email Address *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-                  placeholder="user@company.com"
-                  disabled={isCreatingUser}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={newUser.phone_number}
-                  onChange={(e) => setNewUser({...newUser, phone_number: e.target.value})}
-                  placeholder="+46 70 123 4567"
-                  disabled={isCreatingUser}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="username">Username *</Label>
-                <Input
-                  id="username"
-                  value={newUser.username}
-                  onChange={(e) => setNewUser({...newUser, username: e.target.value})}
-                  placeholder="john.admin"
-                  disabled={isCreatingUser}
-                />
-              </div>
-              <div>
-                <Label htmlFor="displayName">Full Name *</Label>
-                <Input
-                  id="displayName"
-                  value={newUser.display_name}
-                  onChange={(e) => setNewUser({...newUser, display_name: e.target.value})}
-                  placeholder="John Administrator"
-                  disabled={isCreatingUser}
-                />
-              </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="password">Password *</Label>
-              <Input
-                id="password"
-                type="password"
-                value={newUser.password}
-                onChange={(e) => setNewUser({...newUser, password: e.target.value})}
-                placeholder="Secure password (min 6 characters)"
-                disabled={isCreatingUser}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="userType">Role *</Label>
-                <Select 
-                  value={newUser.user_type} 
-                  onValueChange={(value: 'org_admin' | 'manager' | 'employee') => 
-                    setNewUser({...newUser, user_type: value})
-                  }
-                  disabled={isCreatingUser}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="org_admin">Organization Admin</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="employee">Employee</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="organization">Organization *</Label>
-                <Select 
-                  value={newUser.organization_id} 
-                  onValueChange={(value) => setNewUser({...newUser, organization_id: value})}
-                  disabled={isCreatingUser}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Organization" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {organizations.map((org) => (
-                      <SelectItem key={org.id} value={org.id}>
-                        {org.name} ({org.organization_number})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <Alert>
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription>
-                🚀 Fully Automated: Account will be instantly activated with auto-generated tracking ID for easy support. No email confirmation required.
-              </AlertDescription>
-            </Alert>
-
-            <div className="flex space-x-2">
-              <Button 
-                onClick={handleCreateUser}
-                disabled={isCreatingUser || !newUser.email.trim() || !newUser.username.trim() || !newUser.password.trim() || !newUser.display_name.trim() || !newUser.organization_id}
-              >
-                <UserPlus className="h-4 w-4 mr-2" />
-                {isCreatingUser ? "Auto-Creating..." : "🚀 Auto-Create User"}
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => setShowCreateUser(false)}
-                disabled={isCreatingUser}
-              >
-                Cancel
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Edit User Dialog */}
-      <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit User Account</DialogTitle>
-            <DialogDescription>
-              Update user details, role, phone number, or password - Changes are applied instantly
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="editUsername">Username *</Label>
-                <Input
-                  id="editUsername"
-                  value={editUserData.username}
-                  onChange={(e) => setEditUserData({...editUserData, username: e.target.value})}
-                  placeholder="john.admin"
-                  disabled={isUpdatingUser}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="editDisplayName">Full Name *</Label>
-                <Input
-                  id="editDisplayName"
-                  value={editUserData.display_name}
-                  onChange={(e) => setEditUserData({...editUserData, display_name: e.target.value})}
-                  placeholder="John Administrator"
-                  disabled={isUpdatingUser}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="editPhone">Phone Number</Label>
-                <Input
-                  id="editPhone"
-                  type="tel"
-                  value={editUserData.phone_number}
-                  onChange={(e) => setEditUserData({...editUserData, phone_number: e.target.value})}
-                  placeholder="+46 70 123 4567"
-                  disabled={isUpdatingUser}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="editPassword">New Password (optional)</Label>
-                <Input
-                  id="editPassword"
-                  type="password"
-                  value={editUserData.new_password}
-                  onChange={(e) => setEditUserData({...editUserData, new_password: e.target.value})}
-                  placeholder="Leave blank to keep current password"
-                  disabled={isUpdatingUser}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="editUserType">Role *</Label>
-                <Select 
-                  value={editUserData.user_type} 
-                  onValueChange={(value: 'org_admin' | 'manager' | 'employee') => 
-                    setEditUserData({...editUserData, user_type: value})
-                  }
-                  disabled={isUpdatingUser}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="org_admin">Organization Admin</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="employee">Employee</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="editOrganization">Organization *</Label>
-                <Select 
-                  value={editUserData.organization_id} 
-                  onValueChange={(value) => setEditUserData({...editUserData, organization_id: value})}
-                  disabled={isUpdatingUser}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Organization" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {organizations.map((org) => (
-                      <SelectItem key={org.id} value={org.id}>
-                        {org.name} ({org.organization_number})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="flex space-x-2">
-              <Button 
-                onClick={handleUpdateUser}
-                disabled={isUpdatingUser || !editUserData.username.trim() || !editUserData.display_name.trim() || !editUserData.organization_id}
-                className="flex-1"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                {isUpdatingUser ? "Updating..." : "Update User"}
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => setEditingUser(null)}
-                disabled={isUpdatingUser}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Organizations List with enhanced information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Organizations ({filteredOrganizations.length})
-            <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-          </CardTitle>
-          <CardDescription>
-            All organizations in the system with auto-generated numbers - Auto-updates in real-time
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {filteredOrganizations.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {searchTerm ? `No organizations found matching "${searchTerm}"` : "No organizations found. Create one to get started."}
-            </div>
-          ) : (
-            <div className="grid gap-4">
-              {filteredOrganizations.map((org) => {
-                const orgUsers = profiles.filter(p => p.organization_id === org.id);
-                const orgDepts = departments.filter(d => d.organization_id === org.id);
-                
-                return (
-                  <div key={org.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold">{org.name}</h3>
-                          {org.alias && (
-                            <Badge variant="outline" className="text-xs">
-                              <Tag className="h-3 w-3 mr-1" />
-                              {org.alias}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-2">{org.description || 'No description'}</p>
-                        <div className="flex flex-wrap gap-2">
-                          <Badge variant="outline" className="text-xs">
-                            <Hash className="h-3 w-3 mr-1" />
-                            {org.organization_number}
-                          </Badge>
-                          <Badge variant="outline">{orgUsers.length} users</Badge>
-                          <Badge variant="outline">{orgDepts.length} departments</Badge>
-                          <Badge variant="outline" className="text-xs">
-                            Created: {new Date(org.created_at).toLocaleDateString()}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          onClick={() => handleDeleteOrganization(org.id, org.name)}
-                          disabled={deletingOrgId === org.id}
-                          title="Delete organization and all users"
-                        >
-                          {deletingOrgId === org.id ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Users List with enhanced information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            All System Users ({filteredProfiles.length})
-            <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-          </CardTitle>
-          <CardDescription>
-            Complete automated user management with tracking IDs for easy support
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {filteredProfiles.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {searchTerm ? `No users found matching "${searchTerm}"` : "No users found."}
-            </div>
-          ) : (
-            <div className="grid gap-4">
-              {filteredProfiles.map((user) => (
-                <div key={user.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4 flex-1">
-                      <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
-                        <Users className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-semibold">{user.display_name}</p>
-                          {user.tracking_id && (
-                            <Badge variant="outline" className="text-xs font-mono">
-                              <Hash className="h-3 w-3 mr-1" />
-                              {user.tracking_id}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground">@{user.username}</p>
-                        {user.phone_number && (
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
-                            {user.phone_number}
-                          </p>
-                        )}
-                        <div className="flex items-center space-x-2 mt-2">
-                          <Badge variant="outline">{getUserOrganization(user.organization_id!)}</Badge>
-                          <span className="text-muted-foreground">→</span>
-                          <Badge variant={
-                            user.user_type === 'super_admin' ? 'destructive' :
-                            user.user_type === 'org_admin' ? 'default' :
-                            user.user_type === 'manager' ? 'secondary' : 'outline'
-                          }>
-                            {user.user_type.replace('_', ' ')}
-                          </Badge>
-                          <Badge variant="default" className="bg-green-100 text-green-800">
-                            ✅ Auto-Active
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      {user.user_type !== 'super_admin' && (
-                        <>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleEditUser(user)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            onClick={() => handleDeleteUser(user.id, user.display_name)}
-                            disabled={deletingUserId === user.id}
-                            title="Delete user (works without Supabase admin access)"
-                          >
-                            {deletingUserId === user.id ? (
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Alert>
-        <CheckCircle className="h-4 w-4" />
-        <AlertDescription>
-          🚀 Enhanced Management: Now with phone numbers, organization numbers, auto-generated tracking IDs, aliases, and powerful search functionality. Easy support with tracking IDs and complete user information at your fingertips!
-        </AlertDescription>
-      </Alert>
     </div>
   );
 }
