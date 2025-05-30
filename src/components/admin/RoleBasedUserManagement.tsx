@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import HistoryButton from './HistoryButton';
+import SuperAdminHeader from './SuperAdminHeader';
 
 interface Organization {
   id: string;
@@ -40,6 +41,7 @@ export default function RoleBasedUserManagement() {
   const [loading, setLoading] = useState(false);
   const [isCreatingOrg, setIsCreatingOrg] = useState(false);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
 
   const fetchOrganizations = useCallback(async () => {
@@ -108,6 +110,22 @@ export default function RoleBasedUserManagement() {
     fetchOrganizations();
     fetchUsers();
   }, [fetchOrganizations, fetchUsers]);
+
+  // Filter organizations based on search term
+  const filteredOrganizations = organizations.filter(org =>
+    org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (org.alias && org.alias.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (org.organization_number && org.organization_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (org.description && org.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  // Filter users based on search term
+  const filteredUsers = allUsers.filter(user =>
+    user.display_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (user.tracking_id && user.tracking_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (user.phone_number && user.phone_number.includes(searchTerm))
+  );
 
   const handleCreateOrg = async (orgData: { name: string; description: string; alias: string }) => {
     setIsCreatingOrg(true);
@@ -199,41 +217,20 @@ export default function RoleBasedUserManagement() {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-            User & Organization Management
-          </h2>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Manage users and organizations across the system
-          </p>
-        </div>
-        
-        {/* Action Buttons */}
-        <div className="flex items-center gap-3">
-          <HistoryButton 
-            variant="outline" 
-            size="default"
-            showBadge={true}
-            className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
-          />
-          <Button
-            onClick={() => setActiveTab('create-org')}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-          >
-            <Building className="w-4 h-4 mr-2" />
-            New Organization
-          </Button>
-          <Button
-            onClick={() => setActiveTab('create-user')}
-            className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-          >
-            <UserPlus className="w-4 h-4 mr-2" />
-            New User
-          </Button>
-        </div>
-      </div>
+      {/* Header Section with Search */}
+      <SuperAdminHeader
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onRefresh={() => {
+          fetchOrganizations();
+          fetchUsers();
+        }}
+        organizationsCount={organizations.length}
+        usersCount={allUsers.length}
+        departmentsCount={0}
+        filteredOrganizationsCount={filteredOrganizations.length}
+        filteredUsersCount={filteredUsers.length}
+      />
 
       {/* Create Organization Form */}
       {activeTab === 'create-org' && (
@@ -254,7 +251,7 @@ export default function RoleBasedUserManagement() {
         />
       )}
 
-      {/* Organizations List */}
+      {/* Organizations and Users List */}
       {activeTab === 'list' && (
         <div className="space-y-6">
           {/* Organizations Section */}
@@ -264,17 +261,22 @@ export default function RoleBasedUserManagement() {
                 <div className="flex items-center space-x-3">
                   <Building className="h-5 w-5 text-blue-600" />
                   <CardTitle className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-                    Organizations ({organizations.length})
+                    Organizations ({filteredOrganizations.length})
+                    {searchTerm && (
+                      <span className="text-sm font-normal text-slate-600 dark:text-slate-400 ml-2">
+                        of {organizations.length} total
+                      </span>
+                    )}
                   </CardTitle>
                 </div>
                 <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                  {organizations.filter(org => org.users?.length > 0).length} Active
+                  {filteredOrganizations.filter(org => org.users?.length > 0).length} Active
                 </Badge>
               </div>
             </CardHeader>
             <CardContent className="p-0">
               <OrganizationsList
-                organizations={organizations}
+                organizations={filteredOrganizations}
                 profiles={allUsers}
                 departments={[]}
                 deletingOrgId={null}
@@ -290,12 +292,17 @@ export default function RoleBasedUserManagement() {
                 <div className="flex items-center space-x-3">
                   <Users className="h-5 w-5 text-emerald-600" />
                   <CardTitle className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-                    All Users ({allUsers.length})
+                    All Users ({filteredUsers.length})
+                    {searchTerm && (
+                      <span className="text-sm font-normal text-slate-600 dark:text-slate-400 ml-2">
+                        of {allUsers.length} total
+                      </span>
+                    )}
                   </CardTitle>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
-                    {allUsers.filter(user => user.is_active).length} Active
+                    {filteredUsers.filter(user => user.is_active).length} Active
                   </Badge>
                   <HistoryButton 
                     variant="ghost" 
@@ -307,7 +314,7 @@ export default function RoleBasedUserManagement() {
             </CardHeader>
             <CardContent className="p-0">
               <UsersList
-                users={allUsers}
+                users={filteredUsers}
                 organizations={organizations}
                 deletingUserId={null}
                 onEdit={() => {}}

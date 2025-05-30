@@ -32,6 +32,13 @@ export default function SuperAdminHeader({
   filteredOrganizationsCount,
   filteredUsersCount
 }: SuperAdminHeaderProps) {
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Clean the value to handle pasted content safely
+    const cleanValue = value.trim();
+    onSearchChange(cleanValue);
+  };
+
   return (
     <div className="space-y-6 p-6 bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-700 border-b border-slate-200 dark:border-slate-600">
       {/* Header Section */}
@@ -92,7 +99,7 @@ export default function SuperAdminHeader({
             <Input
               placeholder="Search users, organizations, tracking IDs..."
               value={searchTerm}
-              onChange={(e) => onSearchChange(e.target.value)}
+              onChange={handleSearchChange}
               className="pl-10 border-slate-300 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500 shadow-sm bg-white dark:bg-slate-800"
             />
           </div>

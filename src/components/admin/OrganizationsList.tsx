@@ -3,8 +3,9 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Building, Users, Trash2, Calendar, Eye } from 'lucide-react';
+import { Building, Users, Trash2, Calendar, Eye, Copy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 interface OrganizationsListProps {
   organizations: Array<{
@@ -33,6 +34,7 @@ export default function OrganizationsList({
   onDelete
 }: OrganizationsListProps) {
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const getUserCount = (orgId: string) => {
     return profiles.filter(p => p.organization_id === orgId).length;
@@ -43,13 +45,28 @@ export default function OrganizationsList({
   };
 
   const handleViewOrgPanel = (orgId: string, orgName: string) => {
-    // Store the organization context in sessionStorage for the org admin view
     sessionStorage.setItem('superAdminViewingOrg', JSON.stringify({
       id: orgId,
       name: orgName,
       returnUrl: '/super-admin'
     }));
     navigate('/org-admin');
+  };
+
+  const handleCopyOrgNumber = async (orgNumber: string) => {
+    try {
+      await navigator.clipboard.writeText(orgNumber);
+      toast({
+        title: "✅ Copied!",
+        description: `Organization number ${orgNumber} copied to clipboard`,
+      });
+    } catch (error) {
+      toast({
+        title: "❌ Copy failed",
+        description: "Could not copy organization number to clipboard",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -76,12 +93,29 @@ export default function OrganizationsList({
                         {org.alias}
                       </Badge>
                     )}
-                    {org.organization_number && (
-                      <Badge variant="outline">
-                        {org.organization_number}
-                      </Badge>
-                    )}
                   </div>
+                  
+                  {/* Organization Number Section - Always visible */}
+                  <div className="mb-3">
+                    <div className="flex items-center gap-2 p-2 bg-slate-100 dark:bg-slate-800 rounded-md w-fit">
+                      <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Organization ID:</span>
+                      <Badge variant="outline" className="font-mono text-xs">
+                        {org.organization_number || 'Not assigned'}
+                      </Badge>
+                      {org.organization_number && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 hover:bg-slate-200 dark:hover:bg-slate-700"
+                          onClick={() => handleCopyOrgNumber(org.organization_number!)}
+                          title="Copy organization number"
+                        >
+                          <Copy className="h-4 w-4 text-blue-600" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
                   {org.description && (
                     <p className="text-slate-600 dark:text-slate-400 mb-2">{org.description}</p>
                   )}
