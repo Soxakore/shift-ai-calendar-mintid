@@ -14,20 +14,11 @@ import { getPageMetadata } from '@/lib/seo';
 import SuperAdminUserManagement from '@/components/admin/SuperAdminUserManagement';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useToast } from '@/hooks/use-toast';
-import { ThemeToggle } from '@/components/ThemeToggle';
 
 const SuperAdminDashboard = () => {
-  console.log('SuperAdminDashboard component rendering...');
-  
   const pageMetadata = getPageMetadata('dashboard');
-  const { signOut, user, profile } = useSupabaseAuth();
+  const { signOut } = useSupabaseAuth();
   const { toast } = useToast();
-
-  console.log('SuperAdminDashboard auth state:', {
-    user: user?.email,
-    profile: profile?.user_type,
-    isActive: profile?.is_active
-  });
 
   const handleLogout = async () => {
     try {
@@ -47,7 +38,7 @@ const SuperAdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <SEOHead
         title={pageMetadata.title}
         description={pageMetadata.description}
@@ -56,8 +47,8 @@ const SuperAdminDashboard = () => {
         pageName="dashboard"
       />
       
-      {/* Header */}
-      <header className="bg-card/80 backdrop-blur-sm border-b sticky top-0 z-50">
+      {/* Modern Header */}
+      <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200 shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -66,25 +57,24 @@ const SuperAdminDashboard = () => {
                   <Calendar className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
                     MinTid Super Admin
                   </h1>
                   <div className="flex items-center space-x-2">
                     <Badge className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 shadow-sm">
                       SUPER ADMIN
                     </Badge>
-                    <span className="text-sm text-muted-foreground">System Management Console</span>
+                    <span className="text-sm text-slate-600">System Management Console</span>
                   </div>
                 </div>
               </div>
             </div>
             
             <div className="flex items-center space-x-3">
-              <ThemeToggle />
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="shadow-sm"
+                className="border-slate-300 hover:bg-slate-50 shadow-sm"
               >
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
@@ -104,25 +94,23 @@ const SuperAdminDashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="space-y-6">
-          {/* Debug Info */}
-          <Card className="border border-yellow-200 bg-yellow-50">
-            <CardContent className="pt-4">
-              <h3 className="font-semibold text-yellow-800 mb-2">Debug Information</h3>
-              <div className="text-sm text-yellow-700 space-y-1">
-                <div>User: {user?.email || 'Not logged in'}</div>
-                <div>Profile Type: {profile?.user_type || 'No profile'}</div>
-                <div>Active: {profile?.is_active ? 'Yes' : 'No'}</div>
-                <div>Current Time: {new Date().toLocaleString()}</div>
-              </div>
-            </CardContent>
-          </Card>
+      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="space-y-8">
+          {/* Welcome Section */}
+          <div className="text-center py-8">
+            <h2 className="text-3xl font-bold text-slate-900 mb-4">
+              Welcome to System Administration
+            </h2>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+              Manage organizations, users, and system settings with complete administrative control. 
+              All changes are applied in real-time across the platform.
+            </p>
+          </div>
 
           {/* Management Interface */}
-          <Card className="border shadow-lg bg-card">
-            <CardHeader className="bg-muted/50 border-b">
-              <CardTitle className="text-xl font-semibold text-foreground">
+          <Card className="border-0 shadow-xl bg-white/70 backdrop-blur-sm">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
+              <CardTitle className="text-xl font-semibold text-slate-900">
                 User & Organization Management
               </CardTitle>
             </CardHeader>

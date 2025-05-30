@@ -27,25 +27,6 @@ export default function SuperAdminUserManagement() {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [isUpdatingUser, setIsUpdatingUser] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [editUserData, setEditUserData] = useState({
-    username: '',
-    display_name: '',
-    phone_number: '',
-    user_type: 'org_admin',
-    organization_id: '',
-    department_id: '',
-    new_password: ''
-  });
-  const [newUser, setNewUser] = useState({
-    email: '',
-    username: '',
-    password: '',
-    display_name: '',
-    phone_number: '',
-    user_type: 'org_admin',
-    organization_id: '',
-    department_id: ''
-  });
 
   // Filter data based on search term
   const filteredOrganizations = organizations.filter(org =>
@@ -714,7 +695,7 @@ export default function SuperAdminUserManagement() {
           users={filteredProfiles}
           organizations={organizations}
           deletingUserId={deletingUserId}
-          onEdit={handleEditUser}
+          onEdit={setEditingUser}
           onDelete={handleDeleteUser}
           getUserOrganization={getUserOrganization}
         />

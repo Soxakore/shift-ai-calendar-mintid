@@ -1,52 +1,82 @@
 
-import { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from '@/components/ui/toaster';
-import { ThemeProvider } from '@/hooks/useTheme';
-import { SupabaseAuthProvider } from '@/hooks/useSupabaseAuth';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import LoadingSpinner from '@/components/LoadingSpinner';
-import ErrorBoundary from '@/components/ErrorBoundary';
-import './App.css';
+import { Suspense, useEffect } from "react";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
+import { SupabaseAuthProvider } from "@/hooks/useSupabaseAuth";
+import { ThemeProvider } from "@/hooks/useTheme";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
-// Lazy load components
-const Index = lazy(() => import('@/pages/Index'));
-const Auth = lazy(() => import('@/pages/Auth'));
-const SuperAdminDashboard = lazy(() => import('@/pages/SuperAdminDashboard'));
-const OrgAdminDashboard = lazy(() => import('@/pages/OrgAdminDashboard'));
-const ManagerDashboard = lazy(() => import('@/pages/ManagerDashboard'));
-const EmployeeDashboard = lazy(() => import('@/pages/EmployeeDashboard'));
-const NotFound = lazy(() => import('@/pages/NotFound'));
+// Pages
+import Auth from "./pages/Auth";
+import SuperAdminInitial from "./pages/SuperAdminInitial";
+import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+// Lazy load dashboard components for better performance
+import {
+  LazySuperAdminDashboard,
+  LazyOrgAdminDashboard,
+  LazyManagerDashboard,
+  LazyEmployeeDashboard
+} from "@/components/LazyComponents";
 
-function App() {
-  console.log('App: Component rendering...');
-  
+// Initialize analytics and error tracking
+import { initGA, trackPageView } from "@/lib/analytics";
+import { initSentry } from "@/lib/sentry";
+import { initPerformanceMonitoring, analyzeBundlePerformance } from "@/lib/performance";
+
+// Initialize performance monitoring
+initPerformanceMonitoring();
+analyzeBundlePerformance();
+
+const queryClient = new QueryClient();
+
+// Analytics tracker component
+const AnalyticsTracker = () => {
+  useEffect(() => {
+    if (typeof trackPageView !== 'undefined') {
+      trackPageView(document.title);
+    }
+  }, []);
+  return null;
+};
+
+const App = () => {
+  useEffect(() => {
+    // Initialize analytics and error tracking
+    initGA();
+    initSentry();
+  }, []);
+
   return (
-    <ErrorBoundary>
-      <ThemeProvider defaultTheme="system" storageKey="mintid-theme">
-        <SupabaseAuthProvider>
-          <QueryClientProvider client={queryClient}>
-            <Router>
-              <div className="min-h-screen bg-background text-foreground">
-                <Suspense fallback={<LoadingSpinner />}>
+    <HelmetProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider defaultTheme="system" storageKey="mintid-ui-theme">
+            <SupabaseAuthProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <AnalyticsTracker />
                   <Routes>
-                    <Route path="/" element={<Index />} />
+                    {/* Public routes */}
                     <Route path="/auth" element={<Auth />} />
+                    <Route path="/setup" element={<SuperAdminInitial />} />
+                    
+                    {/* Protected routes */}
                     <Route
                       path="/super-admin"
                       element={
                         <ProtectedRoute requireRole="super_admin">
-                          <SuperAdminDashboard />
+                          <Suspense fallback={<LoadingSpinner text="Loading Super Admin Dashboard..." />}>
+                            <LazySuperAdminDashboard />
+                          </Suspense>
                         </ProtectedRoute>
                       }
                     />
@@ -54,7 +84,9 @@ function App() {
                       path="/org-admin"
                       element={
                         <ProtectedRoute requireRole="org_admin">
-                          <OrgAdminDashboard />
+                          <Suspense fallback={<LoadingSpinner text="Loading Organization Dashboard..." />}>
+                            <LazyOrgAdminDashboard />
+                          </Suspense>
                         </ProtectedRoute>
                       }
                     />
@@ -62,7 +94,9 @@ function App() {
                       path="/manager"
                       element={
                         <ProtectedRoute requireRole="manager">
-                          <ManagerDashboard />
+                          <Suspense fallback={<LoadingSpinner text="Loading Manager Dashboard..." />}>
+                            <LazyManagerDashboard />
+                          </Suspense>
                         </ProtectedRoute>
                       }
                     />
@@ -70,22 +104,25 @@ function App() {
                       path="/employee"
                       element={
                         <ProtectedRoute requireRole="employee">
-                          <EmployeeDashboard />
+                          <Suspense fallback={<LoadingSpinner text="Loading Employee Dashboard..." />}>
+                            <LazyEmployeeDashboard />
+                          </Suspense>
                         </ProtectedRoute>
                       }
                     />
-                    <Route path="/404" element={<NotFound />} />
-                    <Route path="*" element={<Navigate to="/404" replace />} />
+                    
+                    {/* Default redirect */}
+                    <Route path="/" element={<Auth />} />
+                    <Route path="*" element={<NotFound />} />
                   </Routes>
-                </Suspense>
-              </div>
-            </Router>
-            <Toaster />
-          </QueryClientProvider>
-        </SupabaseAuthProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
+                </BrowserRouter>
+              </TooltipProvider>
+            </SupabaseAuthProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </HelmetProvider>
   );
-}
+};
 
 export default App;
