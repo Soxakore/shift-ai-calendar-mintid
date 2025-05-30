@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Alert, AlertDescription } from '../ui/alert';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
@@ -27,6 +27,7 @@ export default function SuperAdminUserManagement() {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [isUpdatingUser, setIsUpdatingUser] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [editUserData, setEditUserData] = useState({
     username: '',
     display_name: '',
@@ -36,6 +37,20 @@ export default function SuperAdminUserManagement() {
     department_id: '',
     new_password: ''
   });
+
+  // Add timeout for loading state
+  useEffect(() => {
+    if (loading) {
+      const timeoutId = setTimeout(() => {
+        console.warn('⚠️ Loading timeout reached in SuperAdminUserManagement');
+        setLoadingTimeout(true);
+      }, 20000); // 20 second timeout
+
+      return () => clearTimeout(timeoutId);
+    } else {
+      setLoadingTimeout(false);
+    }
+  }, [loading]);
 
   // Filter data based on search term
   const filteredOrganizations = organizations.filter(org =>
@@ -618,13 +633,34 @@ export default function SuperAdminUserManagement() {
     });
   };
 
-  if (loading) {
+  if (loading && !loadingTimeout) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-          <p className="text-slate-600">Loading system data...</p>
+          <p className="text-slate-600 dark:text-slate-400">Loading system data...</p>
+          <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">This may take a few moments</p>
         </div>
+      </div>
+    );
+  }
+
+  if (loadingTimeout) {
+    return (
+      <div className="p-6">
+        <Alert className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-800">
+          <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+          <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+            <strong>Loading Taking Longer Than Expected</strong><br />
+            There might be a connection issue. Try refreshing the page or check your internet connection.
+            <button 
+              onClick={() => window.location.reload()} 
+              className="ml-2 underline hover:no-underline"
+            >
+              Refresh Page
+            </button>
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }

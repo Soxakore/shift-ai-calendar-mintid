@@ -44,49 +44,90 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
   const { toast } = useToast();
 
   useEffect(() => {
-    console.log('Setting up auth state listener...');
+    console.log('🔄 Setting up auth state listener...');
+    
+    let mounted = true;
     
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.email);
+        if (!mounted) return;
+        
+        console.log('🔄 Auth state change:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
           // Use setTimeout to prevent auth deadlock
           setTimeout(() => {
-            fetchUserProfile(session.user.id);
+            if (mounted) {
+              fetchUserProfile(session.user.id);
+            }
           }, 0);
         } else {
           setProfile(null);
-          setLoading(false);
+          if (mounted) {
+            setLoading(false);
+          }
         }
       }
     );
 
-    // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check:', session?.user?.email);
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchUserProfile(session.user.id);
-      } else {
+    // Then check for existing session with timeout
+    const checkSession = async () => {
+      try {
+        console.log('🔍 Checking initial session...');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('❌ Session check error:', error);
+          if (mounted) {
+            setLoading(false);
+          }
+          return;
+        }
+        
+        console.log('✅ Initial session check:', session?.user?.email || 'No session');
+        
+        if (!mounted) return;
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          fetchUserProfile(session.user.id);
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('💥 Unexpected error checking session:', error);
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    // Add timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn('⚠️ Auth initialization timeout, setting loading to false');
         setLoading(false);
       }
-    });
+    }, 10000); // 10 second timeout
+
+    checkSession();
 
     return () => {
-      console.log('Cleaning up auth subscription');
+      mounted = false;
+      clearTimeout(timeoutId);
+      console.log('🧹 Cleaning up auth subscription');
       subscription.unsubscribe();
     };
   }, []);
 
   const fetchUserProfile = async (userId: string) => {
     try {
-      console.log('Fetching profile for user:', userId);
+      console.log('👤 Fetching profile for user:', userId);
       
       const { data, error } = await supabase
         .from('profiles')
@@ -95,21 +136,21 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         .maybeSingle();
 
       if (error) {
-        console.error('Error fetching profile:', error);
+        console.error('❌ Error fetching profile:', error);
         setProfile(null);
       } else if (data) {
-        console.log('Profile fetched successfully:', data);
+        console.log('✅ Profile fetched successfully:', data);
         const profileData: Profile = {
           ...data,
           user_type: data.user_type as 'super_admin' | 'org_admin' | 'manager' | 'employee'
         };
         setProfile(profileData);
       } else {
-        console.log('No profile found for user:', userId);
+        console.log('⚠️ No profile found for user:', userId);
         setProfile(null);
       }
     } catch (error) {
-      console.error('Exception fetching profile:', error);
+      console.error('💥 Exception fetching profile:', error);
       setProfile(null);
     } finally {
       setLoading(false);

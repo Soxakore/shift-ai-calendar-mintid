@@ -24,19 +24,35 @@ export const useSupabaseData = () => {
 
   // Check if super admin is viewing a specific organization
   const getSuperAdminViewingOrg = () => {
-    const storedContext = sessionStorage.getItem('superAdminViewingOrg');
-    return storedContext ? JSON.parse(storedContext) : null;
+    try {
+      const storedContext = sessionStorage.getItem('superAdminViewingOrg');
+      return storedContext ? JSON.parse(storedContext) : null;
+    } catch (error) {
+      console.error('Error parsing super admin context:', error);
+      return null;
+    }
   };
 
   useEffect(() => {
     if (profile) {
+      console.log('🔄 Profile available, fetching data for:', profile.user_type);
       fetchData();
-      setupRealtimeSubscriptions();
+      const cleanup = setupRealtimeSubscriptions();
+      return cleanup;
+    } else {
+      console.log('⏳ Waiting for profile...');
+      // Set a timeout to prevent infinite loading if profile never loads
+      const timeoutId = setTimeout(() => {
+        console.warn('⚠️ Profile timeout, setting loading to false');
+        setLoading(false);
+      }, 15000);
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [profile]);
 
   const setupRealtimeSubscriptions = () => {
-    console.log('Setting up real-time subscriptions...');
+    console.log('🔔 Setting up real-time subscriptions...');
     
     const channel = supabase
       .channel('data-changes')
@@ -48,7 +64,7 @@ export const useSupabaseData = () => {
           table: 'organizations'
         },
         (payload) => {
-          console.log('Organization change detected:', payload);
+          console.log('🏢 Organization change detected:', payload);
           fetchOrganizations();
         }
       )
@@ -60,7 +76,7 @@ export const useSupabaseData = () => {
           table: 'profiles'
         },
         (payload) => {
-          console.log('Profile change detected:', payload);
+          console.log('👤 Profile change detected:', payload);
           fetchProfiles();
         }
       )
@@ -72,26 +88,30 @@ export const useSupabaseData = () => {
           table: 'departments'
         },
         (payload) => {
-          console.log('Department change detected:', payload);
+          console.log('🏬 Department change detected:', payload);
           fetchDepartments();
         }
       )
       .subscribe((status) => {
-        console.log('Real-time subscription status:', status);
+        console.log('📡 Real-time subscription status:', status);
       });
 
     return () => {
-      console.log('Cleaning up real-time subscriptions...');
+      console.log('🧹 Cleaning up real-time subscriptions...');
       supabase.removeChannel(channel);
     };
   };
 
   const fetchData = async () => {
-    if (!profile) return;
+    if (!profile) {
+      console.log('❌ No profile available for data fetching');
+      return;
+    }
 
+    console.log('📊 Starting data fetch for profile:', profile.user_type);
     setLoading(true);
+    
     try {
-      console.log('Fetching all data for profile:', profile);
       await Promise.all([
         fetchOrganizations(),
         fetchDepartments(),
@@ -101,8 +121,9 @@ export const useSupabaseData = () => {
         fetchTimeLogs(),
         fetchQRCodes()
       ]);
+      console.log('✅ All data fetched successfully');
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('💥 Error fetching data:', error);
     } finally {
       setLoading(false);
     }
@@ -110,20 +131,21 @@ export const useSupabaseData = () => {
 
   const fetchOrganizations = async () => {
     try {
-      console.log('Fetching organizations...');
+      console.log('🏢 Fetching organizations...');
       const { data, error } = await supabase
         .from('organizations')
         .select('*')
         .order('name');
       
       if (error) {
-        console.error('Error fetching organizations:', error);
-      } else {
-        console.log('Organizations fetched:', data);
-        setOrganizations(data || []);
+        console.error('❌ Error fetching organizations:', error);
+        return;
       }
+      
+      console.log(`✅ Organizations fetched: ${data?.length || 0} items`);
+      setOrganizations(data || []);
     } catch (error) {
-      console.error('Exception fetching organizations:', error);
+      console.error('💥 Exception fetching organizations:', error);
     }
   };
 
