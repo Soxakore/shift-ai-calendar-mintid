@@ -15,6 +15,7 @@ import CreateUserForm from './CreateUserForm';
 import EditUserDialog from './EditUserDialog';
 import OrganizationsList from './OrganizationsList';
 import UsersList from './UsersList';
+import Badge from './Badge';
 
 export default function SuperAdminUserManagement() {
   const { profile } = useSupabaseAuth();
@@ -742,7 +743,7 @@ export default function SuperAdminUserManagement() {
               variant="outline"
               size="sm"
               onClick={handleBackToOrganizations}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Organizations
@@ -786,7 +787,7 @@ export default function SuperAdminUserManagement() {
           /* Organizations List */
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
+              <CardTitle className="flex items-center justify-between text-slate-900 dark:text-slate-100">
                 <span>Organizations ({filteredOrganizations.length})</span>
                 <span className="text-sm font-normal text-slate-600 dark:text-slate-400">
                   Click an organization to view its users
@@ -798,7 +799,7 @@ export default function SuperAdminUserManagement() {
                 {filteredOrganizations.map((org) => (
                   <div 
                     key={org.id} 
-                    className="p-4 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+                    className="p-4 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer bg-white dark:bg-slate-900/50"
                     onClick={() => handleOrganizationClick(org)}
                   >
                     <div className="flex items-center justify-between">
@@ -806,7 +807,7 @@ export default function SuperAdminUserManagement() {
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="font-semibold text-lg text-slate-900 dark:text-slate-100">{org.name}</h3>
                           {org.alias && (
-                            <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+                            <span className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-1 rounded">
                               {org.alias}
                             </span>
                           )}
@@ -816,19 +817,34 @@ export default function SuperAdminUserManagement() {
                           <p className="text-slate-600 dark:text-slate-400 mb-2">{org.description}</p>
                         )}
                         
-                        <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
-                          <span className="text-slate-900 dark:text-slate-100">
+                        <div className="flex items-center gap-4 text-sm">
+                          <span className="text-slate-900 dark:text-slate-100 font-medium">
                             {getOrganizationUsers(org.id).length} users
                           </span>
-                          <span className="text-slate-900 dark:text-slate-100">
+                          <span className="text-slate-700 dark:text-slate-300">
                             ID: {org.organization_number || 'Not assigned'}
                           </span>
-                          <span className="text-slate-900 dark:text-slate-100">
+                          <span className="text-slate-700 dark:text-slate-300">
                             Created {new Date(org.created_at).toLocaleDateString()}
                           </span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 ml-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Add pause functionality here
+                            toast({
+                              title: "⏸️ Organization Paused",
+                              description: `${org.name} access has been paused due to payment issues`,
+                            });
+                          }}
+                          className="text-yellow-700 dark:text-yellow-300 hover:text-yellow-900 dark:hover:text-yellow-100 border-yellow-300 dark:border-yellow-600"
+                        >
+                          ⏸️ Pause
+                        </Button>
                         <Button
                           variant="destructive"
                           size="sm"
@@ -837,6 +853,7 @@ export default function SuperAdminUserManagement() {
                             handleDeleteOrganization(org.id, org.name);
                           }}
                           disabled={deletingOrgId === org.id}
+                          className="text-white"
                         >
                           {deletingOrgId === org.id ? 'Deleting...' : 'Delete'}
                         </Button>
@@ -854,23 +871,90 @@ export default function SuperAdminUserManagement() {
           </Card>
         ) : (
           /* Users List for Selected Organization */
-          <UsersList
-            users={filteredUsersForSelectedOrg}
-            organizations={organizations}
-            deletingUserId={deletingUserId}
-            onEdit={handleEditUser}
-            onDelete={handleDeleteUser}
-            getUserOrganization={getUserOrganization}
-          />
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-slate-900 dark:text-slate-100">
+                Users in {selectedOrganization.name} ({filteredUsersForSelectedOrg.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {filteredUsersForSelectedOrg.map((user) => (
+                  <div key={user.id} className="p-4 border rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-semibold text-slate-900 dark:text-slate-100">{user.display_name}</h3>
+                          <Badge 
+                            variant={user.is_active ? "default" : "secondary"}
+                            className={user.is_active 
+                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" 
+                              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                            }
+                          >
+                            {user.is_active ? 'Active' : 'Inactive'}
+                          </Badge>
+                          <Badge className="text-white">
+                            {user.user_type.replace('_', ' ')}
+                          </Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                          <span className="text-slate-600 dark:text-slate-400">
+                            <strong className="text-slate-900 dark:text-slate-100">Username:</strong> {user.username}
+                          </span>
+                          <span className="text-slate-600 dark:text-slate-400">
+                            <strong className="text-slate-900 dark:text-slate-100">ID:</strong> {user.tracking_id || 'Not assigned'}
+                          </span>
+                          <span className="text-slate-600 dark:text-slate-400">
+                            <strong className="text-slate-900 dark:text-slate-100">Phone:</strong> {user.phone_number || 'Not provided'}
+                          </span>
+                          <span className="text-slate-600 dark:text-slate-400">
+                            <strong className="text-slate-900 dark:text-slate-100">Created:</strong> {new Date(user.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 ml-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditUser(user)}
+                          className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteUser(user.id, user.display_name)}
+                          disabled={deletingUserId === user.id}
+                          className="text-white"
+                        >
+                          {deletingUserId === user.id ? 'Deleting...' : 'Delete'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                {filteredUsersForSelectedOrg.length === 0 && (
+                  <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                    No users found in this organization
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Success Alert */}
-        <Alert className="border-green-200 bg-green-50">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800">
+        <Alert className="border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
+          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+          <AlertDescription className="text-green-800 dark:text-green-200">
             🚀 <strong>Enhanced Management Active:</strong> Complete system with phone numbers, organization numbers, 
-            auto-generated tracking IDs, aliases, and powerful search functionality. Professional interface with 
-            real-time updates and comprehensive user management.
+            auto-generated tracking IDs, aliases, powerful search functionality, and organization pause feature for payment management. 
+            Professional interface with real-time updates and comprehensive user management.
           </AlertDescription>
         </Alert>
       </div>

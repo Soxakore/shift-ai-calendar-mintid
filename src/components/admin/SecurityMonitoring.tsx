@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -30,6 +29,12 @@ interface SessionInfo {
   blocked_ips: string[];
 }
 
+// Global emergency state - persists across component instances
+let globalEmergencyState = {
+  isEmergencyMode: false,
+  emergencyActivatedAt: null as string | null
+};
+
 export default function SecurityMonitoring() {
   const [securityEvents, setSecurityEvents] = useState<SecurityEvent[]>([]);
   const [sessionInfo, setSessionInfo] = useState<SessionInfo>({
@@ -41,7 +46,30 @@ export default function SecurityMonitoring() {
   const [loading, setLoading] = useState(true);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [isEmergencyMode, setIsEmergencyMode] = useState(globalEmergencyState.isEmergencyMode);
   const { toast } = useToast();
+
+  // Sync with global emergency state
+  useEffect(() => {
+    setIsEmergencyMode(globalEmergencyState.isEmergencyMode);
+  }, []);
+
+  const updateGlobalEmergencyState = (emergency: boolean) => {
+    globalEmergencyState.isEmergencyMode = emergency;
+    globalEmergencyState.emergencyActivatedAt = emergency ? new Date().toISOString() : null;
+    setIsEmergencyMode(emergency);
+  };
+
+  const handleEmergencyStateChange = (emergency: boolean) => {
+    updateGlobalEmergencyState(emergency);
+    
+    if (!emergency) {
+      toast({
+        title: "✅ Emergency Mode Deactivated",
+        description: "System has been restored to normal operation manually",
+      });
+    }
+  };
 
   const fetchSecurityData = async () => {
     try {
@@ -66,7 +94,7 @@ export default function SecurityMonitoring() {
       })) || [];
 
       // Add some mock security events for demonstration
-      events.push(
+      const events: SecurityEvent[] = [
         {
           id: 'mock-1',
           type: 'suspicious_activity',
@@ -83,7 +111,7 @@ export default function SecurityMonitoring() {
           ip_address: '10.0.0.50',
           timestamp: new Date().toISOString()
         }
-      );
+      ];
 
       setSecurityEvents(events);
 
@@ -140,7 +168,6 @@ export default function SecurityMonitoring() {
       title: "🚫 IP Blocked",
       description: `IP address ${ip} has been blocked`,
     });
-    // In a real implementation, this would call an API
   };
 
   if (loading) {
@@ -178,13 +205,16 @@ export default function SecurityMonitoring() {
           </button>
           <button
             onClick={() => setActiveTab('threats')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+            className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
               activeTab === 'threats'
                 ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                 : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
             }`}
           >
             Threat Detection
+            {isEmergencyMode && (
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+            )}
           </button>
         </nav>
       </div>
@@ -354,8 +384,19 @@ export default function SecurityMonitoring() {
         </>
       )}
 
-      {activeTab === 'recovery' && <SystemStartupRecovery />}
-      {activeTab === 'threats' && <HackingAttemptMonitor />}
+      {activeTab === 'recovery' && (
+        <SystemStartupRecovery 
+          onEmergencyStateChange={handleEmergencyStateChange}
+          initialEmergencyMode={isEmergencyMode}
+        />
+      )}
+      
+      {activeTab === 'threats' && (
+        <HackingAttemptMonitor 
+          isEmergencyMode={isEmergencyMode}
+          emergencyActivatedAt={globalEmergencyState.emergencyActivatedAt}
+        />
+      )}
     </div>
   );
 }

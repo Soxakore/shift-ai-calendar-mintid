@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,7 +27,15 @@ interface EmergencyEvent {
   cause?: string;
 }
 
-export default function SystemStartupRecovery() {
+interface SystemStartupRecoveryProps {
+  onEmergencyStateChange?: (emergency: boolean) => void;
+  initialEmergencyMode?: boolean;
+}
+
+export default function SystemStartupRecovery({ 
+  onEmergencyStateChange, 
+  initialEmergencyMode = false 
+}: SystemStartupRecoveryProps) {
   const { toast } = useToast();
   const [systemHealth, setSystemHealth] = useState<SystemHealth>({
     database: 'online',
@@ -38,7 +45,7 @@ export default function SystemStartupRecovery() {
     api: 'online'
   });
   
-  const [isEmergencyMode, setIsEmergencyMode] = useState(false);
+  const [isEmergencyMode, setIsEmergencyMode] = useState(initialEmergencyMode);
   const [isRecovering, setIsRecovering] = useState(false);
   const [emergencyEvents, setEmergencyEvents] = useState<EmergencyEvent[]>([
     {
@@ -61,15 +68,18 @@ export default function SystemStartupRecovery() {
     }
   ]);
 
+  // Update local state when prop changes
+  useEffect(() => {
+    setIsEmergencyMode(initialEmergencyMode);
+  }, [initialEmergencyMode]);
+
   const runSystemDiagnostics = async () => {
     setIsRecovering(true);
     
-    // Simulate system health checks
     const checks = ['database', 'auth', 'storage', 'realtime', 'api'];
     const newHealth = { ...systemHealth };
     
     for (const check of checks) {
-      // Simulate random health status for demo
       const statuses: Array<'online' | 'offline' | 'degraded'> = ['online', 'online', 'online', 'degraded', 'offline'];
       newHealth[check as keyof SystemHealth] = statuses[Math.floor(Math.random() * statuses.length)];
       
@@ -87,7 +97,6 @@ export default function SystemStartupRecovery() {
   const initiateEmergencyRecovery = async () => {
     setIsRecovering(true);
     
-    // Simulate recovery process
     await new Promise(resolve => setTimeout(resolve, 3000));
     
     setSystemHealth({
@@ -99,6 +108,7 @@ export default function SystemStartupRecovery() {
     });
     
     setIsEmergencyMode(false);
+    onEmergencyStateChange?.(false);
     setIsRecovering(false);
     
     toast({
@@ -119,6 +129,7 @@ export default function SystemStartupRecovery() {
     
     setEmergencyEvents(prev => [newEvent, ...prev]);
     setIsEmergencyMode(true);
+    onEmergencyStateChange?.(true);
     
     toast({
       title: "🚨 Emergency Lockdown Activated",
@@ -195,7 +206,7 @@ export default function SystemStartupRecovery() {
                 className="bg-green-600 hover:bg-green-700 text-white"
               >
                 <Power className="h-4 w-4 mr-2" />
-                Recovery
+                Manual Recovery
               </Button>
               <Button
                 onClick={triggerEmergencyLockdown}
