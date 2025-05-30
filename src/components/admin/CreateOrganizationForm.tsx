@@ -34,7 +34,7 @@ export default function CreateOrganizationForm({
   };
 
   return (
-    <Card className="border-blue-200 bg-blue-50/50">
+    <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/50">
       <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -62,6 +62,7 @@ export default function CreateOrganizationForm({
                 onChange={(e) => setOrgData({ ...orgData, name: e.target.value })}
                 placeholder="Enter organization name"
                 required
+                className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600"
               />
             </div>
             <div>
@@ -71,6 +72,7 @@ export default function CreateOrganizationForm({
                 value={orgData.alias}
                 onChange={(e) => setOrgData({ ...orgData, alias: e.target.value })}
                 placeholder="Short name or abbreviation"
+                className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600"
               />
             </div>
           </div>
@@ -82,6 +84,7 @@ export default function CreateOrganizationForm({
               onChange={(e) => setOrgData({ ...orgData, description: e.target.value })}
               placeholder="Describe the organization"
               rows={3}
+              className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600"
             />
           </div>
           <div className="flex justify-end space-x-3">

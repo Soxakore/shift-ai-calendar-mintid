@@ -33,7 +33,7 @@ export default function SuperAdminHeader({
   filteredUsersCount
 }: SuperAdminHeaderProps) {
   return (
-    <div className="space-y-6 p-6 bg-gradient-to-r from-slate-50 to-blue-50 border-b border-slate-200">
+    <div className="space-y-6 p-6 bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-700 border-b border-slate-200 dark:border-slate-600">
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
         <div className="flex items-center space-x-4">
@@ -41,10 +41,10 @@ export default function SuperAdminHeader({
             <Crown className="h-8 w-8 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
               System Administration
             </h1>
-            <p className="text-lg text-slate-600 mt-1">
+            <p className="text-lg text-slate-600 dark:text-slate-400 mt-1">
               Complete control over organizations and users
             </p>
           </div>
@@ -56,7 +56,7 @@ export default function SuperAdminHeader({
             <Shield className="h-4 w-4" />
             SUPER ADMIN
           </Badge>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-800 rounded-lg border border-green-200">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-lg border border-green-200 dark:border-green-700">
             <CheckCircle className="h-4 w-4" />
             <span className="text-sm font-medium">System Active</span>
           </div>
@@ -67,36 +67,36 @@ export default function SuperAdminHeader({
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
         {/* Live Statistics */}
         <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
-            <div className="text-2xl font-bold text-slate-900">
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-600 shadow-sm">
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               {filteredOrganizationsCount}/{organizationsCount}
             </div>
-            <div className="text-sm text-slate-600">Organizations</div>
+            <div className="text-sm text-slate-600 dark:text-slate-400">Organizations</div>
           </div>
-          <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
-            <div className="text-2xl font-bold text-slate-900">
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-600 shadow-sm">
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               {filteredUsersCount}/{usersCount}
             </div>
-            <div className="text-sm text-slate-600">Users</div>
+            <div className="text-sm text-slate-600 dark:text-slate-400">Users</div>
           </div>
-          <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
-            <div className="text-2xl font-bold text-slate-900">{departmentsCount}</div>
-            <div className="text-sm text-slate-600">Departments</div>
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-600 shadow-sm">
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{departmentsCount}</div>
+            <div className="text-sm text-slate-600 dark:text-slate-400">Departments</div>
           </div>
         </div>
 
         {/* Search and Actions */}
         <div className="flex items-center gap-3 w-full lg:w-auto">
           <div className="relative flex-1 lg:w-80">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
             <Input
               placeholder="Search users, organizations, tracking IDs..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-10 border-slate-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm"
+              className="pl-10 border-slate-300 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500 shadow-sm bg-white dark:bg-slate-800"
             />
           </div>
-          <Button onClick={onRefresh} variant="outline" size="sm" className="shadow-sm">
+          <Button onClick={onRefresh} variant="outline" size="sm" className="shadow-sm border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>

@@ -14,6 +14,7 @@ import { getPageMetadata } from '@/lib/seo';
 import SuperAdminUserManagement from '@/components/admin/SuperAdminUserManagement';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useToast } from '@/hooks/use-toast';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const SuperAdminDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
@@ -38,7 +39,7 @@ const SuperAdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       <SEOHead
         title={pageMetadata.title}
         description={pageMetadata.description}
@@ -48,7 +49,7 @@ const SuperAdminDashboard = () => {
       />
       
       {/* Modern Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200 shadow-sm sticky top-0 z-50">
+      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -57,24 +58,25 @@ const SuperAdminDashboard = () => {
                   <Calendar className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
                     MinTid Super Admin
                   </h1>
                   <div className="flex items-center space-x-2">
                     <Badge className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 shadow-sm">
                       SUPER ADMIN
                     </Badge>
-                    <span className="text-sm text-slate-600">System Management Console</span>
+                    <span className="text-sm text-slate-600 dark:text-slate-400">System Management Console</span>
                   </div>
                 </div>
               </div>
             </div>
             
             <div className="flex items-center space-x-3">
+              <ThemeToggle />
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="border-slate-300 hover:bg-slate-50 shadow-sm"
+                className="border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm"
               >
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
@@ -96,21 +98,10 @@ const SuperAdminDashboard = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="space-y-8">
-          {/* Welcome Section */}
-          <div className="text-center py-8">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4">
-              Welcome to System Administration
-            </h2>
-            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-              Manage organizations, users, and system settings with complete administrative control. 
-              All changes are applied in real-time across the platform.
-            </p>
-          </div>
-
           {/* Management Interface */}
-          <Card className="border-0 shadow-xl bg-white/70 backdrop-blur-sm">
-            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
-              <CardTitle className="text-xl font-semibold text-slate-900">
+          <Card className="border-0 shadow-xl bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 border-b border-slate-200 dark:border-slate-600">
+              <CardTitle className="text-xl font-semibold text-slate-900 dark:text-slate-100">
                 User & Organization Management
               </CardTitle>
             </CardHeader>
