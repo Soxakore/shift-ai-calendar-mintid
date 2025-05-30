@@ -391,7 +391,7 @@ const SuperAdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
-            <SuperAdminUserManagement />
+            <SuperAdminUserManagement hideStats={true} />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">

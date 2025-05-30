@@ -19,7 +19,11 @@ import OrganizationsList from './OrganizationsList';
 import UsersList from './UsersList';
 import OrganizationPauseManager from './OrganizationPauseManager';
 
-export default function SuperAdminUserManagement() {
+interface SuperAdminUserManagementProps {
+  hideStats?: boolean;
+}
+
+export default function SuperAdminUserManagement({ hideStats = false }: SuperAdminUserManagementProps) {
   const { profile } = useSupabaseAuth();
   const { toast } = useToast();
   const [activeView, setActiveView] = useState<'overview' | 'users' | 'organizations' | 'create-user' | 'create-org'>('overview');
@@ -287,60 +291,62 @@ export default function SuperAdminUserManagement() {
       default:
         return (
           <div className="space-y-6">
-            {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-blue-900 dark:text-blue-100">Total Users</CardTitle>
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">{stats.totalUsers}</div>
-                  <p className="text-xs text-blue-700 dark:text-blue-300">
-                    {stats.activeUsers} active
-                  </p>
-                </CardContent>
-              </Card>
+            {/* Only show stats if hideStats is false */}
+            {!hideStats && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-blue-900 dark:text-blue-100">Total Users</CardTitle>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">{stats.totalUsers}</div>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      {stats.activeUsers} active
+                    </p>
+                  </CardContent>
+                </Card>
 
-              <Card className="border-0 shadow-xl bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900 dark:to-green-800">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-green-900 dark:text-green-100">Active Users</CardTitle>
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-900 dark:text-green-100">{stats.activeUsers}</div>
-                  <p className="text-xs text-green-700 dark:text-green-300">
-                    {Math.round((stats.activeUsers / Math.max(stats.totalUsers, 1)) * 100)}% of total
-                  </p>
-                </CardContent>
-              </Card>
+                <Card className="border-0 shadow-xl bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900 dark:to-green-800">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-green-900 dark:text-green-100">Active Users</CardTitle>
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-green-900 dark:text-green-100">{stats.activeUsers}</div>
+                    <p className="text-xs text-green-700 dark:text-green-300">
+                      {Math.round((stats.activeUsers / Math.max(stats.totalUsers, 1)) * 100)}% of total
+                    </p>
+                  </CardContent>
+                </Card>
 
-              <Card className="border-0 shadow-xl bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">Organizations</CardTitle>
-                  <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">{stats.totalOrganizations}</div>
-                  <p className="text-xs text-purple-700 dark:text-purple-300">
-                    {stats.totalOrganizations > 0 ? `${Math.round(stats.totalUsers / stats.totalOrganizations)} avg users/org` : 'No organizations'}
-                  </p>
-                </CardContent>
-              </Card>
+                <Card className="border-0 shadow-xl bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">Organizations</CardTitle>
+                    <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">{stats.totalOrganizations}</div>
+                    <p className="text-xs text-purple-700 dark:text-purple-300">
+                      {stats.totalOrganizations > 0 ? `${Math.round(stats.totalUsers / stats.totalOrganizations)} avg users/org` : 'No organizations'}
+                    </p>
+                  </CardContent>
+                </Card>
 
-              <Card className="border-0 shadow-xl bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900 dark:to-orange-800">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-orange-900 dark:text-orange-100">Recent Logins</CardTitle>
-                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">{stats.recentLogins}</div>
-                  <p className="text-xs text-orange-700 dark:text-orange-300">
-                    Last 24 hours
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+                <Card className="border-0 shadow-xl bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900 dark:to-orange-800">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-orange-900 dark:text-orange-100">Recent Logins</CardTitle>
+                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">{stats.recentLogins}</div>
+                    <p className="text-xs text-orange-700 dark:text-orange-300">
+                      Last 24 hours
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -364,16 +370,18 @@ export default function SuperAdminUserManagement() {
               </Button>
             </div>
 
-            {/* System Status Alert */}
-            <Alert className="border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
-              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-              <AlertDescription className="text-green-900 dark:text-green-100">
-                <strong className="text-green-900 dark:text-green-100">System Status: Operational</strong><br />
-                <span className="text-green-800 dark:text-green-200">
-                  All services are running normally. Last system check: {new Date().toLocaleString()}
-                </span>
-              </AlertDescription>
-            </Alert>
+            {/* System Status Alert - only show if hideStats is false */}
+            {!hideStats && (
+              <Alert className="border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
+                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <AlertDescription className="text-green-900 dark:text-green-100">
+                  <strong className="text-green-900 dark:text-green-100">System Status: Operational</strong><br />
+                  <span className="text-green-800 dark:text-green-200">
+                    All services are running normally. Last system check: {new Date().toLocaleString()}
+                  </span>
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
         );
     }
