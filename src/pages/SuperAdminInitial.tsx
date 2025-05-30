@@ -5,99 +5,78 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Crown, Shield, Eye, EyeOff } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Crown, Eye, EyeOff } from 'lucide-react';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useToast } from '@/hooks/use-toast';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 
 const SuperAdminInitial = () => {
   const [username, setUsername] = useState('tiktok');
-  const [password, setPassword] = useState('Hrpr0dect3421!');
-  const [confirmPassword, setConfirmPassword] = useState('Hrpr0dect3421!');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [created, setCreated] = useState(false);
+  const { signIn, user, profile } = useSupabaseAuth();
   const { toast } = useToast();
+
+  // Redirect if already authenticated
+  if (user && profile) {
+    switch (profile.user_type) {
+      case 'super_admin':
+        return <Navigate to="/super-admin" replace />;
+      case 'org_admin':
+        return <Navigate to="/org-admin" replace />;
+      case 'manager':
+        return <Navigate to="/manager" replace />;
+      case 'employee':
+        return <Navigate to="/employee" replace />;
+      default:
+        return <Navigate to="/" replace />;
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!password || password.length < 8) {
+    if (!username || !password) {
       toast({
-        title: "❌ Password Error",
-        description: "Password must be at least 8 characters long",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      toast({
-        title: "❌ Password Mismatch",
-        description: "Passwords do not match",
+        title: "❌ Missing Information",
+        description: "Please enter both username and password",
         variant: "destructive"
       });
       return;
     }
 
     setLoading(true);
-    try {
-      // Use regular signup instead of admin.createUser
-      const { data, error } = await supabase.auth.signUp({
-        email: 'tiktok518@gmail.com',
-        password: password,
-        options: {
-          data: {
-            username: username,
-            display_name: 'Super Administrator',
-            user_type: 'super_admin',
-            organization_id: '00000000-0000-0000-0000-000000000000',
-            created_by: null
-          }
-        }
-      });
-
-      if (error) {
-        toast({
-          title: "❌ Creation Failed",
-          description: error.message,
-          variant: "destructive"
-        });
-      } else if (data.user) {
-        toast({
-          title: "✅ Super Admin Created",
-          description: `Super admin account created successfully! You can now sign in with username: ${username}`,
-        });
-        setCreated(true);
-      }
-    } catch (error) {
+    const result = await signIn(username, password);
+    
+    if (result.success) {
       toast({
-        title: "❌ Unexpected Error",
-        description: "Failed to create super admin account",
+        title: "✅ Login Successful",
+        description: "Welcome to MinTid Super Admin!",
+      });
+    } else {
+      toast({
+        title: "❌ Login Failed",
+        description: result.error || "Invalid username or password",
         variant: "destructive"
       });
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
-
-  if (created) {
-    return <Navigate to="/auth" replace />;
-  }
 
   return (
     <AuthLayout 
-      title="Create Super Admin Account" 
-      subtitle="Set up your initial administrator access to MinTid"
+      title="Super Admin Login" 
+      subtitle="Sign in with your super administrator credentials"
     >
       <Card className="border-2 border-yellow-200 bg-yellow-50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-yellow-800">
             <Crown className="w-5 h-5" />
-            Initial Setup Required
+            Super Administrator Access
           </CardTitle>
           <CardDescription className="text-yellow-700">
-            Create your super administrator account to manage the entire MinTid system
+            Enter your credentials to access the MinTid super admin dashboard
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -122,7 +101,7 @@ const SuperAdminInitial = () => {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter secure password (min 8 characters)"
+                  placeholder="Enter your password"
                   disabled={loading}
                   className="bg-white pr-10"
                 />
@@ -138,48 +117,10 @@ const SuperAdminInitial = () => {
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm your password"
-                disabled={loading}
-                className="bg-white"
-              />
-            </div>
-
             <Button type="submit" className="w-full bg-yellow-600 hover:bg-yellow-700" disabled={loading}>
-              {loading ? "Creating Account..." : "Create Super Admin Account"}
+              {loading ? "Signing in..." : "Sign In as Super Admin"}
             </Button>
           </form>
-
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <h4 className="font-medium text-blue-800 mb-2">Account Details:</h4>
-            <ul className="text-sm text-blue-700 space-y-1">
-              <li>• Username: {username}</li>
-              <li>• Email: tiktok518@gmail.com</li>
-              <li>• Password reset email will be sent to: tiktok518@gmail.com</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Security Notice */}
-      <Card className="bg-red-50 border-red-200">
-        <CardContent className="pt-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Shield className="h-4 w-4 text-red-600" />
-            <h4 className="font-medium text-red-800">Security Information</h4>
-          </div>
-          <ul className="text-sm text-red-700 space-y-1">
-            <li>• Account will be created with email: tiktok518@gmail.com</li>
-            <li>• Password resets will be sent to this email</li>
-            <li>• Keep your credentials secure</li>
-            <li>• This account has full system access</li>
-          </ul>
         </CardContent>
       </Card>
     </AuthLayout>
