@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { 
   Calendar,
   LogOut,
-  Settings
+  History
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Footer from '@/components/Footer';
 import SEOHead from '@/components/SEOHead';
 import { getPageMetadata } from '@/lib/seo';
@@ -20,6 +21,7 @@ const SuperAdminDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
   const { signOut } = useSupabaseAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
@@ -36,6 +38,10 @@ const SuperAdminDashboard = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleHistoryClick = () => {
+    navigate('/history');
   };
 
   return (
@@ -76,10 +82,11 @@ const SuperAdminDashboard = () => {
               <Button 
                 variant="outline" 
                 size="sm" 
+                onClick={handleHistoryClick}
                 className="border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm"
               >
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
+                <History className="w-4 h-4 mr-2" />
+                History
               </Button>
               <Button 
                 variant="destructive" 

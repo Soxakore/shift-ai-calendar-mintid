@@ -15,6 +15,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 // Pages
 import Auth from "./pages/Auth";
 import SuperAdminInitial from "./pages/SuperAdminInitial";
+import HistoryPage from "./pages/HistoryPage";
 import NotFound from "./pages/NotFound";
 
 // Lazy load dashboard components for better performance
@@ -76,6 +77,16 @@ const App = () => {
                         <ProtectedRoute requireRole="super_admin">
                           <Suspense fallback={<LoadingSpinner text="Loading Super Admin Dashboard..." />}>
                             <LazySuperAdminDashboard />
+                          </Suspense>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/history"
+                      element={
+                        <ProtectedRoute requireRole="super_admin">
+                          <Suspense fallback={<LoadingSpinner text="Loading History..." />}>
+                            <HistoryPage />
                           </Suspense>
                         </ProtectedRoute>
                       }
