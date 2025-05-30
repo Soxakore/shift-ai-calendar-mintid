@@ -46,7 +46,9 @@ const SuperAdminInitial = () => {
       return;
     }
 
+    console.log('Login attempt with username:', username);
     setLoading(true);
+    
     const result = await signIn(username, password);
     
     if (result.success) {
@@ -55,6 +57,7 @@ const SuperAdminInitial = () => {
         description: "Welcome to MinTid Super Admin!",
       });
     } else {
+      console.error('Login failed:', result.error);
       toast({
         title: "❌ Login Failed",
         description: result.error || "Invalid username or password",
@@ -121,6 +124,15 @@ const SuperAdminInitial = () => {
               {loading ? "Signing in..." : "Sign In as Super Admin"}
             </Button>
           </form>
+          
+          <div className="mt-4 p-3 bg-blue-50 rounded-md">
+            <p className="text-sm text-blue-700">
+              <strong>Debug Info:</strong> Username: {username}, User ID from DB: 57653131-c55c-460e-bf84-12d91e6873f1
+            </p>
+            <p className="text-xs text-blue-600 mt-1">
+              Check browser console for detailed login attempts
+            </p>
+          </div>
         </CardContent>
       </Card>
     </AuthLayout>

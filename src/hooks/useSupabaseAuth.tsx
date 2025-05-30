@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,6 +45,7 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session:', session);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -58,6 +58,7 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, session);
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -75,6 +76,7 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log('Fetching profile for user:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -85,7 +87,7 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         console.error('Error fetching profile:', error);
         setProfile(null);
       } else {
-        // Type assertion to ensure user_type matches our Profile interface
+        console.log('Profile fetched:', data);
         const profileData: Profile = {
           ...data,
           user_type: data.user_type as 'super_admin' | 'org_admin' | 'manager' | 'employee'
@@ -103,15 +105,40 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
   const signIn = async (username: string, password: string) => {
     setLoading(true);
     try {
-      // First, find the user by username to get their email
+      console.log('Attempting sign in for username:', username);
+      
+      // Special case for super admin - try direct email authentication first
+      if (username === 'tiktok') {
+        console.log('Super admin login attempt');
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: 'tiktok518@gmail.com',
+          password: password,
+        });
+
+        if (error) {
+          console.error('Direct email auth failed:', error);
+          return { success: false, error: error.message };
+        }
+
+        console.log('Super admin login successful');
+        return { success: true };
+      }
+
+      // For other users, find by username first
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('id')
         .eq('username', username)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
-      if (profileError || !profileData) {
+      if (profileError) {
+        console.error('Profile lookup error:', profileError);
+        return { success: false, error: 'Database error occurred' };
+      }
+
+      if (!profileData) {
+        console.log('No profile found for username:', username);
         return { success: false, error: 'Invalid username or account is inactive' };
       }
 
@@ -119,6 +146,7 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
       const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profileData.id);
       
       if (userError || !userData.user?.email) {
+        console.error('User lookup error:', userError);
         return { success: false, error: 'User not found' };
       }
 
@@ -129,11 +157,13 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
       });
 
       if (error) {
+        console.error('Sign in error:', error);
         return { success: false, error: error.message };
       }
 
       return { success: true };
     } catch (error) {
+      console.error('Unexpected error:', error);
       return { success: false, error: 'An unexpected error occurred' };
     } finally {
       setLoading(false);
