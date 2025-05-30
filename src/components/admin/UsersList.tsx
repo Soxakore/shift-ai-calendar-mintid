@@ -43,10 +43,10 @@ export default function UsersList({
       <CardContent>
         <div className="space-y-4">
           {users.map((user) => (
-            <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg bg-slate-50">
+            <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <h3 className="font-semibold text-lg">{user.display_name}</h3>
+                  <h3 className="font-semibold text-lg text-foreground">{user.display_name}</h3>
                   <Badge className={getUserTypeColor(user.user_type)}>
                     {user.user_type.replace('_', ' ').toUpperCase()}
                   </Badge>
@@ -57,9 +57,9 @@ export default function UsersList({
                     </Badge>
                   )}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-slate-600">
-                  <div>Username: <strong>{user.username}</strong></div>
-                  <div>Organization: <strong>{getUserOrganization(user.organization_id)}</strong></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground">
+                  <div>Username: <strong className="text-foreground">{user.username}</strong></div>
+                  <div>Organization: <strong className="text-foreground">{getUserOrganization(user.organization_id)}</strong></div>
                   {user.phone_number && (
                     <div className="flex items-center gap-1">
                       <Phone className="h-3 w-3" />
@@ -100,7 +100,7 @@ export default function UsersList({
             </div>
           ))}
           {users.length === 0 && (
-            <div className="text-center py-8 text-slate-500">
+            <div className="text-center py-8 text-muted-foreground">
               No users found
             </div>
           )}

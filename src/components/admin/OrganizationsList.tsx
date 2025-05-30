@@ -39,19 +39,19 @@ export default function OrganizationsList({
       <CardContent>
         <div className="space-y-4">
           {organizations.map((org) => (
-            <div key={org.id} className="flex items-center justify-between p-4 border rounded-lg bg-slate-50">
+            <div key={org.id} className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <h3 className="font-semibold text-lg">{org.name}</h3>
+                  <h3 className="font-semibold text-lg text-foreground">{org.name}</h3>
                   <Badge variant="outline">{org.organization_number}</Badge>
                   {org.alias && (
                     <Badge variant="secondary">{org.alias}</Badge>
                   )}
                 </div>
                 {org.description && (
-                  <p className="text-slate-600 mb-2">{org.description}</p>
+                  <p className="text-muted-foreground mb-2">{org.description}</p>
                 )}
-                <div className="flex items-center gap-4 text-sm text-slate-600">
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Users className="h-4 w-4" />
                     {getOrgUserCount(org.id)} users
@@ -84,7 +84,7 @@ export default function OrganizationsList({
             </div>
           ))}
           {organizations.length === 0 && (
-            <div className="text-center py-8 text-slate-500">
+            <div className="text-center py-8 text-muted-foreground">
               No organizations found
             </div>
           )}
