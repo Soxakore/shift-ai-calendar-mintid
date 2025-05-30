@@ -122,7 +122,7 @@ export default function RoleBasedDemo() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <RoleBasedUserManagement currentUser={selectedUser} />
+          <RoleBasedUserManagement />
         </CardContent>
       </Card>
 
