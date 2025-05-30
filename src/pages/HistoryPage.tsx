@@ -7,15 +7,15 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   ArrowLeft, 
-  Building, 
-  Users, 
-  Search, 
-  Calendar,
   Shield,
-  Phone,
-  Hash,
+  Search,
+  Calendar,
   User,
-  ChevronRight
+  Building,
+  Trash2,
+  UserPlus,
+  LogIn,
+  LogOut
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,26 +23,28 @@ import { useToast } from '@/hooks/use-toast';
 import SEOHead from '@/components/SEOHead';
 import { getPageMetadata } from '@/lib/seo';
 
-interface Organization {
+interface AuditLog {
   id: string;
-  name: string;
-  alias: string | null;
-  description: string | null;
-  organization_number: string | null;
+  user_id: string;
+  action_type: string;
+  target_user_id: string | null;
+  target_organization_id: string | null;
+  metadata: any;
   created_at: string;
+  ip_address: string | null;
+  user_agent: string | null;
 }
 
-interface UserProfile {
+interface SessionLog {
   id: string;
-  username: string;
-  display_name: string;
-  user_type: string;
-  organization_id: string;
-  department_id: string | null;
-  is_active: boolean;
-  tracking_id: string | null;
-  phone_number: string | null;
+  user_id: string;
+  action: string;
+  session_id: string | null;
+  success: boolean;
+  failure_reason: string | null;
   created_at: string;
+  ip_address: string | null;
+  user_agent: string | null;
 }
 
 const HistoryPage = () => {
@@ -50,53 +52,67 @@ const HistoryPage = () => {
   const { toast } = useToast();
   const pageMetadata = getPageMetadata('dashboard');
   
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [sessionLogs, setSessionLogs] = useState<SessionLog[]>([]);
+  const [activeTab, setActiveTab] = useState<'audit' | 'session'>('audit');
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const fetchData = async () => {
+  const fetchAuditLogs = async () => {
     setLoading(true);
     try {
-      // Fetch organizations
-      const { data: orgsData, error: orgsError } = await supabase
-        .from('organizations')
+      const { data, error } = await supabase
+        .from('audit_logs')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100);
 
-      if (orgsError) {
-        console.error('Error fetching organizations:', orgsError);
+      if (error) {
+        console.error('Error fetching audit logs:', error);
         toast({
-          title: "❌ Error fetching organizations",
-          description: orgsError.message,
+          title: "❌ Error fetching audit logs",
+          description: error.message,
           variant: "destructive"
         });
       } else {
-        setOrganizations(orgsData || []);
-      }
-
-      // Fetch all users
-      const { data: usersData, error: usersError } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (usersError) {
-        console.error('Error fetching users:', usersError);
-        toast({
-          title: "❌ Error fetching users",
-          description: usersError.message,
-          variant: "destructive"
-        });
-      } else {
-        setUsers(usersData || []);
+        setAuditLogs(data || []);
       }
     } catch (error) {
       console.error('Unexpected error:', error);
       toast({
         title: "💥 Unexpected error",
-        description: 'Failed to load data.',
+        description: 'Failed to load audit logs.',
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSessionLogs = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('session_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (error) {
+        console.error('Error fetching session logs:', error);
+        toast({
+          title: "❌ Error fetching session logs",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        setSessionLogs(data || []);
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "💥 Unexpected error",
+        description: 'Failed to load session logs.',
         variant: "destructive"
       });
     } finally {
@@ -105,56 +121,74 @@ const HistoryPage = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (activeTab === 'audit') {
+      fetchAuditLogs();
+    } else {
+      fetchSessionLogs();
+    }
+  }, [activeTab]);
 
   const cleanSearchTerm = searchTerm.replace(/[^\w\s-]/g, '').trim();
 
-  const filteredOrganizations = organizations.filter(org =>
-    org.name.toLowerCase().includes(cleanSearchTerm.toLowerCase()) ||
-    (org.alias && org.alias.toLowerCase().includes(cleanSearchTerm.toLowerCase())) ||
-    (org.organization_number && org.organization_number.toLowerCase().includes(cleanSearchTerm.toLowerCase()))
+  const filteredAuditLogs = auditLogs.filter(log =>
+    log.action_type.toLowerCase().includes(cleanSearchTerm.toLowerCase()) ||
+    (log.metadata?.deleted_user_name && log.metadata.deleted_user_name.toLowerCase().includes(cleanSearchTerm.toLowerCase())) ||
+    (log.metadata?.organization_name && log.metadata.organization_name.toLowerCase().includes(cleanSearchTerm.toLowerCase())) ||
+    (log.metadata?.deleted_by_username && log.metadata.deleted_by_username.toLowerCase().includes(cleanSearchTerm.toLowerCase()))
   );
 
-  const getOrganizationUsers = (orgId: string) => {
-    return users.filter(user => user.organization_id === orgId);
-  };
+  const filteredSessionLogs = sessionLogs.filter(log =>
+    log.action.toLowerCase().includes(cleanSearchTerm.toLowerCase())
+  );
 
-  const filteredUsersForSelectedOrg = selectedOrganization 
-    ? getOrganizationUsers(selectedOrganization.id).filter(user =>
-        user.display_name.toLowerCase().includes(cleanSearchTerm.toLowerCase()) ||
-        user.username.toLowerCase().includes(cleanSearchTerm.toLowerCase()) ||
-        user.user_type.toLowerCase().includes(cleanSearchTerm.toLowerCase()) ||
-        (user.tracking_id && user.tracking_id.toLowerCase().includes(cleanSearchTerm.toLowerCase())) ||
-        (user.phone_number && user.phone_number.includes(cleanSearchTerm))
-      )
-    : [];
-
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'super_admin': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      case 'org_admin': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'manager': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'employee': return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+  const getActionIcon = (actionType: string) => {
+    switch (actionType) {
+      case 'user_deleted': return <Trash2 className="h-4 w-4 text-red-500" />;
+      case 'organization_deleted': return <Trash2 className="h-4 w-4 text-red-500" />;
+      case 'organization_created': return <Building className="h-4 w-4 text-green-500" />;
+      case 'user_created': return <UserPlus className="h-4 w-4 text-green-500" />;
+      default: return <User className="h-4 w-4 text-blue-500" />;
     }
   };
 
-  const handleOrganizationClick = (org: Organization) => {
-    setSelectedOrganization(org);
-    setSearchTerm(''); // Clear search when switching views
+  const getSessionIcon = (action: string) => {
+    switch (action) {
+      case 'login': return <LogIn className="h-4 w-4 text-green-500" />;
+      case 'logout': return <LogOut className="h-4 w-4 text-red-500" />;
+      default: return <User className="h-4 w-4 text-blue-500" />;
+    }
   };
 
-  const handleBackToOrganizations = () => {
-    setSelectedOrganization(null);
-    setSearchTerm(''); // Clear search when going back
+  const getActionColor = (actionType: string) => {
+    switch (actionType) {
+      case 'user_deleted': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      case 'organization_deleted': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      case 'organization_created': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      case 'user_created': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      default: return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+    }
+  };
+
+  const formatActionDescription = (log: AuditLog) => {
+    switch (log.action_type) {
+      case 'user_deleted':
+        return `User "${log.metadata?.deleted_user_name || 'Unknown'}" was deleted by ${log.metadata?.deleted_by_display_name || log.metadata?.deleted_by_username || 'Unknown'}`;
+      case 'organization_deleted':
+        return `Organization "${log.metadata?.organization_name || 'Unknown'}" was deleted by ${log.metadata?.deleted_by_display_name || log.metadata?.deleted_by_username || 'Unknown'}`;
+      case 'organization_created':
+        return `Organization "${log.metadata?.organization_name || 'Unknown'}" was created by ${log.metadata?.created_by_display_name || log.metadata?.created_by_username || 'Unknown'}`;
+      case 'user_created':
+        return `User was created by ${log.metadata?.created_by_display_name || log.metadata?.created_by_username || 'System'}`;
+      default:
+        return log.action_type.replace(/_/g, ' ').toUpperCase();
+    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       <SEOHead
         title={`${pageMetadata.title} - History`}
-        description="Complete system history and user management overview"
+        description="Complete system history and audit logs"
         keywords={pageMetadata.keywords}
         canonicalUrl={`${pageMetadata.canonical}/history`}
         pageName="dashboard"
@@ -174,30 +208,16 @@ const HistoryPage = () => {
                 <ArrowLeft className="h-4 w-4" />
                 Back to Dashboard
               </Button>
-              {selectedOrganization && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBackToOrganizations}
-                  className="flex items-center gap-2"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to Organizations
-                </Button>
-              )}
               <div className="flex items-center space-x-3">
                 <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
                   <Shield className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                    {selectedOrganization ? `${selectedOrganization.name} - Users` : 'System History'}
+                    System Audit History
                   </h1>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
-                    {selectedOrganization 
-                      ? `Users in ${selectedOrganization.name} organization`
-                      : 'Complete overview of organizations and users'
-                    }
+                    Complete audit trail of system activities and user sessions
                   </p>
                 </div>
               </div>
@@ -208,7 +228,7 @@ const HistoryPage = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
-                  placeholder={selectedOrganization ? "Search users..." : "Search organizations..."}
+                  placeholder="Search activities..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 w-80"
@@ -221,14 +241,34 @@ const HistoryPage = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="space-y-8">
-          {!selectedOrganization ? (
-            /* Organizations View */
+        <div className="space-y-6">
+          {/* Tab Navigation */}
+          <div className="flex space-x-4">
+            <Button
+              variant={activeTab === 'audit' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('audit')}
+              className="flex items-center gap-2"
+            >
+              <Shield className="h-4 w-4" />
+              Audit Logs ({filteredAuditLogs.length})
+            </Button>
+            <Button
+              variant={activeTab === 'session' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('session')}
+              className="flex items-center gap-2"
+            >
+              <User className="h-4 w-4" />
+              Session Logs ({filteredSessionLogs.length})
+            </Button>
+          </div>
+
+          {/* Audit Logs */}
+          {activeTab === 'audit' && (
             <Card className="border-0 shadow-xl bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm">
               <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-800 dark:to-blue-700 border-b">
                 <CardTitle className="flex items-center gap-2">
-                  <Building className="h-5 w-5 text-blue-600" />
-                  Organizations ({filteredOrganizations.length})
+                  <Shield className="h-5 w-5 text-blue-600" />
+                  Audit Events ({filteredAuditLogs.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -240,62 +280,62 @@ const HistoryPage = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Organization ID</TableHead>
-                        <TableHead>Alias</TableHead>
-                        <TableHead>Users Count</TableHead>
-                        <TableHead>Created</TableHead>
-                        <TableHead>Actions</TableHead>
+                        <TableHead>Action</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>IP Address</TableHead>
+                        <TableHead>Timestamp</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredOrganizations.map((org) => (
-                        <TableRow key={org.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                          <TableCell className="font-medium">{org.name}</TableCell>
+                      {filteredAuditLogs.map((log) => (
+                        <TableRow key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                           <TableCell>
-                            <Badge variant="outline" className="font-mono text-xs">
-                              {org.organization_number || 'Not assigned'}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              {getActionIcon(log.action_type)}
+                              <Badge className={getActionColor(log.action_type)}>
+                                {log.action_type.replace('_', ' ').toUpperCase()}
+                              </Badge>
+                            </div>
                           </TableCell>
                           <TableCell>
-                            {org.alias && (
-                              <Badge variant="secondary">{org.alias}</Badge>
-                            )}
+                            <div className="max-w-md">
+                              <p className="text-sm">{formatActionDescription(log)}</p>
+                            </div>
                           </TableCell>
                           <TableCell>
-                            {getOrganizationUsers(org.id).length} users
+                            <span className="text-sm font-mono">
+                              {log.ip_address || 'Not available'}
+                            </span>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1 text-sm text-slate-500">
                               <Calendar className="h-4 w-4" />
-                              {new Date(org.created_at).toLocaleDateString()}
+                              {new Date(log.created_at).toLocaleString()}
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleOrganizationClick(org)}
-                              className="flex items-center gap-2"
-                            >
-                              View Users
-                              <ChevronRight className="h-4 w-4" />
-                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
+                      {filteredAuditLogs.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8 text-slate-500">
+                            No audit events found
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 )}
               </CardContent>
             </Card>
-          ) : (
-            /* Users View for Selected Organization */
+          )}
+
+          {/* Session Logs */}
+          {activeTab === 'session' && (
             <Card className="border-0 shadow-xl bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm">
               <CardHeader className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-800 dark:to-green-700 border-b">
                 <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-green-600" />
-                  Users in {selectedOrganization.name} ({filteredUsersForSelectedOrg.length})
+                  <User className="h-5 w-5 text-green-600" />
+                  Session Events ({filteredSessionLogs.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -307,56 +347,51 @@ const HistoryPage = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Tracking ID</TableHead>
-                        <TableHead>Phone</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Created</TableHead>
+                        <TableHead>Action</TableHead>
+                        <TableHead>Success</TableHead>
+                        <TableHead>IP Address</TableHead>
+                        <TableHead>Timestamp</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredUsersForSelectedOrg.map((user) => (
-                        <TableRow key={user.id}>
+                      {filteredSessionLogs.map((log) => (
+                        <TableRow key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                           <TableCell>
-                            <div>
-                              <div className="font-medium">{user.display_name}</div>
-                              <div className="text-sm text-slate-500">@{user.username}</div>
+                            <div className="flex items-center gap-2">
+                              {getSessionIcon(log.action)}
+                              <Badge variant={log.success ? "default" : "destructive"}>
+                                {log.action.toUpperCase()}
+                              </Badge>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge className={getRoleColor(user.user_type)}>
-                              {user.user_type.replace('_', ' ').toUpperCase()}
+                            <Badge variant={log.success ? "default" : "destructive"}>
+                              {log.success ? "Success" : "Failed"}
                             </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {user.tracking_id && (
-                              <Badge variant="outline" className="font-mono text-xs">
-                                {user.tracking_id}
-                              </Badge>
+                            {log.failure_reason && (
+                              <p className="text-xs text-slate-500 mt-1">{log.failure_reason}</p>
                             )}
                           </TableCell>
                           <TableCell>
-                            {user.phone_number && (
-                              <div className="flex items-center gap-1">
-                                <Phone className="h-4 w-4 text-slate-400" />
-                                <span className="text-sm">{user.phone_number}</span>
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={user.is_active ? "default" : "secondary"}>
-                              {user.is_active ? "Active" : "Inactive"}
-                            </Badge>
+                            <span className="text-sm font-mono">
+                              {log.ip_address || 'Not available'}
+                            </span>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1 text-sm text-slate-500">
                               <Calendar className="h-4 w-4" />
-                              {new Date(user.created_at).toLocaleDateString()}
+                              {new Date(log.created_at).toLocaleString()}
                             </div>
                           </TableCell>
                         </TableRow>
                       ))}
+                      {filteredSessionLogs.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8 text-slate-500">
+                            No session events found
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 )}
