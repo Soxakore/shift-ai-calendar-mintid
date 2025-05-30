@@ -51,13 +51,13 @@ export default function SecurityMonitoring() {
         .order('created_at', { ascending: false })
         .limit(20);
 
-      // Convert session logs to security events
+      // Convert session logs to security events with proper type handling
       const events: SecurityEvent[] = sessionLogs?.map(log => ({
         id: log.id,
         type: 'failed_login' as const,
         severity: 'medium' as const,
         description: `Failed login attempt for user ${log.user_id}`,
-        ip_address: log.ip_address,
+        ip_address: log.ip_address ? String(log.ip_address) : undefined,
         user_id: log.user_id,
         timestamp: log.created_at
       })) || [];

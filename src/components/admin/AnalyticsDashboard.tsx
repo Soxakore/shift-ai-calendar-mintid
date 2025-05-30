@@ -53,7 +53,7 @@ export default function AnalyticsDashboard() {
       // Fetch user statistics
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('user_type, is_active, created_at');
+        .select('user_type, is_active, created_at, organization_id');
 
       const { data: organizations } = await supabase
         .from('organizations')
