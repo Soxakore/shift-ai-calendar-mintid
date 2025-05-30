@@ -18,8 +18,11 @@ const SuperAdminInitial = () => {
   const { signIn, user, profile } = useSupabaseAuth();
   const { toast } = useToast();
 
+  console.log('SuperAdminInitial render - user:', user?.email, 'profile:', profile?.user_type);
+
   // Redirect if already authenticated
   if (user && profile) {
+    console.log('Redirecting authenticated user to:', profile.user_type);
     switch (profile.user_type) {
       case 'super_admin':
         return <Navigate to="/super-admin" replace />;
@@ -46,17 +49,19 @@ const SuperAdminInitial = () => {
       return;
     }
 
-    console.log('Login attempt with username:', username);
+    console.log('Starting login process for:', username);
     setLoading(true);
     
     try {
       const result = await signIn(username, password);
       
       if (result.success) {
+        console.log('Login successful, showing success toast');
         toast({
           title: "✅ Login Successful",
           description: "Welcome to MinTid Super Admin!",
         });
+        // Don't redirect here - let the auth state change handle it
       } else {
         console.error('Login failed:', result.error);
         toast({
@@ -66,7 +71,7 @@ const SuperAdminInitial = () => {
         });
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Login exception:', error);
       toast({
         title: "❌ Login Error",
         description: "An unexpected error occurred",
