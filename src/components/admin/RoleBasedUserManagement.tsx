@@ -17,6 +17,7 @@ interface Organization {
   name: string;
   alias: string | null;
   description: string | null;
+  organization_number: string | null;
   created_at: string;
   users?: { id: string }[];
 }
@@ -29,6 +30,8 @@ interface User {
   organization_id: string;
   department_id: string;
   is_active: boolean;
+  tracking_id: string | null;
+  phone_number: string | null;
   created_at: string;
 }
 
@@ -111,20 +114,23 @@ export default function RoleBasedUserManagement() {
     fetchUsers();
   }, [fetchOrganizations, fetchUsers]);
 
+  // Clean search term to handle pasted content safely
+  const cleanSearchTerm = searchTerm.replace(/[^\w\s-]/g, '').trim();
+
   // Filter organizations based on search term
   const filteredOrganizations = organizations.filter(org =>
-    org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (org.alias && org.alias.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (org.organization_number && org.organization_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (org.description && org.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    org.name.toLowerCase().includes(cleanSearchTerm.toLowerCase()) ||
+    (org.alias && org.alias.toLowerCase().includes(cleanSearchTerm.toLowerCase())) ||
+    (org.organization_number && org.organization_number.toLowerCase().includes(cleanSearchTerm.toLowerCase())) ||
+    (org.description && org.description.toLowerCase().includes(cleanSearchTerm.toLowerCase()))
   );
 
   // Filter users based on search term
   const filteredUsers = allUsers.filter(user =>
-    user.display_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (user.tracking_id && user.tracking_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (user.phone_number && user.phone_number.includes(searchTerm))
+    user.display_name.toLowerCase().includes(cleanSearchTerm.toLowerCase()) ||
+    user.username.toLowerCase().includes(cleanSearchTerm.toLowerCase()) ||
+    (user.tracking_id && user.tracking_id.toLowerCase().includes(cleanSearchTerm.toLowerCase())) ||
+    (user.phone_number && user.phone_number.includes(cleanSearchTerm))
   );
 
   const handleCreateOrg = async (orgData: { name: string; description: string; alias: string }) => {
