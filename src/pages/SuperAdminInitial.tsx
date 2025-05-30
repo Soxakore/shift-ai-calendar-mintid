@@ -11,9 +11,9 @@ import { useToast } from '@/hooks/use-toast';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 
 const SuperAdminInitial = () => {
-  const [username, setUsername] = useState('super.admin');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [username, setUsername] = useState('tiktok');
+  const [password, setPassword] = useState('Hrpr0dect3421!');
+  const [confirmPassword, setConfirmPassword] = useState('Hrpr0dect3421!');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [created, setCreated] = useState(false);
@@ -43,7 +43,7 @@ const SuperAdminInitial = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.admin.createUser({
-        email: 'super.admin@mintid.system',
+        email: 'tiktok518@gmail.com',
         password: password,
         user_metadata: {
           username: username,
@@ -63,7 +63,7 @@ const SuperAdminInitial = () => {
       } else {
         toast({
           title: "✅ Super Admin Created",
-          description: "Your super admin account has been created successfully!",
+          description: `Super admin account created successfully! You can now sign in with username: ${username}`,
         });
         setCreated(true);
       }
@@ -152,6 +152,15 @@ const SuperAdminInitial = () => {
               {loading ? "Creating Account..." : "Create Super Admin Account"}
             </Button>
           </form>
+
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <h4 className="font-medium text-blue-800 mb-2">Account Details:</h4>
+            <ul className="text-sm text-blue-700 space-y-1">
+              <li>• Username: {username}</li>
+              <li>• Email: tiktok518@gmail.com</li>
+              <li>• Password reset email will be sent to: tiktok518@gmail.com</li>
+            </ul>
+          </div>
         </CardContent>
       </Card>
 
@@ -160,13 +169,13 @@ const SuperAdminInitial = () => {
         <CardContent className="pt-4">
           <div className="flex items-center gap-2 mb-2">
             <Shield className="h-4 w-4 text-red-600" />
-            <h4 className="font-medium text-red-800">Security Warning</h4>
+            <h4 className="font-medium text-red-800">Security Information</h4>
           </div>
           <ul className="text-sm text-red-700 space-y-1">
-            <li>• Use a strong, unique password</li>
-            <li>• Keep these credentials secure</li>
+            <li>• Account will be created with email: tiktok518@gmail.com</li>
+            <li>• Password resets will be sent to this email</li>
+            <li>• Keep your credentials secure</li>
             <li>• This account has full system access</li>
-            <li>• Do not share these credentials</li>
           </ul>
         </CardContent>
       </Card>
