@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -258,7 +259,10 @@ export default function SystemStartupRecovery({
                       <Badge className={getSeverityColor(event.severity)}>
                         {event.severity.toUpperCase()}
                       </Badge>
-                      <Badge variant={event.resolved ? "default" : "destructive"} className="text-white">
+                      <Badge 
+                        variant={event.resolved ? "default" : "destructive"} 
+                        className={event.resolved ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" : "text-white"}
+                      >
                         {event.resolved ? "RESOLVED" : "ACTIVE"}
                       </Badge>
                       <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
