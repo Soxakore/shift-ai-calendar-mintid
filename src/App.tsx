@@ -29,11 +29,13 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  console.log('App component rendering...');
+  
   return (
-    <ThemeProvider defaultTheme="system" storageKey="mintid-theme">
-      <SupabaseAuthProvider>
-        <QueryClientProvider client={queryClient}>
-          <ErrorBoundary>
+    <ErrorBoundary>
+      <ThemeProvider defaultTheme="system" storageKey="mintid-theme">
+        <SupabaseAuthProvider>
+          <QueryClientProvider client={queryClient}>
             <Router>
               <div className="min-h-screen bg-background text-foreground">
                 <Suspense fallback={<LoadingSpinner />}>
@@ -79,10 +81,10 @@ function App() {
               </div>
             </Router>
             <Toaster />
-          </ErrorBoundary>
-        </QueryClientProvider>
-      </SupabaseAuthProvider>
-    </ThemeProvider>
+          </QueryClientProvider>
+        </SupabaseAuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

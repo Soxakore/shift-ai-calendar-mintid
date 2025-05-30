@@ -17,9 +17,17 @@ import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 const SuperAdminDashboard = () => {
+  console.log('SuperAdminDashboard component rendering...');
+  
   const pageMetadata = getPageMetadata('dashboard');
-  const { signOut } = useSupabaseAuth();
+  const { signOut, user, profile } = useSupabaseAuth();
   const { toast } = useToast();
+
+  console.log('SuperAdminDashboard auth state:', {
+    user: user?.email,
+    profile: profile?.user_type,
+    isActive: profile?.is_active
+  });
 
   const handleLogout = async () => {
     try {
@@ -98,6 +106,19 @@ const SuperAdminDashboard = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="space-y-6">
+          {/* Debug Info */}
+          <Card className="border border-yellow-200 bg-yellow-50">
+            <CardContent className="pt-4">
+              <h3 className="font-semibold text-yellow-800 mb-2">Debug Information</h3>
+              <div className="text-sm text-yellow-700 space-y-1">
+                <div>User: {user?.email || 'Not logged in'}</div>
+                <div>Profile Type: {profile?.user_type || 'No profile'}</div>
+                <div>Active: {profile?.is_active ? 'Yes' : 'No'}</div>
+                <div>Current Time: {new Date().toLocaleString()}</div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Management Interface */}
           <Card className="border shadow-lg bg-card">
             <CardHeader className="bg-muted/50 border-b">
