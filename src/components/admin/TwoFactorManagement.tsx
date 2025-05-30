@@ -37,6 +37,7 @@ const TwoFactorManagement = () => {
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [isGeneratingCodes, setIsGeneratingCodes] = useState(false);
   const [testEmail, setTestEmail] = useState('');
+  const [adminEmail, setAdminEmail] = useState('tiktok518@gmail.com'); // Default to working email
   const [twoFactorStats, setTwoFactorStats] = useState<TwoFactorStats>({
     enabled: 0,
     pending: 0,
@@ -142,7 +143,7 @@ const TwoFactorManagement = () => {
       const { data, error } = await supabase.functions.invoke('send-email', {
         body: {
           type: 'backup_codes',
-          to: 'admin@example.com',
+          to: adminEmail,
           data: {
             username: 'Admin',
             backupCodes: newCodes
@@ -160,7 +161,7 @@ const TwoFactorManagement = () => {
       } else {
         toast({
           title: "✅ Backup Codes Generated",
-          description: "New backup codes generated and sent to your email.",
+          description: `New backup codes generated and sent to ${adminEmail}.`,
         });
       }
     } catch (error) {
@@ -327,7 +328,7 @@ const TwoFactorManagement = () => {
         console.error('Error sending password reset email:', error);
         toast({
           title: "❌ Email Error",
-          description: "Failed to send password reset email.",
+          description: "Failed to send password reset email. Please check the email address.",
           variant: "destructive"
         });
       } else {
@@ -348,10 +349,12 @@ const TwoFactorManagement = () => {
 
   const handleSendSecurityAlert = async (message: string) => {
     try {
+      console.log('Sending security alert to:', adminEmail, 'Message:', message);
+      
       const { data, error } = await supabase.functions.invoke('send-email', {
         body: {
           type: 'security_alert',
-          to: 'admin@example.com',
+          to: adminEmail,
           data: {
             username: 'Admin',
             alertMessage: message
@@ -363,13 +366,14 @@ const TwoFactorManagement = () => {
         console.error('Error sending security alert:', error);
         toast({
           title: "❌ Alert Error",
-          description: "Failed to send security alert email.",
+          description: `Failed to send security alert to ${adminEmail}. Please check the email address.`,
           variant: "destructive"
         });
       } else {
+        console.log('Security alert sent successfully:', data);
         toast({
           title: "✅ Security Alert Sent",
-          description: "Security alert email sent successfully.",
+          description: `Security alert sent successfully to ${adminEmail}.`,
         });
       }
     } catch (error) {
@@ -398,6 +402,46 @@ const TwoFactorManagement = () => {
           <span className="text-sm text-red-700 dark:text-red-300">Live monitoring active</span>
         </div>
       </div>
+
+      {/* Admin Email Configuration */}
+      <Card className="border-0 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+          <CardTitle className="flex items-center gap-2 text-blue-900 dark:text-blue-100">
+            <Settings className="w-5 h-5" />
+            Email Configuration
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-gray-700 dark:text-gray-300">Admin Email Address</Label>
+              <div className="flex gap-2">
+                <Input 
+                  placeholder="Enter admin email for alerts"
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                  className="dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                />
+                <Button 
+                  onClick={() => {
+                    toast({
+                      title: "✅ Email Updated",
+                      description: `Admin email set to ${adminEmail}`,
+                    });
+                  }}
+                  variant="outline"
+                  className="dark:border-gray-600 dark:text-gray-100"
+                >
+                  Save
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                This email will receive backup codes and security alerts. Use a real email address for testing.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* System Status and Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -472,7 +516,7 @@ const TwoFactorManagement = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-gray-100">Generate New Backup Codes</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Create new backup codes and send via email</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Create new backup codes and send to: {adminEmail}</p>
                   </div>
                   <Button 
                     onClick={handleGenerateBackupCodes}
@@ -504,7 +548,7 @@ const TwoFactorManagement = () => {
                       ))}
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                      ⚠️ These codes have been sent to your email. Store them securely!
+                      ⚠️ These codes have been sent to {adminEmail}. Store them securely!
                     </p>
                   </div>
                 )}
@@ -539,20 +583,24 @@ const TwoFactorManagement = () => {
                       <Send className="w-4 h-4" />
                     </Button>
                   </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Use a real email address (not example.com domains)
+                  </p>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-gray-700 dark:text-gray-300">Test Security Alert</Label>
+                  <Label className="text-gray-700 dark:text-gray-300">Test Security Alert (to {adminEmail})</Label>
                   <div className="flex gap-2">
                     <Select onValueChange={(value) => handleSendSecurityAlert(value)}>
                       <SelectTrigger className="dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100">
                         <SelectValue placeholder="Select alert type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Suspicious login attempt detected">Suspicious Login</SelectItem>
-                        <SelectItem value="Password changed successfully">Password Changed</SelectItem>
-                        <SelectItem value="2FA disabled on your account">2FA Disabled</SelectItem>
-                        <SelectItem value="Multiple failed login attempts">Failed Login Attempts</SelectItem>
+                        <SelectItem value="Suspicious login attempt detected from unknown location">Suspicious Login</SelectItem>
+                        <SelectItem value="Password changed successfully for admin account">Password Changed</SelectItem>
+                        <SelectItem value="2FA has been disabled on administrator account">2FA Disabled</SelectItem>
+                        <SelectItem value="Multiple failed login attempts detected from same IP">Failed Login Attempts</SelectItem>
+                        <SelectItem value="Emergency lockdown initiated by system administrator">Emergency Lockdown</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
