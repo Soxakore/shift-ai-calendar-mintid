@@ -110,16 +110,16 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
     try {
       console.log('Attempting sign in for username:', username);
       
-      // Special case for super admin - try direct email authentication first
+      // Special case for super admin - direct email authentication
       if (username === 'tiktok') {
-        console.log('Super admin login attempt');
+        console.log('Super admin login attempt with direct email');
         const { data, error } = await supabase.auth.signInWithPassword({
           email: 'tiktok518@gmail.com',
           password: password,
         });
 
         if (error) {
-          console.error('Direct email auth failed:', error);
+          console.error('Super admin login failed:', error);
           return { success: false, error: error.message };
         }
 
@@ -127,10 +127,10 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         return { success: true };
       }
 
-      // For other users, find by username first
+      // For regular users, find profile first, then get email from metadata
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, username')
         .eq('username', username)
         .eq('is_active', true)
         .maybeSingle();
@@ -145,23 +145,18 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         return { success: false, error: 'Invalid username or account is inactive' };
       }
 
-      // Get the user's email from auth.users
-      const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profileData.id);
+      // Try to sign in with constructed email
+      const email = `${username}@${profileData.id}.mintid.local`;
+      console.log('Attempting login with constructed email:', email);
       
-      if (userError || !userData.user?.email) {
-        console.error('User lookup error:', userError);
-        return { success: false, error: 'User not found' };
-      }
-
-      // Sign in with email and password
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: userData.user.email,
+        email: email,
         password: password,
       });
 
       if (error) {
         console.error('Sign in error:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: 'Invalid credentials' };
       }
 
       return { success: true };
@@ -214,26 +209,29 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         return { success: false, error: 'Username already exists' };
       }
 
-      // Generate a temporary email for the user
+      // Generate a unique email for the user based on username and organization
       const email = `${userData.username.trim()}@${userData.organization_id || 'system'}.mintid.local`;
       
       console.log('Creating auth user with email:', email);
-      const { data, error } = await supabase.auth.admin.createUser({
+      
+      // Use the public API to create user instead of admin API
+      const { data, error } = await supabase.auth.signUp({
         email: email,
         password: userData.password,
-        email_confirm: true,
-        user_metadata: {
-          username: userData.username.trim(),
-          display_name: userData.display_name.trim(),
-          user_type: userData.user_type,
-          organization_id: userData.organization_id,
-          department_id: userData.department_id,
-          created_by: user?.id
+        options: {
+          data: {
+            username: userData.username.trim(),
+            display_name: userData.display_name.trim(),
+            user_type: userData.user_type,
+            organization_id: userData.organization_id,
+            department_id: userData.department_id,
+            created_by: user?.id
+          }
         }
       });
 
       if (error) {
-        console.error('Auth user creation error:', error);
+        console.error('User creation error:', error);
         return { success: false, error: error.message };
       }
 
