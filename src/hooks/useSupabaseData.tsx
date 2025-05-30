@@ -26,14 +26,67 @@ export const useSupabaseData = () => {
   useEffect(() => {
     if (profile) {
       fetchData();
+      setupRealtimeSubscriptions();
     }
   }, [profile]);
+
+  const setupRealtimeSubscriptions = () => {
+    console.log('Setting up real-time subscriptions...');
+    
+    const channel = supabase
+      .channel('data-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'organizations'
+        },
+        (payload) => {
+          console.log('Organization change detected:', payload);
+          fetchOrganizations();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        (payload) => {
+          console.log('Profile change detected:', payload);
+          fetchProfiles();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'departments'
+        },
+        (payload) => {
+          console.log('Department change detected:', payload);
+          fetchDepartments();
+        }
+      )
+      .subscribe((status) => {
+        console.log('Real-time subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up real-time subscriptions...');
+      supabase.removeChannel(channel);
+    };
+  };
 
   const fetchData = async () => {
     if (!profile) return;
 
     setLoading(true);
     try {
+      console.log('Fetching all data for profile:', profile);
       await Promise.all([
         fetchOrganizations(),
         fetchDepartments(),
@@ -51,125 +104,171 @@ export const useSupabaseData = () => {
   };
 
   const fetchOrganizations = async () => {
-    const { data, error } = await supabase
-      .from('organizations')
-      .select('*')
-      .order('name');
-    
-    if (!error && data) {
-      setOrganizations(data);
+    try {
+      console.log('Fetching organizations...');
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('*')
+        .order('name');
+      
+      if (error) {
+        console.error('Error fetching organizations:', error);
+      } else {
+        console.log('Organizations fetched:', data);
+        setOrganizations(data || []);
+      }
+    } catch (error) {
+      console.error('Exception fetching organizations:', error);
     }
   };
 
   const fetchDepartments = async () => {
-    let query = supabase.from('departments').select('*');
-    
-    // Filter based on user role
-    if (profile?.user_type !== 'super_admin' && profile?.organization_id) {
-      query = query.eq('organization_id', profile.organization_id);
-    }
-    
-    const { data, error } = await query.order('name');
-    
-    if (!error && data) {
-      setDepartments(data);
+    try {
+      let query = supabase.from('departments').select('*');
+      
+      // Filter based on user role
+      if (profile?.user_type !== 'super_admin' && profile?.organization_id) {
+        query = query.eq('organization_id', profile.organization_id);
+      }
+      
+      const { data, error } = await query.order('name');
+      
+      if (error) {
+        console.error('Error fetching departments:', error);
+      } else {
+        console.log('Departments fetched:', data);
+        setDepartments(data || []);
+      }
+    } catch (error) {
+      console.error('Exception fetching departments:', error);
     }
   };
 
   const fetchProfiles = async () => {
-    let query = supabase.from('profiles').select('*');
-    
-    // Filter based on user role
-    if (profile?.user_type === 'org_admin' && profile?.organization_id) {
-      query = query.eq('organization_id', profile.organization_id);
-    } else if (profile?.user_type === 'manager' && profile?.department_id) {
-      query = query.eq('department_id', profile.department_id);
-    } else if (profile?.user_type === 'employee') {
-      query = query.eq('id', profile.id);
-    }
-    
-    const { data, error } = await query.order('display_name');
-    
-    if (!error && data) {
-      setProfiles(data);
+    try {
+      let query = supabase.from('profiles').select('*');
+      
+      // Filter based on user role
+      if (profile?.user_type === 'org_admin' && profile?.organization_id) {
+        query = query.eq('organization_id', profile.organization_id);
+      } else if (profile?.user_type === 'manager' && profile?.department_id) {
+        query = query.eq('department_id', profile.department_id);
+      } else if (profile?.user_type === 'employee') {
+        query = query.eq('id', profile.id);
+      }
+      
+      const { data, error } = await query.order('display_name');
+      
+      if (error) {
+        console.error('Error fetching profiles:', error);
+      } else {
+        console.log('Profiles fetched:', data);
+        setProfiles(data || []);
+      }
+    } catch (error) {
+      console.error('Exception fetching profiles:', error);
     }
   };
 
   const fetchSchedules = async () => {
-    let query = supabase.from('schedules').select('*');
-    
-    // Filter based on user role and organization
-    if (profile?.user_type !== 'super_admin' && profile?.organization_id) {
-      query = query.eq('organization_id', profile.organization_id);
-    }
-    
-    if (profile?.user_type === 'manager' && profile?.department_id) {
-      query = query.eq('department_id', profile.department_id);
-    } else if (profile?.user_type === 'employee') {
-      query = query.eq('user_id', profile.id);
-    }
-    
-    const { data, error } = await query.order('date', { ascending: false });
-    
-    if (!error && data) {
-      setSchedules(data);
+    try {
+      let query = supabase.from('schedules').select('*');
+      
+      // Filter based on user role and organization
+      if (profile?.user_type !== 'super_admin' && profile?.organization_id) {
+        query = query.eq('organization_id', profile.organization_id);
+      }
+      
+      if (profile?.user_type === 'manager' && profile?.department_id) {
+        query = query.eq('department_id', profile.department_id);
+      } else if (profile?.user_type === 'employee') {
+        query = query.eq('user_id', profile.id);
+      }
+      
+      const { data, error } = await query.order('date', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching schedules:', error);
+      } else {
+        setSchedules(data || []);
+      }
+    } catch (error) {
+      console.error('Exception fetching schedules:', error);
     }
   };
 
   const fetchSickNotices = async () => {
-    let query = supabase.from('sick_notices').select('*');
-    
-    // Filter based on user role
-    if (profile?.user_type !== 'super_admin' && profile?.organization_id) {
-      query = query.eq('organization_id', profile.organization_id);
-    }
-    
-    if (profile?.user_type === 'manager' && profile?.department_id) {
-      query = query.eq('department_id', profile.department_id);
-    } else if (profile?.user_type === 'employee') {
-      query = query.eq('user_id', profile.id);
-    }
-    
-    const { data, error } = await query.order('submitted_at', { ascending: false });
-    
-    if (!error && data) {
-      setSickNotices(data);
+    try {
+      let query = supabase.from('sick_notices').select('*');
+      
+      // Filter based on user role
+      if (profile?.user_type !== 'super_admin' && profile?.organization_id) {
+        query = query.eq('organization_id', profile.organization_id);
+      }
+      
+      if (profile?.user_type === 'manager' && profile?.department_id) {
+        query = query.eq('department_id', profile.department_id);
+      } else if (profile?.user_type === 'employee') {
+        query = query.eq('user_id', profile.id);
+      }
+      
+      const { data, error } = await query.order('submitted_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching sick notices:', error);
+      } else {
+        setSickNotices(data || []);
+      }
+    } catch (error) {
+      console.error('Exception fetching sick notices:', error);
     }
   };
 
   const fetchTimeLogs = async () => {
-    let query = supabase.from('time_logs').select('*');
-    
-    // Filter based on user role
-    if (profile?.user_type !== 'super_admin' && profile?.organization_id) {
-      query = query.eq('organization_id', profile.organization_id);
-    }
-    
-    if (profile?.user_type === 'manager' && profile?.department_id) {
-      query = query.eq('department_id', profile.department_id);
-    } else if (profile?.user_type === 'employee') {
-      query = query.eq('user_id', profile.id);
-    }
-    
-    const { data, error } = await query.order('date', { ascending: false });
-    
-    if (!error && data) {
-      setTimeLogs(data);
+    try {
+      let query = supabase.from('time_logs').select('*');
+      
+      // Filter based on user role
+      if (profile?.user_type !== 'super_admin' && profile?.organization_id) {
+        query = query.eq('organization_id', profile.organization_id);
+      }
+      
+      if (profile?.user_type === 'manager' && profile?.department_id) {
+        query = query.eq('department_id', profile.department_id);
+      } else if (profile?.user_type === 'employee') {
+        query = query.eq('user_id', profile.id);
+      }
+      
+      const { data, error } = await query.order('date', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching time logs:', error);
+      } else {
+        setTimeLogs(data || []);
+      }
+    } catch (error) {
+      console.error('Exception fetching time logs:', error);
     }
   };
 
   const fetchQRCodes = async () => {
-    let query = supabase.from('qr_codes').select('*');
-    
-    // Filter based on user role
-    if (profile?.user_type !== 'super_admin' && profile?.organization_id) {
-      query = query.eq('organization_id', profile.organization_id);
-    }
-    
-    const { data, error } = await query.order('name');
-    
-    if (!error && data) {
-      setQRCodes(data);
+    try {
+      let query = supabase.from('qr_codes').select('*');
+      
+      // Filter based on user role
+      if (profile?.user_type !== 'super_admin' && profile?.organization_id) {
+        query = query.eq('organization_id', profile.organization_id);
+      }
+      
+      const { data, error } = await query.order('name');
+      
+      if (error) {
+        console.error('Error fetching QR codes:', error);
+      } else {
+        setQRCodes(data || []);
+      }
+    } catch (error) {
+      console.error('Exception fetching QR codes:', error);
     }
   };
 
@@ -182,6 +281,9 @@ export const useSupabaseData = () => {
     timeLogs,
     qrCodes,
     loading,
-    refetch: fetchData
+    refetch: fetchData,
+    refetchOrganizations: fetchOrganizations,
+    refetchProfiles: fetchProfiles,
+    refetchDepartments: fetchDepartments
   };
 };

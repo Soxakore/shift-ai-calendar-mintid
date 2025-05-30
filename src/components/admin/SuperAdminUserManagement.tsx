@@ -13,10 +13,9 @@ import {
   Shield,
   Crown,
   Building,
-  Trash2,
   Eye,
   CheckCircle,
-  XCircle
+  RefreshCw
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
@@ -25,7 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function SuperAdminUserManagement() {
   const { profile, createUser } = useSupabaseAuth();
-  const { organizations, departments, profiles, loading, refetch } = useSupabaseData();
+  const { organizations, departments, profiles, loading, refetchOrganizations, refetchProfiles } = useSupabaseData();
   const { toast } = useToast();
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [showCreateOrg, setShowCreateOrg] = useState(false);
@@ -44,10 +43,12 @@ export default function SuperAdminUserManagement() {
     description: ''
   });
 
-  // Set up real-time subscriptions
+  // Set up real-time subscriptions for immediate updates
   useEffect(() => {
+    console.log('Setting up SuperAdmin real-time subscriptions...');
+    
     const channel = supabase
-      .channel('admin-changes')
+      .channel('super-admin-changes')
       .on(
         'postgres_changes',
         {
@@ -56,8 +57,12 @@ export default function SuperAdminUserManagement() {
           table: 'organizations'
         },
         (payload) => {
-          console.log('Organization change:', payload);
-          refetch();
+          console.log('Organization change in SuperAdmin:', payload);
+          refetchOrganizations();
+          toast({
+            title: "🔄 Live Update",
+            description: "Organizations updated in real-time",
+          });
         }
       )
       .on(
@@ -68,16 +73,23 @@ export default function SuperAdminUserManagement() {
           table: 'profiles'
         },
         (payload) => {
-          console.log('Profile change:', payload);
-          refetch();
+          console.log('Profile change in SuperAdmin:', payload);
+          refetchProfiles();
+          toast({
+            title: "🔄 Live Update",
+            description: "Users updated in real-time",
+          });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('SuperAdmin real-time subscription status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up SuperAdmin real-time subscriptions...');
       supabase.removeChannel(channel);
     };
-  }, [refetch]);
+  }, [refetchOrganizations, refetchProfiles, toast]);
 
   const handleCreateOrganization = async () => {
     if (!newOrg.name.trim()) {
@@ -117,10 +129,11 @@ export default function SuperAdminUserManagement() {
         });
         setNewOrg({ name: '', description: '' });
         setShowCreateOrg(false);
-        // Refetch will be triggered by real-time subscription
+        // Force immediate refresh
+        await refetchOrganizations();
       }
     } catch (error) {
-      console.error('Unexpected error:', error);
+      console.error('Unexpected error creating organization:', error);
       toast({
         title: "❌ Unexpected Error",
         description: "An unexpected error occurred",
@@ -170,7 +183,8 @@ export default function SuperAdminUserManagement() {
         department_id: ''
       });
       setShowCreateUser(false);
-      // Refetch will be triggered by real-time subscription
+      // Force immediate refresh
+      await refetchProfiles();
     } else {
       console.error('User creation failed:', result.error);
       toast({
@@ -188,6 +202,16 @@ export default function SuperAdminUserManagement() {
 
   const getUserDepartment = (deptId: string) => {
     return departments.find(dept => dept.id === deptId)?.name || 'None';
+  };
+
+  const handleRefresh = async () => {
+    console.log('Manual refresh triggered');
+    await refetchOrganizations();
+    await refetchProfiles();
+    toast({
+      title: "🔄 Refreshed",
+      description: "Data has been refreshed",
+    });
   };
 
   if (loading) {
@@ -215,6 +239,10 @@ export default function SuperAdminUserManagement() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button onClick={handleRefresh} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
           <Badge variant="destructive" className="flex items-center gap-1">
             <Shield className="h-3 w-3" />
             SUPER ADMIN
