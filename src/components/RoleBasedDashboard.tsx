@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +17,7 @@ import {
   Plus,
   Menu
 } from 'lucide-react';
-import { checkPermission, getUIPermissions } from '@/types/permissions';
+import { getUIPermissions } from '@/types/permissions';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const RoleBasedDashboard = () => {

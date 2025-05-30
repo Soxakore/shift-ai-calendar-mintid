@@ -10,6 +10,16 @@ export interface Permission {
   scope: 'own_department' | 'own_organization' | 'all_organizations';
 }
 
+// AuthUser interface for the authentication system
+export interface AuthUser {
+  id: string;
+  name: string;
+  username: string;
+  role: 'super_admin' | 'org_admin' | 'manager' | 'employee';
+  organizationId?: string;
+  departmentId?: string;
+}
+
 // Permission sets for different roles
 export const rolePermissions: Record<string, Permission[]> = {
   // Super Admin - You (access to everything)
@@ -44,7 +54,6 @@ export const rolePermissions: Record<string, Permission[]> = {
     }
   ],
 
-  // Organization Admin - Can manage their entire organization
   org_admin: [
     {
       id: 'manage_org_users',
@@ -69,7 +78,6 @@ export const rolePermissions: Record<string, Permission[]> = {
     }
   ],
 
-  // Department Manager - Can only manage their department
   manager: [
     {
       id: 'manage_dept_users',
@@ -87,7 +95,6 @@ export const rolePermissions: Record<string, Permission[]> = {
     }
   ],
 
-  // Employee - Can only view their own data
   employee: [
     {
       id: 'view_own_data',
@@ -116,11 +123,10 @@ export const demoUsersWithRoles: EnhancedUser[] = [
     userType: 'super_admin'
   },
 
-  // McDonald's Organization Admin
   {
     id: 'mc_admin',
-    organizationId: '1', // McDonald's
-    departmentId: '3',   // Management
+    organizationId: '1',
+    departmentId: '3',
     roleId: 'org_admin',
     username: 'mc.admin',
     displayName: 'McDonald\'s Admin',
@@ -131,11 +137,10 @@ export const demoUsersWithRoles: EnhancedUser[] = [
     userType: 'org_admin'
   },
 
-  // McDonald's Kitchen Manager (Department Manager)
   {
     id: 'mc_kitchen_mgr',
-    organizationId: '1', // McDonald's
-    departmentId: '1',   // Kitchen
+    organizationId: '1',
+    departmentId: '1',
     roleId: 'manager',
     username: 'kitchen.manager',
     displayName: 'John - Kitchen Manager',
@@ -146,25 +151,23 @@ export const demoUsersWithRoles: EnhancedUser[] = [
     userType: 'manager'
   },
 
-  // McDonald's Kitchen Employee
   {
     id: 'mc_cook1',
-    organizationId: '1', // McDonald's
-    departmentId: '1',   // Kitchen
+    organizationId: '1',
+    departmentId: '1',
     roleId: 'employee',
     username: 'mary.cook',
     displayName: 'Mary - Cook',
     password: 'worker123',
     isActive: true,
-    createdBy: 'mc_kitchen_mgr', // Created by kitchen manager
+    createdBy: 'mc_kitchen_mgr',
     userType: 'employee'
   },
 
-  // Starbucks Manager (Different organization)
   {
     id: 'sb_manager',
-    organizationId: '2', // Starbucks
-    departmentId: '4',   // Baristas
+    organizationId: '2',
+    departmentId: '4',
     roleId: 'manager', 
     username: 'starbucks.manager',
     displayName: 'Sarah - Store Manager',
@@ -175,18 +178,17 @@ export const demoUsersWithRoles: EnhancedUser[] = [
   }
 ];
 
-// Permission checking utility
+// Permission checking utility - works with both AuthUser and EnhancedUser
 export const checkPermission = (
-  user: EnhancedUser,
+  user: AuthUser | EnhancedUser,
   requiredPermission: string,
   action: string,
-  targetUser?: EnhancedUser
+  targetUser?: AuthUser | EnhancedUser
 ): boolean => {
-  const userPermissions = rolePermissions[user.userType] || [];
+  const userPermissions = rolePermissions[user.role] || [];
   
   for (const permission of userPermissions) {
     if (permission.id === requiredPermission && permission.actions.includes(action as any)) {
-      // Check scope
       switch (permission.scope) {
         case 'all_organizations':
           return true;
@@ -205,27 +207,32 @@ export const checkPermission = (
   return false;
 };
 
-// UI visibility rules
-export const getUIPermissions = (user: EnhancedUser) => {
-  const permissions = rolePermissions[user.userType] || [];
+// UI visibility rules - works with both AuthUser and EnhancedUser
+export const getUIPermissions = (user: AuthUser | EnhancedUser) => {
+  const permissions = rolePermissions[user.role] || [];
   
   return {
     // Navigation items
-    canViewOrganizations: user.userType === 'super_admin',
-    canViewAllUsers: user.userType === 'super_admin',
-    canViewOrgUsers: ['super_admin', 'org_admin'].includes(user.userType),
-    canViewDeptUsers: ['super_admin', 'org_admin', 'manager'].includes(user.userType),
+    canViewOrganizations: user.role === 'super_admin',
+    canViewAllOrganizations: user.role === 'super_admin',
+    canViewAllUsers: user.role === 'super_admin',
+    canViewOrgUsers: ['super_admin', 'org_admin'].includes(user.role),
+    canViewDeptUsers: ['super_admin', 'org_admin', 'manager'].includes(user.role),
     canViewReports: permissions.some(p => p.category === 'reports'),
-    canViewSettings: ['super_admin', 'org_admin'].includes(user.userType),
+    canViewSettings: ['super_admin', 'org_admin'].includes(user.role),
     
     // User management
     canCreateUsers: permissions.some(p => p.id.includes('users') && p.actions.includes('create')),
     canEditUsers: permissions.some(p => p.id.includes('users') && p.actions.includes('update')),
     canDeleteUsers: permissions.some(p => p.id.includes('users') && p.actions.includes('delete')),
     
+    // Organization management
+    canManageOrganizations: user.role === 'super_admin',
+    canAccessSystemSettings: user.role === 'super_admin',
+    
     // Data scope
-    dataScope: user.userType === 'super_admin' ? 'all' :
-               user.userType === 'org_admin' ? 'organization' : 
-               user.userType === 'manager' ? 'department' : 'self'
+    dataScope: user.role === 'super_admin' ? 'all' :
+               user.role === 'org_admin' ? 'organization' : 
+               user.role === 'manager' ? 'department' : 'self'
   };
 };
