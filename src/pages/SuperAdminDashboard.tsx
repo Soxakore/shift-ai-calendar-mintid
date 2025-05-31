@@ -366,6 +366,31 @@ const SuperAdminDashboard = () => {
               </Card>
             </div>
 
+            {/* Quick Actions for Navigation */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Button 
+                onClick={() => navigate('/super-admin/users')}
+                className="h-20 bg-blue-600 hover:bg-blue-700 text-white flex flex-col items-center justify-center gap-2"
+              >
+                <Users className="h-6 w-6" />
+                Manage Users
+              </Button>
+              <Button 
+                onClick={() => navigate('/super-admin/organizations')}
+                className="h-20 bg-purple-600 hover:bg-purple-700 text-white flex flex-col items-center justify-center gap-2"
+              >
+                <Building className="h-6 w-6" />
+                Manage Organizations
+              </Button>
+              <Button 
+                onClick={() => navigate('/super-admin/create-user')}
+                className="h-20 bg-green-600 hover:bg-green-700 text-white flex flex-col items-center justify-center gap-2"
+              >
+                <UserPlus className="h-6 w-6" />
+                Create User
+              </Button>
+            </div>
+
             <SuperAdminUserManagement />
           </TabsContent>
 

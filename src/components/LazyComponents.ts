@@ -1,3 +1,4 @@
+
 import { lazy } from 'react';
 
 // Lazy load dashboard components with consistent naming
@@ -18,3 +19,8 @@ export const LazyReportsManagement = lazy(() => import('@/components/ReportsMana
 export const LazyScheduleCalendar = lazy(() => import('@/components/ScheduleCalendar'));
 export const LazyTaskManagement = lazy(() => import('@/components/TaskManagement'));
 export const LazyHoursWorkedChart = lazy(() => import('@/components/HoursWorkedChart'));
+
+// New Super Admin pages
+export const LazySuperAdminUsersPage = lazy(() => import('@/pages/SuperAdminUsersPage'));
+export const LazySuperAdminOrganizationsPage = lazy(() => import('@/pages/SuperAdminOrganizationsPage'));
+export const LazyCreateUserPage = lazy(() => import('@/pages/CreateUserPage'));
