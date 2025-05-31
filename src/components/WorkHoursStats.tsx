@@ -27,6 +27,28 @@ const WorkHoursStats = ({ scheduleData = [], currentDate = new Date() }: WorkHou
     calculateStats();
   }, [scheduleData, currentDate]);
 
+  const calculateHoursFromTimeRange = (timeRange: string): number => {
+    if (!timeRange || !timeRange.includes('-')) {
+      // Fallback to parsing hours string if no time range
+      const hoursMatch = timeRange.match(/(\d+\.?\d*)/);
+      return hoursMatch ? parseFloat(hoursMatch[1]) : 0;
+    }
+    
+    const [startTime, endTime] = timeRange.split('-');
+    const [startHour, startMin] = startTime.split(':').map(Number);
+    const [endHour, endMin] = endTime.split(':').map(Number);
+    
+    let start = startHour + (startMin || 0) / 60;
+    let end = endHour + (endMin || 0) / 60;
+    
+    // Handle overnight shifts (e.g., 22:00-06:00)
+    if (end < start) {
+      end += 24;
+    }
+    
+    return Math.round((end - start) * 10) / 10;
+  };
+
   const calculateStats = () => {
     const today = new Date();
     const currentMonthYear = currentDate.getMonth() === today.getMonth() && 
@@ -38,8 +60,8 @@ const WorkHoursStats = ({ scheduleData = [], currentDate = new Date() }: WorkHou
     let totalHours = 0;
 
     scheduleData.forEach(item => {
-      // Parse hours from the hours string (e.g., "6 h" -> 6)
-      const hoursValue = parseFloat(item.hours.replace(' h', '')) || 0;
+      // Calculate hours from time range or fallback to hours string
+      const hoursValue = calculateHoursFromTimeRange(item.time || item.hours);
       
       // Only calculate for current month/year if we're viewing current month
       if (currentMonthYear) {

@@ -19,6 +19,7 @@ import { getPageMetadata } from '@/lib/seo';
 import { useToast } from '@/hooks/use-toast';
 import WorkHoursStats from '@/components/WorkHoursStats';
 import HoursWorkedChart from '@/components/HoursWorkedChart';
+import EnhancedScheduleCalendar from '@/components/EnhancedScheduleCalendar';
 
 const SchedulePage = () => {
   const navigate = useNavigate();
@@ -53,20 +54,19 @@ const SchedulePage = () => {
   };
 
   const monthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-  // Mock schedule data
+  // Mock schedule data - now with time ranges for better calculation
   const scheduleData = [
-    { day: 'Thu', date: 6, hours: '6', time: '20:50-03' },
-    { day: 'Fri', date: 7, hours: '8', time: '20:50-fri' },
-    { day: 'Mon', date: 10, hours: '6', time: '20:50-09' },
-    { day: 'Tue', date: 11, hours: '8', time: '20:50-08' },
-    { day: 'Thu', date: 13, hours: '7', time: '28:30-fri' },
-    { day: 'Fri', date: 14, hours: '4', time: '' },
-    { day: 'Thu', date: 20, hours: '8', time: '22:30-fri' },
-    { day: 'Fri', date: 21, hours: '4', time: '' },
-    { day: 'Sat', date: 22, hours: '4', time: '' },
-    { day: 'Mon', date: 31, hours: '3', time: '' }
+    { day: 'Thu', date: 6, hours: '6', time: '07:00-13:00' },
+    { day: 'Fri', date: 7, hours: '8', time: '09:00-17:00' },
+    { day: 'Mon', date: 10, hours: '6', time: '08:00-14:00' },
+    { day: 'Tue', date: 11, hours: '8', time: '09:00-17:00' },
+    { day: 'Thu', date: 13, hours: '7', time: '10:00-17:00' },
+    { day: 'Fri', date: 14, hours: '4', time: '13:00-17:00' },
+    { day: 'Thu', date: 20, hours: '8', time: '22:00-06:00' },
+    { day: 'Fri', date: 21, hours: '4', time: '14:00-18:00' },
+    { day: 'Sat', date: 22, hours: '4', time: '10:00-14:00' },
+    { day: 'Mon', date: 31, hours: '3', time: '15:00-18:00' }
   ];
 
   const urloardData = [
@@ -139,48 +139,10 @@ const SchedulePage = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {/* Week headers */}
-                <div className="grid grid-cols-7 gap-2 mb-4">
-                  {weekDays.map((day) => (
-                    <div key={day} className="text-center text-sm font-medium text-gray-600 dark:text-gray-400 py-2">
-                      {day}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Calendar Grid */}
-                <div className="grid grid-cols-7 gap-2">
-                  {Array.from({ length: 35 }, (_, index) => {
-                    const dayNumber = index - 3; // Adjust for month start
-                    const isValidDay = dayNumber > 0 && dayNumber <= 31;
-                    const scheduleItem = scheduleData.find(item => item.date === dayNumber);
-                    
-                    return (
-                      <div
-                        key={index}
-                        className={`min-h-[80px] p-2 border border-gray-200 dark:border-slate-600 rounded-lg ${
-                          isValidDay ? 'bg-white dark:bg-slate-700' : 'bg-gray-50 dark:bg-slate-800'
-                        }`}
-                      >
-                        {isValidDay && (
-                          <>
-                            <div className="text-sm text-gray-900 dark:text-gray-100">{dayNumber}</div>
-                            {scheduleItem && (
-                              <div className="mt-1">
-                                <div className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-center">
-                                  <div className="font-medium">{scheduleItem.hours}h</div>
-                                  {scheduleItem.time && (
-                                    <div className="text-xs">{scheduleItem.time}</div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                <EnhancedScheduleCalendar 
+                  currentDate={currentDate}
+                  scheduleData={scheduleData}
+                />
 
                 {/* Upload Button */}
                 <div className="mt-6 flex justify-center">
