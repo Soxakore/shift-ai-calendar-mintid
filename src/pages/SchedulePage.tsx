@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,7 +36,7 @@ const SchedulePage = () => {
   const [isClockingOut, setIsClockingOut] = useState(false);
   const [todayTimeLog, setTodayTimeLog] = useState<any>(null);
 
-  const { profile } = useSupabaseAuth();
+  const { profile, user } = useSupabaseAuth();
   const { schedules, timeLogs, refetch } = useSupabaseData();
 
   useEffect(() => {
@@ -469,7 +468,7 @@ const SchedulePage = () => {
                     Username: {profile?.username || 'mary.cook'}
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Email: {profile?.email || 'mary.cook@example.com'}
+                    Email: {user?.email || 'mary.cook@example.com'}
                   </p>
                 </div>
                 <Button variant="outline" size="sm" className="border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700" onClick={handleUpdateProfile}>
