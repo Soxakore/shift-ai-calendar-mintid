@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +24,7 @@ const SchedulePage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const pageMetadata = getPageMetadata('schedule');
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 4)); // May 2025
+  const [currentDate, setCurrentDate] = useState(new Date()); // Current month (December 2024)
 
   const handleUpdateProfile = () => {
     toast({
@@ -55,8 +54,16 @@ const SchedulePage = () => {
 
   const monthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-  // Mock schedule data - now with time ranges for better calculation
+  // Enhanced mock schedule data with this week's data including overtime
   const scheduleData = [
+    // This week's shifts (Dec 30, 2024 - Jan 5, 2025)
+    { day: 'Mon', date: 30, hours: '8', time: '09:00-17:00' }, // Dec 30
+    { day: 'Tue', date: 31, hours: '10', time: '08:00-18:00' }, // Dec 31 - overtime
+    { day: 'Wed', date: 1, hours: '8', time: '09:00-17:00' },   // Jan 1
+    { day: 'Thu', date: 2, hours: '9', time: '08:00-17:00' },   // Jan 2 - overtime
+    { day: 'Fri', date: 3, hours: '12', time: '22:00-10:00' },  // Jan 3 - overnight + overtime
+    
+    // Previous data from May 2025 (for comparison)
     { day: 'Thu', date: 6, hours: '6', time: '07:00-13:00' },
     { day: 'Fri', date: 7, hours: '8', time: '09:00-17:00' },
     { day: 'Mon', date: 10, hours: '6', time: '08:00-14:00' },
@@ -65,10 +72,10 @@ const SchedulePage = () => {
     { day: 'Fri', date: 14, hours: '4', time: '13:00-17:00' },
     { day: 'Thu', date: 20, hours: '8', time: '22:00-06:00' },
     { day: 'Fri', date: 21, hours: '4', time: '14:00-18:00' },
-    { day: 'Sat', date: 22, hours: '4', time: '10:00-14:00' },
-    { day: 'Mon', date: 31, hours: '3', time: '15:00-18:00' }
+    { day: 'Sat', date: 22, hours: '4', time: '10:00-14:00' }
   ];
 
+  // Mock schedule data - now with time ranges for better calculation
   const urloardData = [
     { label: 'Total', hours: '32 h' },
     { label: 'Horus', hours: '148 h' }
