@@ -24,10 +24,7 @@ import {
   LazySuperAdminDashboard,
   LazyOrgAdminDashboard,
   LazyManagerDashboard,
-  LazyEmployeeDashboard,
-  LazySuperAdminUsersPage,
-  LazySuperAdminOrganizationsPage,
-  LazyCreateUserPage
+  LazyEmployeeDashboard
 } from "@/components/LazyComponents";
 
 // Initialize analytics and error tracking
@@ -81,36 +78,6 @@ const App = () => {
                         <ProtectedRoute requireRole="super_admin">
                           <Suspense fallback={<LoadingSpinner text="Loading Super Admin Dashboard..." />}>
                             <LazySuperAdminDashboard />
-                          </Suspense>
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/super-admin/users"
-                      element={
-                        <ProtectedRoute requireRole="super_admin">
-                          <Suspense fallback={<LoadingSpinner text="Loading Users..." />}>
-                            <LazySuperAdminUsersPage />
-                          </Suspense>
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/super-admin/organizations"
-                      element={
-                        <ProtectedRoute requireRole="super_admin">
-                          <Suspense fallback={<LoadingSpinner text="Loading Organizations..." />}>
-                            <LazySuperAdminOrganizationsPage />
-                          </Suspense>
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/super-admin/create-user"
-                      element={
-                        <ProtectedRoute requireRole="super_admin">
-                          <Suspense fallback={<LoadingSpinner text="Loading Create User..." />}>
-                            <LazyCreateUserPage />
                           </Suspense>
                         </ProtectedRoute>
                       }
