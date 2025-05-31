@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { OG_IMAGES } from '@/lib/ogImage';
@@ -10,7 +11,7 @@ interface SEOHeadProps {
   ogImage?: string;
   ogType?: string;
   structuredData?: object;
-  pageName?: keyof typeof OG_IMAGES;
+  pageName?: keyof typeof OG_IMAGES | 'schedule';
 }
 
 const SEOHead: React.FC<SEOHeadProps> = ({
