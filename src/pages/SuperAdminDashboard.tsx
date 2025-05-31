@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -210,6 +209,53 @@ const SuperAdminDashboard = () => {
     // Implementation would go here
   };
 
+  // Mock data for users
+  const [allUsers, setAllUsers] = useState([
+    { 
+      id: '1', 
+      username: 'john.doe', 
+      display_name: 'John Doe',
+      user_type: 'employee', 
+      organization_id: 'org1', 
+      is_active: true,
+      created_at: new Date().toISOString()
+    },
+    { 
+      id: '2', 
+      username: 'jane.smith', 
+      display_name: 'Jane Smith',
+      user_type: 'manager', 
+      organization_id: 'org2', 
+      is_active: false,
+      created_at: new Date().toISOString()
+    },
+    { 
+      id: '3', 
+      username: 'super.admin', 
+      display_name: 'Super Admin',
+      user_type: 'super_admin', 
+      organization_id: 'org1', 
+      is_active: true,
+      created_at: new Date().toISOString()
+    },
+  ]);
+
+  const handleEditUser = (user: any) => {
+    toast({
+      title: "✏️ Edit User",
+      description: `Editing user ${user.display_name}`,
+    });
+    // Implementation would go here
+  };
+
+  const handleDeleteUser = (userId: string, userName: string) => {
+    toast({
+      title: "🗑️ Delete User",
+      description: `Deleting user ${userName}`,
+    });
+    // Implementation would go here
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       <SEOHead
@@ -385,7 +431,12 @@ const SuperAdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
-            <RoleBasedUserManagement />
+            <EnhancedUserManagement 
+              users={allUsers}
+              onEdit={handleEditUser}
+              onDelete={handleDeleteUser}
+              onBulkAction={handleBulkUserAction}
+            />
           </TabsContent>
 
           <TabsContent value="organizations" className="space-y-6">
