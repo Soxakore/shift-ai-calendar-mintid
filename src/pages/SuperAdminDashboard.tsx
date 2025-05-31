@@ -31,6 +31,7 @@ import TwoFactorManagement from '@/components/admin/TwoFactorManagement';
 import { supabase } from '@/integrations/supabase/client';
 import OrganizationManagement from '@/components/admin/OrganizationManagement';
 import RoleBasedUserManagement from '@/components/admin/RoleBasedUserManagement';
+import SuperAdminUserManagement from '@/components/admin/SuperAdminUserManagement';
 
 const SuperAdminDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
@@ -431,12 +432,7 @@ const SuperAdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
-            <EnhancedUserManagement 
-              users={allUsers}
-              onEdit={handleEditUser}
-              onDelete={handleDeleteUser}
-              onBulkAction={handleBulkUserAction}
-            />
+            <SuperAdminUserManagement />
           </TabsContent>
 
           <TabsContent value="organizations" className="space-y-6">
