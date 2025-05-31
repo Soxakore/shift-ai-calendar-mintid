@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +20,7 @@ import SEOHead from '@/components/SEOHead';
 import { getPageMetadata } from '@/lib/seo';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useNavigate } from 'react-router-dom';
 
 const EmployeeDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
@@ -28,6 +28,7 @@ const EmployeeDashboard = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isOnline, setIsOnline] = useState(true);
   const [systemStatus, setSystemStatus] = useState('operational'); // operational, maintenance, emergency
+  const navigate = useNavigate();
 
   // Mock system status (in real app this would come from useSystemStatus hook)
   React.useEffect(() => {
@@ -45,10 +46,7 @@ const EmployeeDashboard = () => {
   };
 
   const handleViewSchedule = () => {
-    toast({
-      title: "Schedule Opened",
-      description: "Opening your full schedule...",
-    });
+    navigate('/schedule');
   };
 
   const handleViewReports = () => {

@@ -16,6 +16,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import Auth from "./pages/Auth";
 import SuperAdminInitial from "./pages/SuperAdminInitial";
 import HistoryPage from "./pages/HistoryPage";
+import SchedulePage from "./pages/SchedulePage";
 import NotFound from "./pages/NotFound";
 
 // Lazy load dashboard components for better performance
@@ -117,6 +118,16 @@ const App = () => {
                         <ProtectedRoute requireRole="employee">
                           <Suspense fallback={<LoadingSpinner text="Loading Employee Dashboard..." />}>
                             <LazyEmployeeDashboard />
+                          </Suspense>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/schedule"
+                      element={
+                        <ProtectedRoute requireRole="employee">
+                          <Suspense fallback={<LoadingSpinner text="Loading Schedule..." />}>
+                            <SchedulePage />
                           </Suspense>
                         </ProtectedRoute>
                       }
