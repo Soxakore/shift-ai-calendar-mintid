@@ -7,13 +7,18 @@ import { getPageMetadata } from '@/lib/seo';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowLeft, Shield } from 'lucide-react';
+import { ArrowLeft, Shield, Calendar, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useToast } from '@/hooks/use-toast';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const OrgAdminDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
   const { t, currentLanguage } = useTranslation();
   const navigate = useNavigate();
+  const { signOut } = useSupabaseAuth();
+  const { toast } = useToast();
   const [superAdminContext, setSuperAdminContext] = useState<{
     id: string;
     name: string;
@@ -31,6 +36,23 @@ const OrgAdminDashboard = () => {
   const handleReturnToSuperAdmin = () => {
     sessionStorage.removeItem('superAdminViewingOrg');
     navigate('/super-admin');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "✅ Logged Out",
+        description: "You have been successfully logged out.",
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: "❌ Logout Error",
+        description: "There was an error logging out. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -69,8 +91,8 @@ const OrgAdminDashboard = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-4">
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-500 rounded text-white flex items-center justify-center font-bold text-sm">
-                M
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                <Calendar className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -89,6 +111,21 @@ const OrgAdminDashboard = () => {
                 </div>
               </div>
             </div>
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            <ThemeToggle />
+            {!superAdminContext && (
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={handleLogout}
+                className="shadow-sm hover:shadow-md transition-shadow text-white"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
+            )}
           </div>
         </div>
       </header>
