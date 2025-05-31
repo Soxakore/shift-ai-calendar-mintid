@@ -185,6 +185,7 @@ const SuperAdminDashboard = () => {
     // Map paths to tabs
     const pathToTab = {
       '/super-admin': 'overview',
+      '/super-admin/users': 'users',
       '/super-admin/organizations': 'organizations',
       '/super-admin/analytics': 'analytics',
       '/super-admin/security': 'security',
@@ -285,6 +286,10 @@ const SuperAdminDashboard = () => {
               <BarChart3 className="h-4 w-4" />
               Overview
             </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
+              <Users className="h-4 w-4" />
+              Users
+            </TabsTrigger>
             <TabsTrigger value="organizations" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
               <Building className="h-4 w-4" />
               Organizations
@@ -379,8 +384,12 @@ const SuperAdminDashboard = () => {
             <RoleBasedUserManagement />
           </TabsContent>
 
-          <TabsContent value="organizations" className="space-y-6">
+          <TabsContent value="users" className="space-y-6">
             <RoleBasedUserManagement />
+          </TabsContent>
+
+          <TabsContent value="organizations" className="space-y-6">
+            <OrganizationManagement />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
