@@ -78,12 +78,7 @@ const Auth = () => {
     }
   };
 
-  const demoUsers = [
-    { username: 'tiktok', role: 'Super Admin', icon: Shield, color: 'text-red-500' },
-    { username: 'orgadmin', role: 'Organization Admin', icon: Building2, color: 'text-blue-500' },
-    { username: 'manager', role: 'Manager', icon: Users, color: 'text-green-500' },
-    { username: 'employee', role: 'Employee', icon: Users, color: 'text-gray-500' }
-  ];
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
@@ -151,36 +146,6 @@ const Auth = () => {
                 )}
               </Button>
             </form>
-          </CardContent>
-        </Card>
-
-        {/* Demo Accounts */}
-        <Card className="dark:bg-gray-800 dark:border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-center text-sm dark:text-white">Demo Accounts</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {demoUsers.map((demo) => {
-                const IconComponent = demo.icon;
-                return (
-                  <div
-                    key={demo.username}
-                    className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                    onClick={() => setUsername(demo.username)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <IconComponent className={`w-4 h-4 ${demo.color}`} />
-                      <span className="text-sm font-medium dark:text-white">{demo.role}</span>
-                    </div>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">@{demo.username}</span>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
-              Click to select username • Password: password123
-            </p>
           </CardContent>
         </Card>
       </div>

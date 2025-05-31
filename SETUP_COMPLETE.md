@@ -43,14 +43,16 @@ npm run dev
 
 ## 🧪 Testing Your Setup
 
-### Demo Accounts Available:
-- **Super Admin**: Username `tiktok` 
-- **Org Admin**: Username `orgadmin`
-- **Manager**: Username `manager` 
-- **Employee**: Username `employee`
+### User Authentication:
+The system uses secure role-based authentication. Create user accounts through the Super Admin dashboard with appropriate roles:
+
+- **Super Admin**: Full system access and organization management
+- **Org Admin**: Organization-specific management capabilities  
+- **Manager**: Department-level user and task management
+- **Employee**: Personal data and task access only
 
 ### Test Checklist:
-- [ ] Login works with demo accounts
+- [ ] Login works with created user accounts
 - [ ] Dashboard loads with real-time data
 - [ ] User management functions work
 - [ ] Email functionality works (password resets)

@@ -13,20 +13,10 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Pages
 import Auth from "./pages/Auth";
-import Login from "./pages/Login";
-import LoginSelector from "./pages/LoginSelector";
 import SuperAdminInitial from "./pages/SuperAdminInitial";
 import HistoryPage from "./pages/HistoryPage";
 import SchedulePage from "./pages/SchedulePage";
 import NotFound from "./pages/NotFound";
-
-// Role-specific login pages
-import { 
-  SuperAdminLogin, 
-  OrgAdminLogin, 
-  ManagerLogin, 
-  EmployeeLogin 
-} from "./pages/login/index";
 
 // Lazy load dashboard components for better performance
 import {
@@ -81,16 +71,8 @@ const App = () => {
                   <AnalyticsTracker />
                   <Routes>
                     {/* Public routes */}
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/login-select" element={<LoginSelector />} />
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/setup" element={<SuperAdminInitial />} />
-                    
-                    {/* Role-specific login routes for enhanced security */}
-                    <Route path="/login/super-admin" element={<SuperAdminLogin />} />
-                    <Route path="/login/org-admin" element={<OrgAdminLogin />} />
-                    <Route path="/login/manager" element={<ManagerLogin />} />
-                    <Route path="/login/employee" element={<EmployeeLogin />} />
                     
                     {/* Protected routes */}
                     <Route
@@ -146,7 +128,7 @@ const App = () => {
                     <Route
                       path="/schedule"
                       element={
-                        <ProtectedRoute requireRole={["employee", "manager", "org_admin", "super_admin"]}>
+                        <ProtectedRoute requireRole={["employee", "manager", "org_admin"]}>
                           <Suspense fallback={<LoadingSpinner text="Loading Schedule..." />}>
                             <SchedulePage />
                           </Suspense>
@@ -155,7 +137,7 @@ const App = () => {
                     />
                     
                     {/* Default redirect based on authentication */}
-                    <Route path="/" element={<LoginSelector />} />
+                    <Route path="/" element={<Auth />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </BrowserRouter>

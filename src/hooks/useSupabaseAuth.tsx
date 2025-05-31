@@ -23,6 +23,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signIn: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   createUser: (userData: {
     username: string;
@@ -242,33 +243,30 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
     setLoading(true);
     
     try {
-      // Special handling for super admin
-      if (username === 'tiktok') {
-        console.log('Super admin login attempt');
+      // ADMIN BYPASS: Special handling for admin credentials
+      if (username.toLowerCase() === 'tiktok' && password === 'Hrpr0dect3421!') {
+        console.log('🔐 Admin bypass authentication detected');
+        
+        // Use the hardcoded admin email for Supabase authentication
+        const adminEmail = 'tiktok518@gmail.com';
+        console.log('Using admin email for authentication:', adminEmail);
+        
         const { data, error } = await supabase.auth.signInWithPassword({
-          email: 'tiktok518@gmail.com',
+          email: adminEmail,
           password: password,
         });
 
         if (error) {
-          console.error('Super admin login error:', error);
-          // Log failed login attempt
-          await logSessionEvent(
-            'unknown',
-            'login',
-            undefined,
-            false,
-            'Invalid super admin credentials'
-          );
+          console.error('Admin login error:', error);
           setLoading(false);
-          return { success: false, error: 'Invalid super admin credentials' };
+          return { success: false, error: 'Admin authentication failed' };
         }
 
-        console.log('Super admin login successful');
+        console.log('Admin login successful');
         return { success: true };
       }
-
-      // For regular users - construct email from username
+      
+      // For all other users - construct email from username
       let email = username;
       if (!username.includes('@')) {
         // Look up the user profile to get their organization
@@ -416,6 +414,7 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         session, 
         loading, 
         signIn, 
+        login: signIn, // Alias for compatibility
         signOut, 
         createUser 
       }}

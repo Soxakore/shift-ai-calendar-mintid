@@ -15,6 +15,8 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   );
 }
 
+console.log('✅ Supabase client initialized successfully');
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 

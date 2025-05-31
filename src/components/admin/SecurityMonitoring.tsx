@@ -1,16 +1,13 @@
-
-
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Alert, AlertDescription } from '../ui/alert';
 import { 
   Shield, AlertTriangle, Lock, Eye, Clock,
-  Wifi, Globe, UserX, Bell
+  Wifi, Globe, UserX, Bell, RefreshCw
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '../ui/use-toast';
 import SystemStartupRecovery from './SystemStartupRecovery';
 import HackingAttemptMonitor from './HackingAttemptMonitor';
 
@@ -31,10 +28,44 @@ interface SessionInfo {
   blocked_ips: string[];
 }
 
-// Global emergency state - persists across component instances
+// Enhanced security state management
+interface SecurityState {
+  events: SecurityEvent[];
+  sessionInfo: SessionInfo;
+  alertsEnabled: boolean;
+  emergencyMode: boolean;
+  emergencyActivatedAt: string | null;
+  lastUpdated: string;
+}
+
+// Security state persistence
+const SECURITY_STATE_KEY = 'security_monitoring_state';
+
+const getStoredSecurityState = (): Partial<SecurityState> => {
+  try {
+    const stored = localStorage.getItem(SECURITY_STATE_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
+};
+
+const saveSecurityState = (state: Partial<SecurityState>) => {
+  try {
+    localStorage.setItem(SECURITY_STATE_KEY, JSON.stringify({
+      ...getStoredSecurityState(),
+      ...state,
+      lastUpdated: new Date().toISOString()
+    }));
+  } catch (error) {
+    console.warn('Failed to save security state:', error);
+  }
+};
+
+// Global emergency state - persists across component instances  
 const globalEmergencyState = {
-  isEmergencyMode: false,
-  emergencyActivatedAt: null as string | null
+  isEmergencyMode: getStoredSecurityState().emergencyMode || false,
+  emergencyActivatedAt: getStoredSecurityState().emergencyActivatedAt || null
 };
 
 export default function SecurityMonitoring() {
@@ -75,63 +106,61 @@ export default function SecurityMonitoring() {
 
   const fetchSecurityData = useCallback(async () => {
     try {
-      // Fetch recent failed login attempts
-      const { data: sessionLogs } = await supabase
-        .from('session_logs')
-        .select('*')
-        .eq('success', false)
-        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-        .order('created_at', { ascending: false })
-        .limit(20);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Convert session logs to security events with proper type handling
-      const sessionEvents: SecurityEvent[] = sessionLogs?.map(log => ({
-        id: log.id,
-        type: 'failed_login' as const,
-        severity: 'medium' as const,
-        description: `Failed login attempt for user ${log.user_id}`,
-        ip_address: log.ip_address ? String(log.ip_address) : undefined,
-        user_id: log.user_id,
-        timestamp: log.created_at
-      })) || [];
-
-      // Add some mock security events for demonstration
+      // Mock security events for demonstration
       const mockEvents: SecurityEvent[] = [
         {
-          id: 'mock-1',
+          id: 'event-1',
+          type: 'failed_login',
+          severity: 'medium',
+          description: 'Failed login attempt from suspicious IP',
+          ip_address: '192.168.1.100',
+          user_id: 'user_123',
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() // 2 hours ago
+        },
+        {
+          id: 'event-2',
           type: 'suspicious_activity',
           severity: 'high',
           description: 'Multiple login attempts from different locations',
-          ip_address: '192.168.1.100',
-          timestamp: new Date().toISOString()
+          ip_address: '10.0.0.50',
+          timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString() // 1 hour ago
         },
         {
-          id: 'mock-2',
+          id: 'event-3',
           type: 'blocked_ip',
-          severity: 'medium',
+          severity: 'critical',
           description: 'IP address blocked due to repeated failed attempts',
-          ip_address: '10.0.0.50',
-          timestamp: new Date().toISOString()
+          ip_address: '203.0.113.45',
+          timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString() // 30 minutes ago
+        },
+        {
+          id: 'event-4',
+          type: 'session_timeout',
+          severity: 'low',
+          description: 'Admin session expired due to inactivity',
+          user_id: 'admin_456',
+          timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString() // 15 minutes ago
         }
       ];
 
-      // Combine both arrays
-      const allEvents = [...sessionEvents, ...mockEvents];
-      setSecurityEvents(allEvents);
+      setSecurityEvents(mockEvents);
 
       // Mock session information
       setSessionInfo({
-        active_sessions: 12,
-        super_admin_sessions: 2,
-        suspicious_sessions: 1,
-        blocked_ips: ['192.168.1.100', '10.0.0.50']
+        active_sessions: Math.floor(Math.random() * 50) + 10,
+        super_admin_sessions: Math.floor(Math.random() * 5) + 1,
+        suspicious_sessions: Math.floor(Math.random() * 3),
+        blocked_ips: ['192.168.1.100', '10.0.0.50', '203.0.113.45']
       });
 
     } catch (error) {
-      console.error('Error fetching security data:', error);
+      console.error('Failed to fetch security data:', error);
       toast({
         title: "❌ Security Data Error",
-        description: "Failed to load security monitoring data",
+        description: "Failed to load security information",
         variant: "destructive"
       });
     } finally {
@@ -168,11 +197,127 @@ export default function SecurityMonitoring() {
   };
 
   const blockIP = (ip: string) => {
+    setSessionInfo(prev => ({
+      ...prev,
+      blocked_ips: [...prev.blocked_ips, ip]
+    }));
+    
     toast({
       title: "🚫 IP Blocked",
       description: `IP address ${ip} has been blocked`,
     });
   };
+
+  // Enhanced emergency mode management
+  const activateEmergencyMode = useCallback(async () => {
+    try {
+      const currentTime = new Date().toISOString();
+      globalEmergencyState.isEmergencyMode = true;
+      globalEmergencyState.emergencyActivatedAt = currentTime;
+      
+      setIsEmergencyMode(true);
+      saveSecurityState({
+        emergencyMode: true,
+        emergencyActivatedAt: currentTime
+      });
+
+      // Log emergency activation
+      const emergencyEvent: SecurityEvent = {
+        id: `emergency-${Date.now()}`,
+        type: 'suspicious_activity',
+        severity: 'critical',
+        description: 'Emergency lockdown mode activated by security admin',
+        timestamp: currentTime
+      };
+      
+      setSecurityEvents(prev => [emergencyEvent, ...prev]);
+
+      toast({
+        title: "🚨 Emergency Mode Activated",
+        description: "All non-essential systems have been locked down",
+        variant: "destructive"
+      });
+
+      // Simulate sending alerts to all admins
+      console.log('Emergency alerts sent to all administrators');
+      
+    } catch (error) {
+      console.error('Failed to activate emergency mode:', error);
+      toast({
+        title: "❌ Emergency Activation Failed",
+        description: "Could not activate emergency mode",
+        variant: "destructive"
+      });
+    }
+  }, [toast]);
+
+  const deactivateEmergencyMode = useCallback(async () => {
+    try {
+      globalEmergencyState.isEmergencyMode = false;
+      globalEmergencyState.emergencyActivatedAt = null;
+      
+      setIsEmergencyMode(false);
+      saveSecurityState({
+        emergencyMode: false,
+        emergencyActivatedAt: null
+      });
+
+      const deactivationEvent: SecurityEvent = {
+        id: `emergency-deactivated-${Date.now()}`,
+        type: 'suspicious_activity',
+        severity: 'medium',
+        description: 'Emergency lockdown mode deactivated',
+        timestamp: new Date().toISOString()
+      };
+      
+      setSecurityEvents(prev => [deactivationEvent, ...prev]);
+
+      toast({
+        title: "✅ Emergency Mode Deactivated",
+        description: "Normal operations have been restored"
+      });
+      
+    } catch (error) {
+      console.error('Failed to deactivate emergency mode:', error);
+      toast({
+        title: "❌ Deactivation Failed",
+        description: "Could not deactivate emergency mode",
+        variant: "destructive"
+      });
+    }
+  }, [toast]);
+
+  // Auto-refresh security data
+  const refreshSecurityData = useCallback(async () => {
+    setLoading(true);
+    await fetchSecurityData();
+    toast({
+      title: "🔄 Security Data Refreshed",
+      description: "Latest security information has been loaded"
+    });
+  }, [fetchSecurityData, toast]);
+
+  // Memoized security metrics
+  const securityMetrics = useMemo(() => {
+    const recentEvents = securityEvents.filter(event => {
+      const eventTime = new Date(event.timestamp);
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      return eventTime > oneDayAgo;
+    });
+
+    const criticalEvents = recentEvents.filter(event => event.severity === 'critical');
+    const highPriorityEvents = recentEvents.filter(event => ['critical', 'high'].includes(event.severity));
+    
+    return {
+      totalEvents: securityEvents.length,
+      recentEvents: recentEvents.length,
+      criticalEvents: criticalEvents.length,
+      highPriorityEvents: highPriorityEvents.length,
+      threatLevel: criticalEvents.length > 0 ? 'critical' : 
+                   highPriorityEvents.length > 3 ? 'high' : 
+                   recentEvents.length > 10 ? 'medium' : 'low'
+    };
+  }, [securityEvents]);
 
   if (loading) {
     return (

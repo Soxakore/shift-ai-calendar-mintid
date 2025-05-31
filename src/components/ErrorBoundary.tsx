@@ -9,14 +9,29 @@ interface ErrorBoundaryState {
 interface ErrorBoundaryProps {
   children: React.ReactNode;
   fallback?: React.ComponentType<{ error: Error; retry: () => void }>;
+  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
+  level?: 'page' | 'component' | 'critical';
+  identifier?: string;
 }
 
-// Type declaration for Sentry on window
+// Enhanced error tracking interfaces
+interface ErrorContext {
+  componentStack?: string;
+  userId?: string;
+  userAgent?: string;
+  url?: string;
+  timestamp: string;
+  errorBoundaryId?: string;
+}
+
+// Type declaration for Sentry and analytics on window
 declare global {
   interface Window {
     Sentry?: {
       captureException: (error: Error, context?: Record<string, unknown>) => void;
+      setContext: (name: string, context: Record<string, unknown>) => void;
     };
+    gtag?: (...args: unknown[]) => void;
   }
 }
 
@@ -33,9 +48,56 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
     
-    // Send error to monitoring service
+    // Create enhanced error context
+    const errorContext: ErrorContext = {
+      componentStack: errorInfo.componentStack || undefined,
+      userAgent: navigator.userAgent,
+      url: window.location.href,
+      timestamp: new Date().toISOString(),
+      errorBoundaryId: this.props.identifier,
+    };
+
+    // Call custom error handler if provided
+    if (this.props.onError) {
+      this.props.onError(error, errorInfo);
+    }
+    
+    // Send error to monitoring service with enhanced context
     if (typeof window !== 'undefined' && window.Sentry) {
-      window.Sentry.captureException(error, { extra: errorInfo });
+      window.Sentry.setContext('errorBoundary', {
+        level: this.props.level || 'component',
+        identifier: this.props.identifier,
+        ...errorContext
+      });
+      window.Sentry.captureException(error, { 
+        extra: { ...errorInfo, ...errorContext },
+        tags: {
+          errorBoundary: true,
+          level: this.props.level || 'component'
+        }
+      });
+    }
+
+    // Track error in analytics
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('event', 'exception', {
+        description: error.message,
+        fatal: this.props.level === 'critical',
+        error_boundary_id: this.props.identifier
+      });
+    }
+
+    // Store error locally for debugging
+    try {
+      const errorLog = {
+        error: error.message,
+        stack: error.stack,
+        context: errorContext,
+        level: this.props.level
+      };
+      localStorage.setItem(`error_${Date.now()}`, JSON.stringify(errorLog));
+    } catch (e) {
+      // Ignore localStorage errors
     }
   }
 

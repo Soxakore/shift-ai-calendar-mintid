@@ -32,7 +32,7 @@ type SickNotice = Tables<'sick_notices'>;
 type TimeLog = Tables<'time_logs'>;
 
 const EnhancedOrgAdminDashboard = () => {
-  const { profile: authProfile } = useSupabaseAuth();
+  const { profile } = useSupabaseAuth();
   const { t } = useTranslation();
   const { toast } = useToast();
   const { 
@@ -43,51 +43,10 @@ const EnhancedOrgAdminDashboard = () => {
     timeLogs,
     loading 
   } = useSupabaseData();
-
-  // Mock profile for demo purposes when no user is authenticated
-  const profile = authProfile || {
-    id: 'demo-org-admin',
-    username: 'demo-orgadmin',
-    display_name: 'Demo Organization Admin',
-    user_type: 'org_admin' as const,
-    organization_id: 'demo-org-1',
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
-
-  // Mock data when not authenticated
-  const mockDepartments = [
-    { id: 'dept-1', name: 'Kitchen', description: 'Food preparation', organization_id: 'demo-org-1', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-    { id: 'dept-2', name: 'Front Counter', description: 'Customer service', organization_id: 'demo-org-1', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-    { id: 'dept-3', name: 'Management', description: 'Leadership team', organization_id: 'demo-org-1', created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
-  ];
-
-  const mockUsers = [
-    { id: 'user-1', username: 'john_doe', display_name: 'John Doe', user_type: 'employee', organization_id: 'demo-org-1', department_id: 'dept-1', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-    { id: 'user-2', username: 'jane_smith', display_name: 'Jane Smith', user_type: 'manager', organization_id: 'demo-org-1', department_id: 'dept-2', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-    { id: 'user-3', username: 'mike_wilson', display_name: 'Mike Wilson', user_type: 'employee', organization_id: 'demo-org-1', department_id: 'dept-1', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
-  ];
-
-  // Use real data if authenticated, otherwise use mock data
-  const currentDepartments = authProfile ? departments : mockDepartments;
-  const currentUsers = authProfile ? allUsers : mockUsers;
   
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const [showCreateDepartment, setShowCreateDepartment] = useState(false);
   const [showPromoteEmployee, setShowPromoteEmployee] = useState(false);
-  
-  // Add loading states
-  const [isAddingEmployee, setIsAddingEmployee] = useState(false);
-  const [isCreatingDepartment, setIsCreatingDepartment] = useState(false);
-  const [isPromotingEmployee, setIsPromotingEmployee] = useState(false);
-  
-  // Add form validation states
-  const [employeeFormErrors, setEmployeeFormErrors] = useState({
-    username: '',
-    display_name: '',
-    department_id: ''
-  });
   
   const [newEmployee, setNewEmployee] = useState({
     username: '',
@@ -95,7 +54,7 @@ const EnhancedOrgAdminDashboard = () => {
     email: '',
     password: '',
     department_id: '',
-    user_type: 'employee' as 'employee' | 'manager'
+    user_type: 'employee' as const
   });
   
   const [newDepartment, setNewDepartment] = useState({
@@ -107,10 +66,10 @@ const EnhancedOrgAdminDashboard = () => {
 
   // Calculate dashboard data from Supabase data
   const dashboardData = React.useMemo(() => {
-    if (!profile?.organization_id || !currentUsers || !currentDepartments) return null;
+    if (!profile?.organization_id || !allUsers || !departments) return null;
 
-    const orgUsers = currentUsers.filter(u => u.organization_id === profile.organization_id);
-    const orgDepartments = currentDepartments.filter(d => d.organization_id === profile.organization_id);
+    const orgUsers = allUsers.filter(u => u.organization_id === profile.organization_id);
+    const orgDepartments = departments.filter(d => d.organization_id === profile.organization_id);
     const orgSchedules = schedules?.filter(s => s.organization_id === profile.organization_id) || [];
     const orgSickNotices = sickNotices?.filter(s => s.organization_id === profile.organization_id && s.status === 'pending') || [];
     const orgTimeLogs = timeLogs?.filter(t => t.organization_id === profile.organization_id) || [];
@@ -131,49 +90,9 @@ const EnhancedOrgAdminDashboard = () => {
       onTime: todayTimeLogs.filter(log => log.clock_in && log.clock_out).length,
       managers: orgUsers.filter(u => u.user_type === 'manager'),
     };
-  }, [profile?.organization_id, currentUsers, currentDepartments, schedules, sickNotices, timeLogs]);
-
-  // Form validation function
-  const validateEmployeeForm = () => {
-    const errors = {
-      username: '',
-      display_name: '',
-      department_id: ''
-    };
-
-    if (!newEmployee.username.trim()) {
-      errors.username = 'Username is required';
-    } else if (newEmployee.username.length < 3) {
-      errors.username = 'Username must be at least 3 characters';
-    } else if (!/^[a-zA-Z0-9._-]+$/.test(newEmployee.username)) {
-      errors.username = 'Username can only contain letters, numbers, dots, hyphens, and underscores';
-    }
-
-    if (!newEmployee.display_name.trim()) {
-      errors.display_name = 'Full name is required';
-    } else if (newEmployee.display_name.length < 2) {
-      errors.display_name = 'Full name must be at least 2 characters';
-    }
-
-    if (!newEmployee.department_id) {
-      errors.department_id = 'Department selection is required';
-    }
-
-    setEmployeeFormErrors(errors);
-    return !Object.values(errors).some(error => error);
-  };
+  }, [profile?.organization_id, allUsers, departments, schedules, sickNotices, timeLogs]);
 
   const handleAddEmployee = async () => {
-    // Demo mode - show mock success message instead of real database operation
-    if (!authProfile) {
-      toast({
-        title: "🎭 Demo Mode",
-        description: "This is a demo. In real mode, this would add a new employee to your organization.",
-      });
-      setShowAddEmployee(false);
-      return;
-    }
-
     if (!profile?.organization_id || !newEmployee.username || !newEmployee.display_name || !newEmployee.department_id) {
       toast({
         title: t('error'),
@@ -183,14 +102,13 @@ const EnhancedOrgAdminDashboard = () => {
       return;
     }
 
-    setIsAddingEmployee(true);
     try {
       // Generate email for the user
       const email = `${newEmployee.username.trim()}@${profile.organization_id}.mintid.local`;
       
       const { data, error } = await supabase.auth.signUp({
         email: email,
-        password: newEmployee.password || `temp${Date.now()}`,
+        password: newEmployee.password || 'temp123',
         options: {
           data: {
             username: newEmployee.username.trim(),
@@ -215,7 +133,7 @@ const EnhancedOrgAdminDashboard = () => {
 
       toast({
         title: t('success'),
-        description: `Employee ${newEmployee.display_name} added successfully. Login: ${newEmployee.username}`
+        description: `Employee ${newEmployee.display_name} added successfully`
       });
 
       setNewEmployee({
@@ -234,22 +152,10 @@ const EnhancedOrgAdminDashboard = () => {
         description: "Failed to add employee",
         variant: "destructive"
       });
-    } finally {
-      setIsAddingEmployee(false);
     }
   };
 
   const handleCreateDepartment = async () => {
-    // Demo mode - show mock success message instead of real database operation
-    if (!authProfile) {
-      toast({
-        title: "🎭 Demo Mode",
-        description: "This is a demo. In real mode, this would create a new department in your organization.",
-      });
-      setShowCreateDepartment(false);
-      return;
-    }
-
     if (!profile?.organization_id || !newDepartment.name) {
       toast({
         title: t('error'),
@@ -259,7 +165,6 @@ const EnhancedOrgAdminDashboard = () => {
       return;
     }
 
-    setIsCreatingDepartment(true);
     try {
       const { data, error } = await supabase
         .from('departments')
@@ -298,25 +203,12 @@ const EnhancedOrgAdminDashboard = () => {
         description: "Failed to create department",
         variant: "destructive"
       });
-    } finally {
-      setIsCreatingDepartment(false);
     }
   };
 
   const handlePromoteEmployee = async () => {
-    // Demo mode - show mock success message instead of real database operation
-    if (!authProfile) {
-      toast({
-        title: "🎭 Demo Mode",
-        description: "This is a demo. In real mode, this would promote the selected employee to manager.",
-      });
-      setShowPromoteEmployee(false);
-      return;
-    }
-
     if (!selectedEmployeeId) return;
 
-    setIsPromotingEmployee(true);
     try {
       const { error } = await supabase
         .from('profiles')
@@ -346,21 +238,10 @@ const EnhancedOrgAdminDashboard = () => {
         description: "Failed to promote employee",
         variant: "destructive"
       });
-    } finally {
-      setIsPromotingEmployee(false);
     }
   };
 
   const approveSickNotice = async (noticeId: string) => {
-    // Demo mode - show mock success message instead of real database operation
-    if (!authProfile) {
-      toast({
-        title: "🎭 Demo Mode",
-        description: "This is a demo. In real mode, this would approve the sick notice.",
-      });
-      return;
-    }
-
     try {
       const { error } = await supabase
         .from('sick_notices')
@@ -383,7 +264,7 @@ const EnhancedOrgAdminDashboard = () => {
 
       toast({
         title: t('success'),
-        description: "Sick notice approved successfully"
+        description: "Sick notice approved"
       });
     } catch (error) {
       console.error('Unexpected error approving sick notice:', error);
@@ -405,22 +286,6 @@ const EnhancedOrgAdminDashboard = () => {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Demo Mode Banner */}
-      {!authProfile && (
-        <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 rounded-lg shadow-lg">
-          <div className="flex items-center gap-3">
-            <div className="text-2xl">🎭</div>
-            <div>
-              <h3 className="font-bold text-lg">Demo Mode - Organization Admin Dashboard</h3>
-              <p className="text-sm opacity-90">
-                This is a preview of the org admin interface. All actions will show demo messages instead of making real changes.
-                <span className="ml-2 bg-white/20 px-2 py-1 rounded text-xs">Login disabled for demo</span>
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -508,12 +373,12 @@ const EnhancedOrgAdminDashboard = () => {
               </CardContent>
             </Card>
           </DialogTrigger>
-          <DialogContent className="max-h-[80vh] overflow-y-auto">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Add Employee</DialogTitle>
               <DialogDescription>Add a new employee to your organization</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Username</Label>
@@ -522,9 +387,6 @@ const EnhancedOrgAdminDashboard = () => {
                     onChange={(e) => setNewEmployee({...newEmployee, username: e.target.value})}
                     placeholder="john.doe"
                   />
-                  {employeeFormErrors.username && (
-                    <p className="text-red-500 text-xs mt-1">{employeeFormErrors.username}</p>
-                  )}
                 </div>
                 <div>
                   <Label>Full Name</Label>
@@ -533,22 +395,7 @@ const EnhancedOrgAdminDashboard = () => {
                     onChange={(e) => setNewEmployee({...newEmployee, display_name: e.target.value})}
                     placeholder="John Doe"
                   />
-                  {employeeFormErrors.display_name && (
-                    <p className="text-red-500 text-xs mt-1">{employeeFormErrors.display_name}</p>
-                  )}
                 </div>
-              </div>
-              <div>
-                <Label>Temporary Password (Optional)</Label>
-                <Input
-                  type="password"
-                  value={newEmployee.password}
-                  onChange={(e) => setNewEmployee({...newEmployee, password: e.target.value})}
-                  placeholder="Leave blank for auto-generated password"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  If left blank, a temporary password will be auto-generated
-                </p>
               </div>
               <div>
                 <Label>Department</Label>
@@ -556,30 +403,16 @@ const EnhancedOrgAdminDashboard = () => {
                   <SelectTrigger>
                     <SelectValue placeholder="Select Department" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-[200px] overflow-y-auto">
+                  <SelectContent>
                     {dashboardData.departments.map((dept: Department) => (
                       <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>Employee Type</Label>
-                <Select value={newEmployee.user_type} onValueChange={(value) => setNewEmployee({...newEmployee, user_type: value as 'employee' | 'manager'})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="employee">Employee</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
               <div className="flex justify-end space-x-2">
                 <Button variant="outline" onClick={() => setShowAddEmployee(false)}>Cancel</Button>
-                <Button onClick={handleAddEmployee} disabled={isAddingEmployee}>
-                  {isAddingEmployee ? 'Adding...' : 'Add'}
-                </Button>
+                <Button onClick={handleAddEmployee}>Add</Button>
               </div>
             </div>
           </DialogContent>
@@ -595,19 +428,19 @@ const EnhancedOrgAdminDashboard = () => {
               </CardContent>
             </Card>
           </DialogTrigger>
-          <DialogContent className="max-h-[80vh] overflow-y-auto">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Promote to Manager</DialogTitle>
               <DialogDescription>Select an employee to promote to manager</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4">
               <div>
                 <Label>Select Employee</Label>
                 <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select Employee" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-[200px] overflow-y-auto">
+                  <SelectContent>
                     {dashboardData.users.filter((u: Profile) => u.user_type === 'employee').map((emp: Profile) => (
                       <SelectItem key={emp.id} value={emp.id}>{emp.display_name}</SelectItem>
                     ))}
@@ -616,9 +449,7 @@ const EnhancedOrgAdminDashboard = () => {
               </div>
               <div className="flex justify-end space-x-2">
                 <Button variant="outline" onClick={() => setShowPromoteEmployee(false)}>Cancel</Button>
-                <Button onClick={handlePromoteEmployee} disabled={!selectedEmployeeId || isPromotingEmployee}>
-                  {isPromotingEmployee ? 'Promoting...' : 'Promote to Manager'}
-                </Button>
+                <Button onClick={handlePromoteEmployee} disabled={!selectedEmployeeId}>Promote to Manager</Button>
               </div>
             </div>
           </DialogContent>
@@ -634,12 +465,12 @@ const EnhancedOrgAdminDashboard = () => {
               </CardContent>
             </Card>
           </DialogTrigger>
-          <DialogContent className="max-h-[80vh] overflow-y-auto">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Create Department</DialogTitle>
               <DialogDescription>Create a new department in your organization</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4">
               <div>
                 <Label>Department Name</Label>
                 <Input
@@ -658,9 +489,7 @@ const EnhancedOrgAdminDashboard = () => {
               </div>
               <div className="flex justify-end space-x-2">
                 <Button variant="outline" onClick={() => setShowCreateDepartment(false)}>Cancel</Button>
-                <Button onClick={handleCreateDepartment} disabled={isCreatingDepartment}>
-                  {isCreatingDepartment ? 'Creating...' : 'Create'}
-                </Button>
+                <Button onClick={handleCreateDepartment}>Create</Button>
               </div>
             </div>
           </DialogContent>

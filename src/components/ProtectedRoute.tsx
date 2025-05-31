@@ -1,8 +1,6 @@
 
 import { ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
+import RoleBasedAuth from '@/components/auth/RoleBasedAuth';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -10,28 +8,20 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
-  const { isAuthenticated, loading, hasRole } = useAuth();
-  const location = useLocation();
+  // Convert requireRole to allowedRoles format for RoleBasedAuth
+  const allowedRoles = requireRole 
+    ? Array.isArray(requireRole) 
+      ? requireRole as ('super_admin' | 'org_admin' | 'manager' | 'employee')[]
+      : [requireRole as 'super_admin' | 'org_admin' | 'manager' | 'employee']
+    : [];
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner text="Checking authentication..." />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    // Redirect to login page with return url
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  if (requireRole && !hasRole(requireRole)) {
-    // User doesn't have required role, redirect to home
-    return <Navigate to="/" replace />;
-  }
-
-  return <>{children}</>;
+  return (
+    <RoleBasedAuth allowedRoles={allowedRoles}>
+      {children}
+    </RoleBasedAuth>
+  );
 };
+
+export default ProtectedRoute;
 
 export default ProtectedRoute;

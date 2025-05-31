@@ -91,7 +91,7 @@ const TwoFactorManagement = () => {
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [isGeneratingCodes, setIsGeneratingCodes] = useState(false);
   const [testEmail, setTestEmail] = useState('');
-  const [adminEmail, setAdminEmail] = useState('tiktok518@gmail.com'); // Default to working email
+  const [adminEmail, setAdminEmail] = useState('tiktok518@gmail.com'); // Admin email for testing
   const [twoFactorStats, setTwoFactorStats] = useState<TwoFactorStats>({
     enabled: 0,
     pending: 0,

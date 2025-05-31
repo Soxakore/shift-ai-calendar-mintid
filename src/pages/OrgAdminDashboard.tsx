@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import EnhancedOrgAdminDashboard from '@/components/EnhancedOrgAdminDashboard';
+import OptimizedOrgAdminDashboard from '@/components/OptimizedOrgAdminDashboard';
 import Footer from '@/components/Footer';
 import SEOHead from '@/components/SEOHead';
 import { getPageMetadata } from '@/lib/seo';
@@ -139,7 +139,7 @@ const OrgAdminDashboard = () => {
 
       {/* Main Content */}
       <main className="flex-1">
-        <EnhancedOrgAdminDashboard />
+        <OptimizedOrgAdminDashboard />
       </main>
 
       {/* Footer */}
