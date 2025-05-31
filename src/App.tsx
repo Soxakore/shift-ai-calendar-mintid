@@ -24,8 +24,7 @@ import {
   LazySuperAdminDashboard,
   LazyOrgAdminDashboard,
   LazyManagerDashboard,
-  LazyEmployeeDashboard,
-  LazyUnifiedLogin
+  LazyEmployeeDashboard
 } from "@/components/LazyComponents";
 
 // Initialize analytics and error tracking
@@ -70,11 +69,6 @@ const App = () => {
                   <Routes>
                     {/* Public routes */}
                     <Route path="/auth" element={<Auth />} />
-                    <Route path="/login" element={
-                      <Suspense fallback={<LoadingSpinner text="Loading Login..." />}>
-                        <LazyUnifiedLogin />
-                      </Suspense>
-                    } />
                     <Route path="/setup" element={<SuperAdminInitial />} />
                     
                     {/* Protected routes */}
@@ -139,12 +133,8 @@ const App = () => {
                       }
                     />
                     
-                    {/* Default redirect to login */}
-                    <Route path="/" element={
-                      <Suspense fallback={<LoadingSpinner text="Loading..." />}>
-                        <LazyUnifiedLogin />
-                      </Suspense>
-                    } />
+                    {/* Default redirect */}
+                    <Route path="/" element={<Auth />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </BrowserRouter>

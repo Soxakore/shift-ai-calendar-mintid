@@ -22,16 +22,16 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
   }
 
   if (!user || !profile) {
-    // Redirect to unified login page with return url
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    // Redirect to auth page with return url
+    return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
   if (!profile.is_active) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Account Inactive</h2>
-          <p className="text-gray-600 dark:text-gray-400">Your account has been deactivated. Contact your administrator.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Account Inactive</h2>
+          <p className="text-gray-600">Your account has been deactivated. Contact your administrator.</p>
         </div>
       </div>
     );
@@ -47,7 +47,7 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
     
     // Check specific roles
     if (!roles.includes(profile.user_type)) {
-      return <Navigate to="/login" replace />;
+      return <Navigate to="/" replace />;
     }
   }
 

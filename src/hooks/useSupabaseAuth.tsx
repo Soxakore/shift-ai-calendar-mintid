@@ -32,8 +32,6 @@ interface AuthContextType {
     organization_id?: string;
     department_id?: string;
   }) => Promise<{ success: boolean; error?: string }>;
-  isSuperAdmin: () => boolean;
-  canAccessRole: (role: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -92,18 +90,6 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
     } catch (error) {
       console.error('Failed to log audit event:', error);
     }
-  };
-
-  // Check if current user is super admin
-  const isSuperAdmin = () => {
-    return profile?.user_type === 'super_admin';
-  };
-
-  // Check if user can access a specific role (super admin can access everything)
-  const canAccessRole = (role: string) => {
-    if (!profile) return false;
-    if (profile.user_type === 'super_admin') return true; // Super admin has access to everything
-    return profile.user_type === role;
   };
 
   useEffect(() => {
@@ -430,9 +416,7 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         loading, 
         signIn, 
         signOut, 
-        createUser,
-        isSuperAdmin,
-        canAccessRole
+        createUser 
       }}
     >
       {children}
