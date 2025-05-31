@@ -17,6 +17,8 @@ import Footer from '@/components/Footer';
 import SEOHead from '@/components/SEOHead';
 import { getPageMetadata } from '@/lib/seo';
 import { useToast } from '@/hooks/use-toast';
+import WorkHoursStats from '@/components/WorkHoursStats';
+import HoursWorkedChart from '@/components/HoursWorkedChart';
 
 const SchedulePage = () => {
   const navigate = useNavigate();
@@ -65,12 +67,6 @@ const SchedulePage = () => {
     { day: 'Fri', date: 21, hours: '4', time: '' },
     { day: 'Sat', date: 22, hours: '4', time: '' },
     { day: 'Mon', date: 31, hours: '3', time: '' }
-  ];
-
-  const hoursWorkedData = [
-    { period: 'Day', hours: '9 h' },
-    { period: 'Week', hours: '37 h' },
-    { period: 'Month', hours: '148 h' }
   ];
 
   const urloardData = [
@@ -203,36 +199,19 @@ const SchedulePage = () => {
 
           {/* Stats Section */}
           <div className="space-y-6">
-            {/* Hours Worked */}
+            {/* Live Hours Worked Stats */}
+            <WorkHoursStats />
+
+            {/* Live Hours Worked Chart */}
             <Card className="bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
                   <Clock className="w-5 h-5" />
-                  Hours Worked
+                  Weekly Chart
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Chart placeholder */}
-                <div className="h-32 bg-gradient-to-r from-blue-200 to-blue-400 dark:from-blue-800 dark:to-blue-600 rounded-lg mb-4 flex items-end justify-center p-4">
-                  <div className="flex items-end gap-1">
-                    {[40, 30, 60, 50, 80, 90, 70].map((height, index) => (
-                      <div
-                        key={index}
-                        className="bg-blue-500 dark:bg-blue-400 rounded-t"
-                        style={{ width: '8px', height: `${height}%` }}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  {hoursWorkedData.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">{item.period}</span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.hours}</span>
-                    </div>
-                  ))}
-                </div>
+                <HoursWorkedChart />
               </CardContent>
             </Card>
 
