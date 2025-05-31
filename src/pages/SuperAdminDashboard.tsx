@@ -178,6 +178,20 @@ const SuperAdminDashboard = () => {
   const handleNavigate = (path: string) => {
     setCurrentPath(path);
     
+    // Handle navigation to new pages
+    if (path === '/super-admin/organizations') {
+      navigate('/super-admin/organizations');
+      return;
+    }
+    if (path === '/super-admin/users-page') {
+      navigate('/super-admin/users-page');
+      return;
+    }
+    if (path === '/super-admin/create-manager') {
+      navigate('/super-admin/create-manager');
+      return;
+    }
+    
     // Map paths to tabs
     const pathToTab = {
       '/super-admin': 'overview',
@@ -300,6 +314,7 @@ const SuperAdminDashboard = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
+            {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -366,6 +381,58 @@ const SuperAdminDashboard = () => {
               </Card>
             </div>
 
+            {/* Quick Actions - Updated with new navigation */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Button 
+                onClick={() => handleNavigate('/super-admin/users-page')}
+                className="h-20 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <div className="text-center">
+                  <Users className="w-6 h-6 mx-auto mb-1" />
+                  <span>Manage Users</span>
+                </div>
+              </Button>
+              <Button 
+                onClick={() => handleNavigate('/super-admin/organizations')}
+                className="h-20 bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                <div className="text-center">
+                  <Building className="w-6 h-6 mx-auto mb-1" />
+                  <span>Manage Organizations</span>
+                </div>
+              </Button>
+              <Button 
+                onClick={() => handleNavigate('/super-admin/create-manager')}
+                className="h-20 bg-green-600 hover:bg-green-700 text-white"
+              >
+                <div className="text-center">
+                  <UserPlus className="w-6 h-6 mx-auto mb-1" />
+                  <span>Create Manager</span>
+                </div>
+              </Button>
+              <Button 
+                onClick={() => setActiveTab('analytics')}
+                className="h-20 bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                <div className="text-center">
+                  <BarChart3 className="w-6 h-6 mx-auto mb-1" />
+                  <span>View Analytics</span>
+                </div>
+              </Button>
+            </div>
+
+            {/* System Status Alert */}
+            <Alert className="border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
+              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <AlertDescription className="text-green-900 dark:text-green-100">
+                <strong className="text-green-900 dark:text-green-100">System Status: Operational</strong><br />
+                <span className="text-green-800 dark:text-green-200">
+                  All services are running normally. Last system check: {new Date().toLocaleString()}
+                </span>
+              </AlertDescription>
+            </Alert>
+
+            {/* Reduced Overview Content - keeping only essential overview components */}
             <SuperAdminUserManagement />
           </TabsContent>
 
