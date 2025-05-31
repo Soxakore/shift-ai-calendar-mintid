@@ -1,3 +1,4 @@
+
 import { Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,14 +21,14 @@ export function ThemeToggle() {
           <span className="sr-only">Toggle theme</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme('light')}>
+      <DropdownMenuContent align="end" className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+        <DropdownMenuItem onClick={() => setTheme('light')} className="hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white">
           Light
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('dark')}>
+        <DropdownMenuItem onClick={() => setTheme('dark')} className="hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white">
           Dark
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('system')}>
+        <DropdownMenuItem onClick={() => setTheme('system')} className="hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white">
           System
         </DropdownMenuItem>
       </DropdownMenuContent>
