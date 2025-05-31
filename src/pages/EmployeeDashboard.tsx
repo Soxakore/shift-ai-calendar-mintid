@@ -263,48 +263,6 @@ const EmployeeDashboard = () => {
     });
   };
 
-  const handleClockOut = () => {
-    toast({
-      title: "Clock Out Successful",
-      description: "You have been clocked out at " + currentTime.toLocaleTimeString(),
-    });
-  };
-
-  const handleViewReports = () => {
-    toast({
-      title: "Reports Opened",
-      description: "Loading your performance reports...",
-    });
-  };
-
-  const handleViewNotifications = () => {
-    toast({
-      title: "Notifications",
-      description: "You have 2 new notifications",
-    });
-  };
-
-  const handleUpdateProfile = () => {
-    toast({
-      title: "Profile Settings",
-      description: "Opening profile settings...",
-    });
-  };
-
-  const handleViewDirectory = () => {
-    toast({
-      title: "Store Directory",
-      description: "Loading store directory...",
-    });
-  };
-
-  const handleUploadImage = () => {
-    toast({
-      title: "Upload Schedule",
-      description: "Opening image upload for schedule...",
-    });
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex flex-col">
       <SEOHead

@@ -456,7 +456,7 @@ const SchedulePage = () => {
               <div className="space-y-3">
                 <div>
                   <p className="font-medium text-gray-900 dark:text-gray-100">
-                    Employee ID: {profile?.tracking_id || '#MC-K-001'}
+                    Employee ID: {profile?.id || '#MC-K-001'}
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Hire Date: {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'January 15, 2024'}
@@ -469,7 +469,7 @@ const SchedulePage = () => {
                     Username: {profile?.username || 'mary.cook'}
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Phone: {profile?.phone_number || '(555) 123-4567'}
+                    Email: {profile?.email || 'mary.cook@example.com'}
                   </p>
                 </div>
                 <Button variant="outline" size="sm" className="border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700" onClick={handleUpdateProfile}>
