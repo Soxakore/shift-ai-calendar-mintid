@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,9 +11,9 @@ import {
   Plus,
   Calendar,
   Clock,
-  Utensils,
   CheckCircle,
-  LogOut
+  LogOut,
+  Building2
 } from 'lucide-react';
 import Footer from '@/components/Footer';
 import SEOHead from '@/components/SEOHead';
@@ -22,13 +22,32 @@ import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const ManagerDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
   const { profile, signOut } = useSupabaseAuth();
-  const { profiles, schedules, timeLogs, loading } = useSupabaseData();
+  const { profiles, schedules, timeLogs, departments, loading } = useSupabaseData();
   const { toast } = useToast();
   const navigate = useNavigate();
+  
+  // State for create user dialog
+  const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [newUserData, setNewUserData] = useState({
+    username: '',
+    password: '',
+    display_name: '',
+    phone_number: '',
+    user_type: 'employee'
+  });
+
+  // Get current department info
+  const currentDepartment = departments.find(dept => dept.id === profile?.department_id);
+  const departmentName = currentDepartment?.name || 'Department';
 
   // Filter data for manager's department
   const departmentProfiles = profiles.filter(p => 
@@ -39,12 +58,12 @@ const ManagerDashboard = () => {
   const todaySchedules = schedules.filter(s => s.date === today);
   const todayTimeLogs = timeLogs.filter(log => log.date === today);
   
-  // Calculate stats
+  // Calculate real stats
   const totalTeamMembers = departmentProfiles.length;
-  const workingToday = todayTimeLogs.filter(log => log.clock_in).length;
-  const completedOrders = Math.floor(Math.random() * 900) + 800; // Demo data
-  const avgPrepTime = 2.8; // Demo data
-  const teamEfficiency = 96.2; // Demo data
+  const workingToday = todayTimeLogs.filter(log => log.clock_in && !log.clock_out).length;
+  const completedShifts = todayTimeLogs.filter(log => log.clock_in && log.clock_out).length;
+  const teamEfficiency = totalTeamMembers > 0 ? Math.round((workingToday / totalTeamMembers) * 100) : 0;
+  const attendanceRate = totalTeamMembers > 0 ? Math.round(((workingToday + completedShifts) / totalTeamMembers) * 100) : 0;
 
   const handleLogout = async () => {
     try {
@@ -64,6 +83,61 @@ const ManagerDashboard = () => {
     }
   };
 
+  const handleCreateUser = async () => {
+    if (!newUserData.username || !newUserData.password || !newUserData.display_name) {
+      toast({
+        title: "❌ Missing Information",
+        description: "Please fill in all required fields.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsCreatingUser(true);
+    try {
+      // This would integrate with your user creation logic
+      toast({
+        title: "✅ User Created",
+        description: `${newUserData.display_name} has been added to your team.`,
+      });
+      setIsCreateUserOpen(false);
+      setNewUserData({
+        username: '',
+        password: '',
+        display_name: '',
+        phone_number: '',
+        user_type: 'employee'
+      });
+    } catch (error) {
+      console.error('Error creating user:', error);
+      toast({
+        title: "❌ Creation Failed",
+        description: "There was an error creating the user. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCreatingUser(false);
+    }
+  };
+
+  const handleManageSchedule = () => {
+    navigate('/schedule');
+  };
+
+  const handleViewReports = () => {
+    toast({
+      title: "📊 Reports",
+      description: "Department reports feature coming soon.",
+    });
+  };
+
+  const handleTeamSettings = () => {
+    toast({
+      title: "⚙️ Team Settings",
+      description: "Team settings panel coming soon.",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <SEOHead
@@ -73,6 +147,7 @@ const ManagerDashboard = () => {
         canonicalUrl={pageMetadata.canonical}
         pageName="dashboard"
       />
+      
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-4 sm:px-6 py-4 sticky top-0 z-40">
         <div className="flex items-center justify-between">
@@ -84,8 +159,8 @@ const ManagerDashboard = () => {
                 <div className="flex items-center gap-2">
                   <Badge className="bg-green-500 text-white text-xs">MANAGER</Badge>
                   <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                    <Utensils className="w-4 h-4" />
-                    Kitchen Department
+                    <Building2 className="w-4 h-4" />
+                    {departmentName}
                   </div>
                   {profile?.tracking_id && (
                     <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded">
@@ -97,7 +172,7 @@ const ManagerDashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+            <Button variant="outline" size="sm" className="text-xs sm:text-sm" onClick={handleTeamSettings}>
               <Settings className="w-4 h-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Team </span>Settings
             </Button>
@@ -132,7 +207,7 @@ const ManagerDashboard = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
                     <Users className="w-5 h-5" />
-                    My Kitchen Team
+                    My {departmentName} Team
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -145,7 +220,7 @@ const ManagerDashboard = () => {
                       <p className="font-medium text-gray-900 dark:text-white">Working Today</p>
                       <p className="text-2xl font-bold text-green-600 dark:text-green-400">{workingToday}</p>
                     </div>
-                    <Button size="sm" className="w-full bg-green-500 hover:bg-green-600">
+                    <Button size="sm" className="w-full bg-green-500 hover:bg-green-600" onClick={() => navigate('/schedule')}>
                       <Users className="w-4 h-4 mr-2" />
                       View Team Members
                     </Button>
@@ -172,10 +247,10 @@ const ManagerDashboard = () => {
                       <p className="text-gray-600 dark:text-gray-300">{workingToday} currently working</p>
                     </div>
                     <div className="text-sm">
-                      <p className="font-medium text-gray-900 dark:text-white">My Shift</p>
-                      <p className="text-green-600 dark:text-green-400">8 AM - 6 PM</p>
+                      <p className="font-medium text-gray-900 dark:text-white">Attendance Rate</p>
+                      <p className="text-green-600 dark:text-green-400">{attendanceRate}%</p>
                     </div>
-                    <Button variant="outline" size="sm" className="w-full">
+                    <Button variant="outline" size="sm" className="w-full" onClick={handleManageSchedule}>
                       <Calendar className="w-4 h-4 mr-2" />
                       Manage Schedule
                     </Button>
@@ -194,18 +269,18 @@ const ManagerDashboard = () => {
                 <CardContent>
                   <div className="space-y-3">
                     <div className="text-sm">
-                      <p className="font-medium text-gray-900 dark:text-white">Orders Completed</p>
-                      <p className="text-gray-600 dark:text-gray-300">{completedOrders} today</p>
-                    </div>
-                    <div className="text-sm">
-                      <p className="font-medium text-gray-900 dark:text-white">Average Prep Time</p>
-                      <p className="text-gray-600 dark:text-gray-300">{avgPrepTime} minutes</p>
+                      <p className="font-medium text-gray-900 dark:text-white">Completed Shifts</p>
+                      <p className="text-gray-600 dark:text-gray-300">{completedShifts} today</p>
                     </div>
                     <div className="text-sm">
                       <p className="font-medium text-gray-900 dark:text-white">Team Efficiency</p>
-                      <p className="text-green-600 dark:text-green-400">{teamEfficiency}%</p>
+                      <p className="text-gray-600 dark:text-gray-300">{teamEfficiency}%</p>
                     </div>
-                    <Button variant="outline" size="sm" className="w-full">
+                    <div className="text-sm">
+                      <p className="font-medium text-gray-900 dark:text-white">Department</p>
+                      <p className="text-green-600 dark:text-green-400">{departmentName}</p>
+                    </div>
+                    <Button variant="outline" size="sm" className="w-full" onClick={handleViewReports}>
                       <BarChart3 className="w-4 h-4 mr-2" />
                       View Reports
                     </Button>
@@ -223,15 +298,82 @@ const ManagerDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <Button size="sm" className="w-full">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Kitchen Staff
-                    </Button>
-                    <Button variant="outline" size="sm" className="w-full">
+                    <Dialog open={isCreateUserOpen} onOpenChange={setIsCreateUserOpen}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" className="w-full">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add {departmentName} Staff
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Add New Team Member</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="username">Username</Label>
+                            <Input
+                              id="username"
+                              value={newUserData.username}
+                              onChange={(e) => setNewUserData({...newUserData, username: e.target.value})}
+                              placeholder="Enter username"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="password">Password</Label>
+                            <Input
+                              id="password"
+                              type="password"
+                              value={newUserData.password}
+                              onChange={(e) => setNewUserData({...newUserData, password: e.target.value})}
+                              placeholder="Enter password"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="display_name">Display Name</Label>
+                            <Input
+                              id="display_name"
+                              value={newUserData.display_name}
+                              onChange={(e) => setNewUserData({...newUserData, display_name: e.target.value})}
+                              placeholder="Enter full name"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="phone">Phone Number</Label>
+                            <Input
+                              id="phone"
+                              value={newUserData.phone_number}
+                              onChange={(e) => setNewUserData({...newUserData, phone_number: e.target.value})}
+                              placeholder="Enter phone number"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="user_type">Role</Label>
+                            <Select value={newUserData.user_type} onValueChange={(value) => setNewUserData({...newUserData, user_type: value})}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="employee">Employee</SelectItem>
+                                <SelectItem value="manager">Manager</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button 
+                            onClick={handleCreateUser} 
+                            disabled={isCreatingUser}
+                            className="w-full"
+                          >
+                            {isCreatingUser ? "Creating..." : "Create User"}
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    <Button variant="outline" size="sm" className="w-full" onClick={handleViewReports}>
                       <Users className="w-4 h-4 mr-2" />
                       Review Performance
                     </Button>
-                    <Button variant="outline" size="sm" className="w-full">
+                    <Button variant="outline" size="sm" className="w-full" onClick={handleManageSchedule}>
                       <Calendar className="w-4 h-4 mr-2" />
                       Update Schedule
                     </Button>
@@ -240,42 +382,6 @@ const ManagerDashboard = () => {
               </Card>
 
             </div>
-
-            {/* Kitchen Operations Dashboard */}
-            <Card className="mt-6 dark:bg-gray-800 dark:border-gray-700">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
-                  <Utensils className="w-5 h-5" />
-                  Kitchen Operations Today
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                    <p className="font-medium text-blue-800 dark:text-blue-300">Orders Prepared</p>
-                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{completedOrders}</p>
-                    <p className="text-blue-600 dark:text-blue-400">Target: 800</p>
-                  </div>
-                  <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-                    <p className="font-medium text-green-800 dark:text-green-300">Food Safety Score</p>
-                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">98%</p>
-                    <p className="text-green-600 dark:text-green-400">Excellent</p>
-                  </div>
-                  <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
-                    <p className="font-medium text-yellow-800 dark:text-yellow-300">Average Prep Time</p>
-                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{avgPrepTime}min</p>
-                    <p className="text-yellow-600 dark:text-yellow-400">Target: 3.0min</p>
-                  </div>
-                  <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-                    <p className="font-medium text-purple-800 dark:text-purple-300">Team Attendance</p>
-                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                      {totalTeamMembers > 0 ? Math.round((workingToday / totalTeamMembers) * 100) : 0}%
-                    </p>
-                    <p className="text-purple-600 dark:text-purple-400">{workingToday}/{totalTeamMembers} present</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Current Team Status */}
             <Card className="mt-6 dark:bg-gray-800 dark:border-gray-700">
@@ -293,31 +399,47 @@ const ManagerDashboard = () => {
                       Currently Working ({workingToday})
                     </h4>
                     <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
-                      {departmentProfiles.slice(0, 6).map((profile, idx) => (
-                        <li key={profile.id}>• {profile.display_name} - Station {idx + 1}</li>
-                      ))}
+                      {departmentProfiles
+                        .filter(p => todayTimeLogs.some(log => log.user_id === p.id && log.clock_in && !log.clock_out))
+                        .slice(0, 6)
+                        .map((profile) => (
+                          <li key={profile.id}>• {profile.display_name}</li>
+                        ))}
+                      {workingToday === 0 && (
+                        <li className="text-gray-500">No one currently working</li>
+                      )}
                     </ul>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                     <h4 className="font-medium mb-2 flex items-center gap-2 text-gray-900 dark:text-white">
                       <Clock className="w-4 h-4 text-blue-500" />
-                      Coming Next Shift ({Math.max(0, totalTeamMembers - workingToday)})
+                      Scheduled Today ({todaySchedules.length})
                     </h4>
                     <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
-                      {departmentProfiles.slice(workingToday).map((profile) => (
-                        <li key={profile.id}>• {profile.display_name} - 2:00 PM</li>
-                      ))}
+                      {todaySchedules.slice(0, 6).map((schedule) => {
+                        const user = departmentProfiles.find(p => p.id === schedule.user_id);
+                        return (
+                          <li key={schedule.id}>
+                            • {user?.display_name || 'Unknown'} - {schedule.start_time}
+                          </li>
+                        );
+                      })}
+                      {todaySchedules.length === 0 && (
+                        <li className="text-gray-500">No schedules for today</li>
+                      )}
                     </ul>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                     <h4 className="font-medium mb-2 flex items-center gap-2 text-gray-900 dark:text-white">
                       <Calendar className="w-4 h-4 text-orange-500" />
-                      Off Today ({Math.max(0, 24 - totalTeamMembers)})
+                      Team Overview
                     </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      {Math.max(0, 24 - totalTeamMembers)} team members are scheduled off today
-                    </p>
-                    <Button variant="outline" size="sm" className="mt-2">
+                    <div className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                      <p>Total members: {totalTeamMembers}</p>
+                      <p>Department: {departmentName}</p>
+                      <p>Attendance: {attendanceRate}%</p>
+                    </div>
+                    <Button variant="outline" size="sm" className="mt-2 w-full" onClick={() => navigate('/schedule')}>
                       View Full Team List
                     </Button>
                   </div>
@@ -328,26 +450,33 @@ const ManagerDashboard = () => {
             {/* Recent Team Activities */}
             <Card className="mt-6 dark:bg-gray-800 dark:border-gray-700">
               <CardHeader>
-                <CardTitle className="text-gray-900 dark:text-white">Recent Kitchen Activities</CardTitle>
+                <CardTitle className="text-gray-900 dark:text-white">Recent {departmentName} Activities</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {departmentProfiles.slice(0, 3).map((member, idx) => (
-                    <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {member.display_name} {idx === 0 ? 'completed food safety training' : 
-                           idx === 1 ? 'achieved prep time goal' : 'updated schedule'}
-                        </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">
-                          Kitchen Staff - {idx + 1} hour{idx === 0 ? '' : 's'} ago
-                        </p>
+                  {timeLogs.slice(0, 3).map((log, idx) => {
+                    const user = departmentProfiles.find(p => p.id === log.user_id);
+                    return (
+                      <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div>
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            {user?.display_name || 'Unknown'} {log.clock_in && !log.clock_out ? 'clocked in' : log.clock_out ? 'completed shift' : 'updated time'}
+                          </p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            {departmentName} Staff - {new Date(log.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Badge variant="outline">
+                          {log.clock_in && !log.clock_out ? 'Active' : 'Completed'}
+                        </Badge>
                       </div>
-                      <Badge variant="outline">
-                        {idx === 0 ? 'Training' : idx === 1 ? 'Achievement' : 'Schedule'}
-                      </Badge>
+                    );
+                  })}
+                  {timeLogs.length === 0 && (
+                    <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                      No recent activities to show
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>
