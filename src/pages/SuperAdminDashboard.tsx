@@ -18,7 +18,6 @@ import { useNavigate } from 'react-router-dom';
 import Footer from '@/components/Footer';
 import SEOHead from '@/components/SEOHead';
 import { getPageMetadata } from '@/lib/seo';
-import SuperAdminUserManagement from '@/components/admin/SuperAdminUserManagement';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
 import EnhancedUserManagement from '@/components/admin/EnhancedUserManagement';
 import SecurityMonitoring from '@/components/admin/SecurityMonitoring';
@@ -31,6 +30,8 @@ import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import TwoFactorManagement from '@/components/admin/TwoFactorManagement';
 import { supabase } from '@/integrations/supabase/client';
+import OrganizationManagement from '@/components/admin/OrganizationManagement';
+import RoleBasedUserManagement from '@/components/admin/RoleBasedUserManagement';
 
 const SuperAdminDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
@@ -184,7 +185,7 @@ const SuperAdminDashboard = () => {
     // Map paths to tabs
     const pathToTab = {
       '/super-admin': 'overview',
-      '/super-admin/users': 'users',
+      '/super-admin/organizations': 'organizations',
       '/super-admin/analytics': 'analytics',
       '/super-admin/security': 'security',
       '/super-admin/2fa': '2fa',
@@ -284,9 +285,9 @@ const SuperAdminDashboard = () => {
               <BarChart3 className="h-4 w-4" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
-              <Users className="h-4 w-4" />
-              Users
+            <TabsTrigger value="organizations" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
+              <Building className="h-4 w-4" />
+              Organizations
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
               <BarChart3 className="h-4 w-4" />
@@ -375,16 +376,11 @@ const SuperAdminDashboard = () => {
               </Card>
             </div>
 
-            <SuperAdminUserManagement />
+            <RoleBasedUserManagement />
           </TabsContent>
 
-          <TabsContent value="users" className="space-y-6">
-            <EnhancedUserManagement
-              users={[]} // Would be populated with real data
-              onEdit={() => {}}
-              onDelete={() => {}}
-              onBulkAction={handleBulkUserAction}
-            />
+          <TabsContent value="organizations" className="space-y-6">
+            <RoleBasedUserManagement />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
