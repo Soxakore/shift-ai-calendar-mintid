@@ -1,27 +1,33 @@
-
-import { useState, useEffect } from 'react';
-import { Users, Calendar, BarChart3, Settings, Brain, Database, ArrowLeft, Building2, Shield, UserCog, UserPlus, Building, LogOut, CheckCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Calendar,
+  LogOut,
+  Users,
+  Building,
+  BarChart3,
+  Shield,
+  Settings
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import Footer from '@/components/Footer';
 import SEOHead from '@/components/SEOHead';
 import { getPageMetadata } from '@/lib/seo';
+import SuperAdminUserManagement from '@/components/admin/SuperAdminUserManagement';
+import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
+import EnhancedUserManagement from '@/components/admin/EnhancedUserManagement';
+import SecurityMonitoring from '@/components/admin/SecurityMonitoring';
+import SystemSettings from '@/components/admin/SystemSettings';
 import GlobalNavigation from '@/components/admin/GlobalNavigation';
 import NotificationDropdown from '@/components/admin/NotificationDropdown';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import SuperAdminUserManagement from '@/components/admin/SuperAdminUserManagement';
-import EnhancedUserManagement from '@/components/admin/EnhancedUserManagement';
-import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
-import SecurityMonitoring from '@/components/admin/SecurityMonitoring';
 import TwoFactorManagement from '@/components/admin/TwoFactorManagement';
-import SystemSettings from '@/components/admin/SystemSettings';
-import Footer from '@/components/Footer';
+import { supabase } from '@/integrations/supabase/client';
 
 const SuperAdminDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
@@ -43,36 +49,65 @@ const SuperAdminDashboard = () => {
     failedLogins: 0
   });
 
-  // Fetch live stats
+  // Fetch live dashboard data
   const fetchLiveStats = async () => {
     try {
-      const [usersResult, orgsResult] = await Promise.all([
-        supabase.from('profiles').select('id, is_active').eq('is_active', true),
-        supabase.from('organizations').select('id')
-      ]);
+      // Get total active users
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, is_active, created_at')
+        .eq('is_active', true);
 
-      setLiveStats(prev => ({
-        ...prev,
-        activeUsers: usersResult.data?.length || 0,
-        totalOrganizations: orgsResult.data?.length || 0,
-        recentLogins: Math.floor(Math.random() * 20), // Simulated
-        failedLogins: Math.floor(Math.random() * 3)   // Simulated
-      }));
+      // Get total organizations
+      const { data: organizations, error: orgsError } = await supabase
+        .from('organizations')
+        .select('id');
+
+      // Get recent session activity (last 24 hours)
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const { data: recentSessions, error: sessionsError } = await supabase
+        .from('session_logs')
+        .select('action, success, created_at')
+        .gte('created_at', yesterday.toISOString());
+
+      if (!profilesError && !orgsError && !sessionsError) {
+        const successfulLogins = recentSessions?.filter(log => 
+          log.action === 'login' && log.success
+        ).length || 0;
+        
+        const failedLogins = recentSessions?.filter(log => 
+          log.action === 'login' && !log.success
+        ).length || 0;
+
+        // Calculate security score based on system health
+        let securityScore = 98; // Base score
+        if (failedLogins > 10) securityScore -= 5;
+        if (failedLogins > 20) securityScore -= 10;
+        
+        setLiveStats({
+          systemStatus: failedLogins > 50 ? 'Warning' : 'Optimal',
+          activeUsers: profiles?.length || 0,
+          totalOrganizations: organizations?.length || 0,
+          securityScore: Math.max(securityScore, 60), // Minimum 60%
+          recentLogins: successfulLogins,
+          failedLogins: failedLogins
+        });
+      }
     } catch (error) {
       console.error('Error fetching live stats:', error);
     }
   };
 
+  // Set up real-time updates for dashboard stats
   useEffect(() => {
+    // Initial fetch
     fetchLiveStats();
-    const interval = setInterval(fetchLiveStats, 30000); // Update every 30 seconds
-    return () => clearInterval(interval);
-  }, []);
 
-  // Real-time subscriptions for dashboard updates
-  useEffect(() => {
+    // Set up real-time subscriptions
     const channel = supabase
-      .channel('super-admin-dashboard')
+      .channel('dashboard-updates')
       .on(
         'postgres_changes',
         {
@@ -81,6 +116,7 @@ const SuperAdminDashboard = () => {
           table: 'profiles'
         },
         () => {
+          console.log('Profile change detected, updating stats...');
           fetchLiveStats();
         }
       )
@@ -92,13 +128,33 @@ const SuperAdminDashboard = () => {
           table: 'organizations'
         },
         () => {
+          console.log('Organization change detected, updating stats...');
           fetchLiveStats();
         }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'session_logs'
+        },
+        () => {
+          console.log('Session activity detected, updating stats...');
+          fetchLiveStats();
+        }
+      )
+      .subscribe((status) => {
+        console.log('Dashboard real-time subscription status:', status);
+      });
+
+    // Refresh stats every 30 seconds
+    const interval = setInterval(fetchLiveStats, 30000);
 
     return () => {
+      console.log('Cleaning up dashboard subscriptions...');
       supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, []);
 
@@ -121,20 +177,6 @@ const SuperAdminDashboard = () => {
 
   const handleNavigate = (path: string) => {
     setCurrentPath(path);
-    
-    // Handle navigation to new pages
-    if (path === '/super-admin/organizations') {
-      navigate('/super-admin/organizations');
-      return;
-    }
-    if (path === '/super-admin/users-page') {
-      navigate('/super-admin/users-page');
-      return;
-    }
-    if (path === '/super-admin/create-manager') {
-      navigate('/super-admin/create-manager');
-      return;
-    }
     
     // Map paths to tabs
     const pathToTab = {
@@ -258,7 +300,6 @@ const SuperAdminDashboard = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -325,64 +366,12 @@ const SuperAdminDashboard = () => {
               </Card>
             </div>
 
-            {/* Quick Actions - Updated with new navigation */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Button 
-                onClick={() => handleNavigate('/super-admin/users-page')}
-                className="h-20 bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <div className="text-center">
-                  <Users className="w-6 h-6 mx-auto mb-1" />
-                  <span>Manage Users</span>
-                </div>
-              </Button>
-              <Button 
-                onClick={() => handleNavigate('/super-admin/organizations')}
-                className="h-20 bg-purple-600 hover:bg-purple-700 text-white"
-              >
-                <div className="text-center">
-                  <Building className="w-6 h-6 mx-auto mb-1" />
-                  <span>Manage Organizations</span>
-                </div>
-              </Button>
-              <Button 
-                onClick={() => handleNavigate('/super-admin/create-manager')}
-                className="h-20 bg-green-600 hover:bg-green-700 text-white"
-              >
-                <div className="text-center">
-                  <UserPlus className="w-6 h-6 mx-auto mb-1" />
-                  <span>Create Manager</span>
-                </div>
-              </Button>
-              <Button 
-                onClick={() => setActiveTab('analytics')}
-                className="h-20 bg-orange-600 hover:bg-orange-700 text-white"
-              >
-                <div className="text-center">
-                  <BarChart3 className="w-6 h-6 mx-auto mb-1" />
-                  <span>View Analytics</span>
-                </div>
-              </Button>
-            </div>
-
-            {/* System Status Alert */}
-            <Alert className="border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
-              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-              <AlertDescription className="text-green-900 dark:text-green-100">
-                <strong className="text-green-900 dark:text-green-100">System Status: Operational</strong><br />
-                <span className="text-green-800 dark:text-green-200">
-                  All services are running normally. Last system check: {new Date().toLocaleString()}
-                </span>
-              </AlertDescription>
-            </Alert>
-
-            {/* Reduced Overview Content - keeping only essential overview components */}
             <SuperAdminUserManagement />
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
             <EnhancedUserManagement
-              users={[]}
+              users={[]} // Would be populated with real data
               onEdit={() => {}}
               onDelete={() => {}}
               onBulkAction={handleBulkUserAction}

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -43,9 +44,7 @@ const GlobalNavigation = ({ currentPath, onNavigate, searchTerm, onSearchChange 
 
   const navigationItems = [
     { path: '/super-admin', label: 'Overview', icon: BarChart3 },
-    { path: '/super-admin/users-page', label: 'User Management', icon: Users },
-    { path: '/super-admin/organizations', label: 'Organizations', icon: Building },
-    { path: '/super-admin/create-manager', label: 'Create Manager', icon: User },
+    { path: '/super-admin/users', label: 'Users', icon: Users },
     { path: '/super-admin/analytics', label: 'Analytics', icon: TrendingUp },
     { path: '/super-admin/security', label: 'Security', icon: Shield },
     { path: '/super-admin/2fa', label: '2FA Management', icon: Shield },
@@ -55,30 +54,49 @@ const GlobalNavigation = ({ currentPath, onNavigate, searchTerm, onSearchChange 
 
   const quickCommands = [
     { id: 'new-user', label: 'Create New User', action: () => {
-      navigate('/super-admin/users-page');
-      setOpen(false);
-    }},
-    { id: 'new-manager', label: 'Create New Manager', action: () => {
-      navigate('/super-admin/create-manager');
+      toast({
+        title: "➕ New User",
+        description: "Navigating to user management...",
+      });
+      onNavigate('/super-admin/users');
       setOpen(false);
     }},
     { id: 'new-org', label: 'Create New Organization', action: () => {
-      navigate('/super-admin/organizations');
+      toast({
+        title: "🏢 New Organization",
+        description: "Feature coming soon!",
+      });
       setOpen(false);
     }},
     { id: 'view-analytics', label: 'View System Analytics', action: () => {
+      toast({
+        title: "📊 Analytics",
+        description: "Navigating to system analytics...",
+      });
       onNavigate('/super-admin/analytics');
       setOpen(false);
     }},
     { id: 'system-settings', label: 'Adjust System Settings', action: () => {
+      toast({
+        title: "⚙️ System Settings",
+        description: "Navigating to system settings...",
+      });
       onNavigate('/super-admin/system');
       setOpen(false);
     }},
     { id: 'security-dashboard', label: 'Open Security Dashboard', action: () => {
+      toast({
+        title: "🛡️ Security Dashboard",
+        description: "Navigating to security dashboard...",
+      });
       onNavigate('/super-admin/security');
       setOpen(false);
     }},
     { id: 'unlock-2fa', label: 'Unlock User 2FA', action: () => {
+      toast({
+        title: "🔓 2FA Unlock",
+        description: "Navigate to 2FA Management to unlock user accounts",
+      });
       onNavigate('/super-admin/2fa');
       setOpen(false);
     }},
@@ -102,14 +120,7 @@ const GlobalNavigation = ({ currentPath, onNavigate, searchTerm, onSearchChange 
   }, []);
 
   const handleNavigation = (path: string) => {
-    // Handle navigation to new pages directly
-    if (path === '/super-admin/organizations' || 
-        path === '/super-admin/users-page' || 
-        path === '/super-admin/create-manager') {
-      navigate(path);
-    } else {
-      onNavigate(path);
-    }
+    onNavigate(path);
     setOpen(false);
   };
 
