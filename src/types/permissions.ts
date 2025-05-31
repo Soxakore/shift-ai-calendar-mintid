@@ -2,11 +2,13 @@
 // Role-based permission definitions
 import { EnhancedUser } from './organization';
 
+export type PermissionAction = 'create' | 'read' | 'update' | 'delete' | 'manage_all';
+
 export interface Permission {
   id: string;
   name: string;
   category: 'users' | 'departments' | 'reports' | 'settings' | 'organization';
-  actions: ('create' | 'read' | 'update' | 'delete' | 'manage_all')[];
+  actions: PermissionAction[];
   scope: 'own_department' | 'own_organization' | 'all_organizations';
 }
 
@@ -206,14 +208,14 @@ const addRoleToEnhancedUser = (user: EnhancedUser): EnhancedUser & { role: strin
 export const checkPermission = (
   user: AuthUser | EnhancedUser,
   requiredPermission: string,
-  action: string,
+  action: PermissionAction,
   targetUser?: AuthUser | EnhancedUser
 ): boolean => {
   const userRole = getUserRole(user);
   const userPermissions = rolePermissions[userRole] || [];
   
   for (const permission of userPermissions) {
-    if (permission.id === requiredPermission && permission.actions.includes(action as any)) {
+    if (permission.id === requiredPermission && permission.actions.includes(action)) {
       switch (permission.scope) {
         case 'all_organizations':
           return true;

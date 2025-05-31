@@ -9,8 +9,25 @@ import { Badge } from '../ui/badge';
 import { Copy, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+interface User {
+  id: string;
+  username: string;
+  displayName: string;
+  display_name: string;
+  email?: string;
+  userType: string;
+  user_type: string;
+  organizationId: string;
+  organization_id: string;
+  departmentId?: string;
+  department_id?: string;
+  isActive: boolean;
+  phone_number?: string;
+  tracking_id?: string;
+}
+
 interface EditUserDialogProps {
-  user: any;
+  user: User;
   isUpdating: boolean;
   organizations: Array<{
     id: string;

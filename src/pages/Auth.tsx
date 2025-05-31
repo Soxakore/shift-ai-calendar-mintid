@@ -24,7 +24,7 @@ const Auth = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (user && profile) {
-      const from = (location.state as any)?.from?.pathname;
+      const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
       if (from) {
         navigate(from);
       } else {

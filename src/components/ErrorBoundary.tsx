@@ -15,7 +15,7 @@ interface ErrorBoundaryProps {
 declare global {
   interface Window {
     Sentry?: {
-      captureException: (error: Error, context?: any) => void;
+      captureException: (error: Error, context?: Record<string, unknown>) => void;
     };
   }
 }

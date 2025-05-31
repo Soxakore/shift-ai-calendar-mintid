@@ -14,7 +14,7 @@ interface AuditEventParams {
   actionType: string;
   targetUserId?: string;
   targetOrganizationId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 interface SessionEventParams {

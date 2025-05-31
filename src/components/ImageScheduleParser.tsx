@@ -9,13 +9,24 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useToast } from '@/hooks/use-toast';
 import dataStore from '@/lib/dataStore';
 
+interface ParsedSchedule {
+  userId: string;
+  organizationId: string;
+  departmentId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  shift: 'morning' | 'afternoon' | 'night';
+  status: 'scheduled' | 'checked-in' | 'checked-out' | 'absent' | 'sick';
+}
+
 interface ImageScheduleParserProps {
-  onScheduleParsed?: (schedules: any[]) => void;
+  onScheduleParsed?: (schedules: ParsedSchedule[]) => void;
 }
 
 export const ImageScheduleParser: React.FC<ImageScheduleParserProps> = ({ onScheduleParsed }) => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [parsedSchedules, setParsedSchedules] = useState<any[]>([]);
+  const [parsedSchedules, setParsedSchedules] = useState<ParsedSchedule[]>([]);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   
   const { user } = useAuth();

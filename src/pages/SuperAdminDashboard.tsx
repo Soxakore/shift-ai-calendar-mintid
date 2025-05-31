@@ -33,6 +33,13 @@ import OrganizationManagement from '@/components/admin/OrganizationManagement';
 import RoleBasedUserManagement from '@/components/admin/RoleBasedUserManagement';
 import SuperAdminUserManagement from '@/components/admin/SuperAdminUserManagement';
 
+interface User {
+  id: string;
+  display_name: string;
+  email?: string;
+  username?: string;
+}
+
 const SuperAdminDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
   const { signOut, profile } = useSupabaseAuth();
@@ -241,7 +248,7 @@ const SuperAdminDashboard = () => {
     },
   ]);
 
-  const handleEditUser = (user: any) => {
+  const handleEditUser = (user: User) => {
     toast({
       title: "✏️ Edit User",
       description: `Editing user ${user.display_name}`,

@@ -71,23 +71,23 @@ const SystemSettings = () => {
     analyticsEnabled: true
   });
 
-  const updateGeneralSetting = (key: string, value: any) => {
+  const updateGeneralSetting = (key: string, value: string | number | boolean) => {
     setGeneralSettings(prev => ({ ...prev, [key]: value }));
   };
 
-  const updateTimeTrackingSetting = (key: string, value: any) => {
+  const updateTimeTrackingSetting = (key: string, value: string | number | boolean) => {
     setTimeTrackingSettings(prev => ({ ...prev, [key]: value }));
   };
 
-  const updateNotificationSetting = (key: string, value: any) => {
+  const updateNotificationSetting = (key: string, value: string | number | boolean) => {
     setNotificationSettings(prev => ({ ...prev, [key]: value }));
   };
 
-  const updateSecuritySetting = (key: string, value: any) => {
+  const updateSecuritySetting = (key: string, value: string | number | boolean) => {
     setSecuritySettings(prev => ({ ...prev, [key]: value }));
   };
 
-  const updateSystemSetting = (key: string, value: any) => {
+  const updateSystemSetting = (key: string, value: string | number | boolean) => {
     setSystemSettings(prev => ({ ...prev, [key]: value }));
   };
 

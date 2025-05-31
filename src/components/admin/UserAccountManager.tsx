@@ -66,7 +66,7 @@ const UserAccountManager = () => {
     username: '',
     password: '',
     name: '',
-    role: 'employee' as const,
+    role: 'employee' as 'super_admin' | 'org_admin' | 'manager' | 'employee',
     organizationId: 'mcdonalds',
     departmentId: 'kitchen'
   });
@@ -212,7 +212,7 @@ const UserAccountManager = () => {
             </div>
             <div>
               <Label htmlFor="role">Role</Label>
-              <Select value={newAccount.role} onValueChange={(value: any) => setNewAccount({...newAccount, role: value})}>
+              <Select value={newAccount.role} onValueChange={(value: 'super_admin' | 'org_admin' | 'manager' | 'employee') => setNewAccount({...newAccount, role: value})}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

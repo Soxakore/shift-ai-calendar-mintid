@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -9,6 +9,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Shield, Clock, User, MapPin, Monitor, AlertCircle, CheckCircle, XCircle, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { Json } from '@/integrations/supabase/types';
 import { format } from 'date-fns';
 
 interface AuditLog {
@@ -19,8 +20,8 @@ interface AuditLog {
   target_organization_id?: string;
   ip_address?: string;
   user_agent?: string;
-  location_data?: any;
-  metadata?: any;
+  location_data?: Json;
+  metadata?: Json;
   created_at: string;
   profiles?: {
     display_name: string;
@@ -39,7 +40,7 @@ interface SessionLog {
   action: 'login' | 'logout' | 'session_refresh';
   ip_address?: string;
   user_agent?: string;
-  location_data?: any;
+  location_data?: Json;
   success: boolean;
   failure_reason?: string;
   created_at: string;
@@ -61,7 +62,7 @@ export default function SecurityHistoryPanel({ isOpen, onClose }: SecurityHistor
   const [activeTab, setActiveTab] = useState('audit');
   const { toast } = useToast();
 
-  const fetchAuditLogs = async () => {
+  const fetchAuditLogs = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -107,9 +108,9 @@ export default function SecurityHistoryPanel({ isOpen, onClose }: SecurityHistor
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const fetchSessionLogs = async () => {
+  const fetchSessionLogs = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -154,7 +155,7 @@ export default function SecurityHistoryPanel({ isOpen, onClose }: SecurityHistor
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     if (isOpen) {
@@ -164,7 +165,7 @@ export default function SecurityHistoryPanel({ isOpen, onClose }: SecurityHistor
         fetchSessionLogs();
       }
     }
-  }, [isOpen, activeTab]);
+  }, [fetchAuditLogs, fetchSessionLogs, isOpen, activeTab]);
 
   const renderAuditLogItem = (log: AuditLog) => (
     <div key={log.id} className="p-3 border rounded-lg bg-slate-50 dark:bg-slate-800">

@@ -28,13 +28,27 @@ import { supabase } from '@/integrations/supabase/client';
 
 const SchedulePage = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  interface DatabaseTimeLog {
+  id: string;
+  user_id: string;
+  organization_id: string;
+  department_id: string;
+  date: string;
+  clock_in?: string | null;
+  clock_out?: string | null;
+  method: string;
+  location?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+const { toast } = useToast();
   const pageMetadata = getPageMetadata('schedule');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isOnline, setIsOnline] = useState(true);
   const [systemStatus, setSystemStatus] = useState('operational');
   const [isClockingOut, setIsClockingOut] = useState(false);
-  const [todayTimeLog, setTodayTimeLog] = useState<any>(null);
+  const [todayTimeLog, setTodayTimeLog] = useState<DatabaseTimeLog | null>(null);
 
   const { profile, user } = useSupabaseAuth();
   const { schedules, timeLogs, refetch } = useSupabaseData();
@@ -82,6 +96,7 @@ const SchedulePage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile, refetch]);
 
   // Load today's time log
@@ -101,6 +116,7 @@ const SchedulePage = () => {
 
   useEffect(() => {
     loadTodayTimeLog();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
   // Get today's schedule
@@ -260,7 +276,7 @@ const SchedulePage = () => {
                       size="sm" 
                       className="w-full bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700" 
                       onClick={handleClockOut}
-                      disabled={!todayTimeLog?.clock_in || todayTimeLog?.clock_out || isClockingOut}
+                      disabled={!todayTimeLog?.clock_in || !!todayTimeLog?.clock_out || isClockingOut}
                     >
                       <CheckCircle className="w-4 h-4 mr-2" />
                       {isClockingOut ? 'Processing...' : 

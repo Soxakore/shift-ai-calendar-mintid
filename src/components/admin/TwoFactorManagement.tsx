@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -632,7 +632,7 @@ const TwoFactorManagement = () => {
   const [sendResult, setSendResult] = useState<{ success: boolean, message: string } | null>(null);
   const [isSendingTest, setIsSendingTest] = useState(false);
 
-  const fetchTwoFactorData = async () => {
+  const fetchTwoFactorData = useCallback(async () => {
     try {
       // ... keep existing code (fetch logic)
     } catch (error) {
@@ -645,11 +645,11 @@ const TwoFactorManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchTwoFactorData();
-  }, []);
+  }, [fetchTwoFactorData]);
 
   if (loading) {
     return (

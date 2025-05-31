@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
@@ -22,10 +22,6 @@ const WorkHoursStats = ({ scheduleData = [], currentDate = new Date() }: WorkHou
     month: 0,
     total: 0
   });
-
-  useEffect(() => {
-    calculateStats();
-  }, [scheduleData, currentDate]);
 
   const parseTimeRange = (timeRange: string): number => {
     if (!timeRange) return 0;
@@ -62,7 +58,7 @@ const WorkHoursStats = ({ scheduleData = [], currentDate = new Date() }: WorkHou
     return Math.round((end - start) * 100) / 100;
   };
 
-  const calculateStats = () => {
+  const calculateStats = useCallback(() => {
     const today = new Date();
     const currentMonthYear = currentDate.getMonth() === today.getMonth() && 
                            currentDate.getFullYear() === today.getFullYear();
@@ -110,7 +106,11 @@ const WorkHoursStats = ({ scheduleData = [], currentDate = new Date() }: WorkHou
       month: Math.round(monthHours * 100) / 100,
       total: Math.round(totalHours * 100) / 100
     });
-  };
+  }, [scheduleData, currentDate]);
+
+  useEffect(() => {
+    calculateStats();
+  }, [calculateStats]);
 
   const getTrendIcon = (current: number, expected: number) => {
     if (current > expected) return <TrendingUp className="w-4 h-4 text-green-600" />;

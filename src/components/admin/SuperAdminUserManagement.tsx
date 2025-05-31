@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Alert, AlertDescription } from '../ui/alert';
 import { CheckCircle, AlertTriangle, ArrowLeft } from 'lucide-react';
@@ -20,6 +20,38 @@ import UsersList from './UsersList';
 import OrganizationPauseManager from './OrganizationPauseManager';
 import HistoryButton from './HistoryButton';
 
+interface User {
+  id: string;
+  username: string;
+  display_name: string;
+  email?: string;
+  user_type: string;
+  organization_id: string;
+  department_id?: string;
+  is_active: boolean;
+  created_at: string;
+  tracking_id?: string;
+}
+
+interface Organization {
+  id: string;
+  name: string;
+  alias?: string;
+  description?: string;
+  organization_number?: string;
+  created_at: string;
+  updated_at?: string;
+  is_active?: boolean;
+  subscription_status?: string;
+}
+
+interface Department {
+  id: string;
+  name: string;
+  organization_id: string;
+  created_at: string;
+}
+
 export default function SuperAdminUserManagement() {
   const { profile } = useSupabaseAuth();
   const { toast } = useToast();
@@ -32,21 +64,14 @@ export default function SuperAdminUserManagement() {
     recentLogins: 0
   });
 
-  const [users, setUsers] = useState<any[]>([]);
-  const [organizations, setOrganizations] = useState<any[]>([]);
-  const [departments, setDepartments] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [deletingOrgId, setDeletingOrgId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  useEffect(() => {
-    fetchStats();
-    fetchUsers();
-    fetchOrganizations();
-    fetchDepartments();
-  }, []);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const { count: totalUsers } = await supabase
         .from('profiles')
@@ -88,7 +113,7 @@ export default function SuperAdminUserManagement() {
         variant: "destructive"
       });
     }
-  };
+  }, [toast]);
 
   const fetchUsers = async () => {
     try {
@@ -129,7 +154,15 @@ export default function SuperAdminUserManagement() {
     }
   };
 
-  const handleEditUser = (user: any) => {
+  // Effects
+  useEffect(() => {
+    fetchStats();
+    fetchUsers();
+    fetchOrganizations();
+    fetchDepartments();
+  }, [fetchStats]);
+
+  const handleEditUser = (user: User) => {
     // Handle edit user logic
     console.log('Edit user:', user);
   };
@@ -223,7 +256,15 @@ export default function SuperAdminUserManagement() {
     return org ? org.name : 'Unknown';
   };
 
-  const handleCreateUser = async (userData: any) => {
+  const handleCreateUser = async (userData: {
+    username: string;
+    display_name: string;
+    email: string;
+    user_type: string;
+    organization_id: string;
+    department_id?: string;
+    password?: string;
+  }) => {
     setIsCreating(true);
     try {
       console.log('Creating user with data:', userData);
@@ -276,7 +317,11 @@ export default function SuperAdminUserManagement() {
     }
   };
 
-  const handleCreateOrganization = async (orgData: any) => {
+  const handleCreateOrganization = async (orgData: {
+    name: string;
+    description?: string;
+    alias?: string;
+  }) => {
     setIsCreating(true);
     try {
       console.log('Creating organization with data:', orgData);

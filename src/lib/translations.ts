@@ -531,7 +531,7 @@ const translations: Record<SupportedLanguage, Translations> = {
 
 class TranslationManager {
   private currentLanguage: SupportedLanguage = 'en';
-  private listeners: Function[] = [];
+  private listeners: ((language: SupportedLanguage) => void)[] = [];
 
   constructor() {
     const savedLanguage = localStorage.getItem('mintid_language') as SupportedLanguage;
@@ -554,11 +554,11 @@ class TranslationManager {
     return translations[this.currentLanguage][key] || translations.en[key] || key;
   }
 
-  subscribe(callback: Function) {
+  subscribe(callback: (language: SupportedLanguage) => void) {
     this.listeners.push(callback);
   }
 
-  unsubscribe(callback: Function) {
+  unsubscribe(callback: (language: SupportedLanguage) => void) {
     this.listeners = this.listeners.filter(cb => cb !== callback);
   }
 

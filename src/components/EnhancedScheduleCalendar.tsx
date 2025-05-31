@@ -42,7 +42,7 @@ const EnhancedScheduleCalendar = ({ currentDate, scheduleData }: EnhancedSchedul
     const [startHour, startMin] = startTime.split(':').map(Number);
     const [endHour, endMin] = endTime.split(':').map(Number);
     
-    let start = startHour + (startMin || 0) / 60;
+    const start = startHour + (startMin || 0) / 60;
     let end = endHour + (endMin || 0) / 60;
     
     // Handle overnight shifts

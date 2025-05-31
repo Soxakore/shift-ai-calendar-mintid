@@ -57,7 +57,7 @@ export interface EnhancedUser {
   profileImage?: string;
   phoneNumber?: string;
   hireDate?: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
   userType: 'super_admin' | 'org_admin' | 'manager' | 'employee';
 }
 

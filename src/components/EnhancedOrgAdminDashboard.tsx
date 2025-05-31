@@ -30,12 +30,81 @@ import dataStore from '@/lib/dataStore';
 import SickNoticeModal from '@/components/SickNoticeModal';
 import QRCodeScanner from '@/components/QRCodeScanner';
 
+interface User {
+  id: string;
+  username: string;
+  displayName: string;
+  email?: string;
+  userType: string;
+  department?: string;
+  departmentId?: string;
+  organizationId: string;
+  createdAt: string;
+}
+
+interface SickNotice {
+  id: string;
+  userId: string;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  status: string;
+  submittedAt: string;
+}
+
+interface Department {
+  id: string;
+  name: string;
+  organizationId: string;
+}
+
+interface Activity {
+  id: string;
+  type: string;
+  message: string;
+  time: string;
+  priority: string;
+}
+
+interface Schedule {
+  id: string;
+  userId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+}
+
+interface TimeLog {
+  id: string;
+  userId: string;
+  clockIn?: string;
+  clockOut?: string;
+  date: string;
+  totalHours?: number;
+  status: string;
+}
+
+interface DashboardData {
+  users: User[];
+  departments: Department[];
+  sickNotices: SickNotice[];
+  recentActivities: Activity[];
+  schedules: Schedule[];
+  timeLogs: TimeLog[];
+  totalEmployees: number;
+  activeToday: number;
+  onTime: number;
+  allUsers: User[];
+  managers: User[];
+}
+
 const EnhancedOrgAdminDashboard = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const { toast } = useToast();
   
-  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const [showCreateDepartment, setShowCreateDepartment] = useState(false);
   const [showPromoteEmployee, setShowPromoteEmployee] = useState(false);
@@ -93,7 +162,7 @@ const EnhancedOrgAdminDashboard = () => {
     };
   }, [user?.organizationId]);
 
-  const generateRecentActivities = (users: any[], sickNotices: any[]) => {
+  const generateRecentActivities = (users: User[], sickNotices: SickNotice[]) => {
     const activities = [];
     
     // Recent sick notices
@@ -380,7 +449,7 @@ const EnhancedOrgAdminDashboard = () => {
                     <SelectValue placeholder="Select Department" />
                   </SelectTrigger>
                   <SelectContent>
-                    {dashboardData.departments.map((dept: any) => (
+                    {dashboardData.departments.map((dept: Department) => (
                       <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -417,7 +486,7 @@ const EnhancedOrgAdminDashboard = () => {
                     <SelectValue placeholder="Select Employee" />
                   </SelectTrigger>
                   <SelectContent>
-                    {dashboardData.allUsers.filter((u: any) => u.userType === 'employee').map((emp: any) => (
+                    {dashboardData.allUsers.filter((u: User) => u.userType === 'employee').map((emp: User) => (
                       <SelectItem key={emp.id} value={emp.id}>{emp.displayName}</SelectItem>
                     ))}
                   </SelectContent>
@@ -492,8 +561,8 @@ const EnhancedOrgAdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {dashboardData.schedules.map((schedule: any) => {
-                const employee = dashboardData.allUsers.find((u: any) => u.id === schedule.userId);
+              {dashboardData.schedules.map((schedule: Schedule) => {
+                const employee = dashboardData.allUsers.find((u: User) => u.id === schedule.userId);
                 return (
                   <div key={schedule.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
@@ -520,7 +589,7 @@ const EnhancedOrgAdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {dashboardData.recentActivities.map((activity: any) => (
+              {dashboardData.recentActivities.map((activity: Activity) => (
                 <div key={activity.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-3">
                     {activity.type === 'sick_notice' && <AlertTriangle className="w-4 h-4 text-orange-500" />}
@@ -557,8 +626,8 @@ const EnhancedOrgAdminDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {dashboardData.managers.map((manager: any) => {
-              const department = dashboardData.departments.find((d: any) => d.id === manager.departmentId);
+            {dashboardData.managers.map((manager: User) => {
+              const department = dashboardData.departments.find((d: Department) => d.id === manager.departmentId);
               return (
                 <div key={manager.id} className="p-4 border rounded-lg">
                   <div className="flex items-center gap-3">

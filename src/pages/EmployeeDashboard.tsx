@@ -44,7 +44,19 @@ const EmployeeDashboard = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showPrecisionChart, setShowPrecisionChart] = useState(false);
   const [isClockingIn, setIsClockingIn] = useState(false);
-  const [todayTimeLog, setTodayTimeLog] = useState<any>(null);
+  const [todayTimeLog, setTodayTimeLog] = useState<{
+    id: string;
+    user_id: string;
+    organization_id: string;
+    department_id: string;
+    date: string;
+    clock_in?: string | null;
+    clock_out?: string | null;
+    method: string;
+    location?: string | null;
+    created_at?: string;
+    updated_at?: string;
+  } | null>(null);
 
   const { profile } = useSupabaseAuth();
   const { schedules, timeLogs, refetch } = useSupabaseData();
@@ -92,6 +104,7 @@ const EmployeeDashboard = () => {
     return () => {
       supabase.removeChannel(channel);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile, refetch]);
 
   // Load today's time log
@@ -111,6 +124,7 @@ const EmployeeDashboard = () => {
 
   useEffect(() => {
     loadTodayTimeLog();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
   // Convert Supabase schedule data to component format

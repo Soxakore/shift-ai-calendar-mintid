@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, ResponsiveContainer } from 'recharts';
 
@@ -22,10 +22,6 @@ interface HoursWorkedChartProps {
 
 const HoursWorkedChart = ({ scheduleData = [], currentDate = new Date() }: HoursWorkedChartProps) => {
   const [data, setData] = useState<ChartData[]>([]);
-
-  useEffect(() => {
-    calculateWeeklyData();
-  }, [scheduleData, currentDate]);
 
   const parseTimeRange = (timeRange: string): number => {
     if (!timeRange) return 0;
@@ -62,7 +58,7 @@ const HoursWorkedChart = ({ scheduleData = [], currentDate = new Date() }: Hours
     return Math.round((end - start) * 100) / 100;
   };
 
-  const calculateWeeklyData = () => {
+  const calculateWeeklyData = useCallback(() => {
     const today = new Date();
     const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     
@@ -106,7 +102,11 @@ const HoursWorkedChart = ({ scheduleData = [], currentDate = new Date() }: Hours
     }));
 
     setData(processedData);
-  };
+  }, [scheduleData, currentDate]);
+
+  useEffect(() => {
+    calculateWeeklyData();
+  }, [calculateWeeklyData]);
 
   return (
     <div className="h-32">

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -47,7 +47,7 @@ export default function AnalyticsDashboard() {
   const [timeRange, setTimeRange] = useState('7d');
   const { toast } = useToast();
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     setLoading(true);
     try {
       // Fetch user statistics
@@ -73,7 +73,7 @@ export default function AnalyticsDashboard() {
       const userStats = {
         total: profiles?.length || 0,
         active: profiles?.filter(p => p.is_active)?.length || 0,
-        byRole: profiles?.reduce((acc: any[], profile) => {
+        byRole: profiles?.reduce((acc: Array<{role: string; count: number}>, profile) => {
           const existing = acc.find(item => item.role === profile.user_type);
           if (existing) {
             existing.count++;
@@ -120,11 +120,11 @@ export default function AnalyticsDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [timeRange, toast]);
 
   useEffect(() => {
     fetchAnalytics();
-  }, [timeRange]);
+  }, [fetchAnalytics]);
 
   const exportReport = () => {
     const reportData = {

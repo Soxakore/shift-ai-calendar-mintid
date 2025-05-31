@@ -1,6 +1,6 @@
 
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -32,7 +32,7 @@ interface SessionInfo {
 }
 
 // Global emergency state - persists across component instances
-let globalEmergencyState = {
+const globalEmergencyState = {
   isEmergencyMode: false,
   emergencyActivatedAt: null as string | null
 };
@@ -73,7 +73,7 @@ export default function SecurityMonitoring() {
     }
   };
 
-  const fetchSecurityData = async () => {
+  const fetchSecurityData = useCallback(async () => {
     try {
       // Fetch recent failed login attempts
       const { data: sessionLogs } = await supabase
@@ -137,7 +137,7 @@ export default function SecurityMonitoring() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchSecurityData();
@@ -145,7 +145,7 @@ export default function SecurityMonitoring() {
     // Refresh every 30 seconds
     const interval = setInterval(fetchSecurityData, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchSecurityData]);
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {

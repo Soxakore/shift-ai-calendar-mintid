@@ -49,6 +49,7 @@ export const useSupabaseData = () => {
       
       return () => clearTimeout(timeoutId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
   const setupRealtimeSubscriptions = () => {

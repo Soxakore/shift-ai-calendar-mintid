@@ -6,24 +6,26 @@ import { Badge } from '../ui/badge';
 import { Users, Edit, Trash2, Phone, Building, Calendar, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+interface User {
+  id: string;
+  username: string;
+  display_name: string;
+  user_type: string;
+  organization_id?: string;
+  phone_number?: string;
+  tracking_id?: string;
+  created_at: string;
+  is_active: boolean;
+}
+
 interface UsersListProps {
-  users: Array<{
-    id: string;
-    username: string;
-    display_name: string;
-    user_type: string;
-    organization_id?: string;
-    phone_number?: string;
-    tracking_id?: string;
-    created_at: string;
-    is_active: boolean;
-  }>;
+  users: User[];
   organizations: Array<{
     id: string;
     name: string;
   }>;
   deletingUserId: string | null;
-  onEdit: (user: any) => void;
+  onEdit: (user: User) => void;
   onDelete: (userId: string, userName: string) => void;
   getUserOrganization: (orgId: string) => string;
 }

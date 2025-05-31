@@ -59,7 +59,7 @@ class DataStore {
   private sickNotices: SickNotice[] = [];
   private timeLogs: TimeLog[] = [];
   private qrCodes: QRCode[] = [];
-  private listeners: { [key: string]: Function[] } = {};
+  private listeners: { [key: string]: ((data?: unknown) => void)[] } = {};
 
   constructor() {
     this.loadInitialData();
@@ -162,7 +162,7 @@ class DataStore {
   }
 
   // Event listener system for real-time updates
-  subscribe(event: string, callback: Function): () => void {
+  subscribe(event: string, callback: (data?: unknown) => void): () => void {
     if (!this.listeners[event]) {
       this.listeners[event] = [];
     }
@@ -176,13 +176,13 @@ class DataStore {
     };
   }
 
-  unsubscribe(event: string, callback: Function) {
+  unsubscribe(event: string, callback: (data?: unknown) => void) {
     if (this.listeners[event]) {
       this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
     }
   }
 
-  private notifyListeners(event: string, data?: any) {
+  private notifyListeners(event: string, data?: unknown) {
     if (this.listeners[event]) {
       this.listeners[event].forEach(callback => callback(data));
     }

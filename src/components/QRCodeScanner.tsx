@@ -9,7 +9,7 @@ import { QrCode, Camera, Clock, MapPin } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useToast } from '@/hooks/use-toast';
-import dataStore from '@/lib/dataStore';
+import dataStore, { TimeLog } from '@/lib/dataStore';
 
 interface QRCodeScannerProps {
   trigger?: React.ReactNode;
@@ -19,7 +19,7 @@ export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({ trigger }) => {
   const [open, setOpen] = useState(false);
   const [qrInput, setQrInput] = useState('');
   const [isScanning, setIsScanning] = useState(false);
-  const [lastScan, setLastScan] = useState<any>(null);
+  const [lastScan, setLastScan] = useState<TimeLog | null>(null);
   
   const { user } = useAuth();
   const { t } = useTranslation();

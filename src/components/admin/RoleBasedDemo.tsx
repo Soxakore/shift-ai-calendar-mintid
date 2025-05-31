@@ -83,7 +83,7 @@ export default function RoleBasedDemo() {
                   <Icon className="h-8 w-8 mx-auto mb-2 text-primary" />
                   <h3 className="font-semibold">{user.displayName}</h3>
                   <p className="text-sm text-muted-foreground mb-2">@{user.username}</p>
-                  <Badge variant={color as any} className="mb-2">
+                  <Badge variant={color as "default" | "secondary" | "destructive" | "outline"} className="mb-2">
                     {user.userType.replace('_', ' ').toUpperCase()}
                   </Badge>
                   <p className="text-xs text-muted-foreground">{description}</p>

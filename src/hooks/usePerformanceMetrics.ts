@@ -4,6 +4,15 @@ import {
   getPerformanceMetrics
 } from '@/lib/performance';
 
+// Extend the Performance interface to include memory
+interface PerformanceWithMemory extends Performance {
+  memory?: {
+    usedJSHeapSize: number;
+    totalJSHeapSize: number;
+    jsHeapSizeLimit: number;
+  };
+}
+
 // Define the performance metrics interface
 export interface PerformanceMetrics {
   navigationTiming?: {
@@ -72,10 +81,10 @@ export const usePerformanceMetrics = (options: UsePerformanceMetricsOptions = {}
           domContentLoadedEventEnd: performance.timing?.domContentLoadedEventEnd || 0,
           loadEventEnd: performance.timing?.loadEventEnd || 0
         },
-        memory: (performance as any).memory ? {
-          usedJSHeapSize: (performance as any).memory.usedJSHeapSize,
-          totalJSHeapSize: (performance as any).memory.totalJSHeapSize,
-          jsHeapSizeLimit: (performance as any).memory.jsHeapSizeLimit
+        memory: (performance as PerformanceWithMemory).memory ? {
+          usedJSHeapSize: (performance as PerformanceWithMemory).memory!.usedJSHeapSize,
+          totalJSHeapSize: (performance as PerformanceWithMemory).memory!.totalJSHeapSize,
+          jsHeapSizeLimit: (performance as PerformanceWithMemory).memory!.jsHeapSizeLimit
         } : undefined
       });
 

@@ -10,6 +10,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/hooks/useTranslation';
+import { SupportedLanguage } from '@/lib/translations';
 import { useToast } from '@/hooks/use-toast';
 import WorkHoursStats from '@/components/WorkHoursStats';
 import ImageScheduleParser from '@/components/ImageScheduleParser';
@@ -72,11 +73,11 @@ const Index = () => {
   };
 
   const handleLanguageChange = (newLanguage: string) => {
-    setLanguage(newLanguage as any);
+    setLanguage(newLanguage as SupportedLanguage);
     trackFeatureUsage('language_change', user?.role);
     toast({
       title: "🌐 Language Changed",
-      description: `Interface language switched to ${getLanguageName(newLanguage as any)}`,
+      description: `Interface language switched to ${getLanguageName(newLanguage as SupportedLanguage)}`,
     });
   };
 

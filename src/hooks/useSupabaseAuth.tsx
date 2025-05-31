@@ -72,7 +72,7 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
     actionType: string,
     targetUserId?: string,
     targetOrganizationId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, string | number | boolean | null>
   ) => {
     try {
       if (!user) return;
@@ -202,6 +202,7 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
       console.log('🧹 Cleaning up auth subscription');
       subscription.unsubscribe();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchUserProfile = async (userId: string) => {

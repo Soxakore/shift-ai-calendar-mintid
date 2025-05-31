@@ -33,13 +33,23 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
+interface AuditLogMetadata {
+  deleted_user_name?: string;
+  organization_name?: string;
+  deleted_by_username?: string;
+  deleted_by_display_name?: string;
+  created_by_username?: string;
+  created_by_display_name?: string;
+  [key: string]: string | number | boolean | null | undefined;
+}
+
 interface AuditLog {
   id: string;
   user_id: string;
   action_type: string;
   target_user_id: string | null;
   target_organization_id: string | null;
-  metadata: any;
+  metadata: AuditLogMetadata | null;
   created_at: string;
   ip_address: string | null;
   user_agent: string | null;
@@ -88,7 +98,8 @@ const HistoryPage = () => {
         // Type cast to handle the ip_address field properly
         setAuditLogs(data?.map(log => ({
           ...log,
-          ip_address: log.ip_address ? String(log.ip_address) : null
+          ip_address: log.ip_address ? String(log.ip_address) : null,
+          metadata: log.metadata as AuditLogMetadata | null
         })) || []);
       }
     } catch (error) {
@@ -268,6 +279,7 @@ const HistoryPage = () => {
     } else {
       fetchSessionLogs();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   const cleanSearchTerm = searchTerm.replace(/[^\w\s-]/g, '').trim();

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 
 interface ScheduleItem {
@@ -16,6 +16,12 @@ interface MonthlyData {
   efficiency: number;
 }
 
+interface SummaryData {
+  name: string;
+  value: number;
+  color: string;
+}
+
 interface MonthlyPrecisionChartProps {
   scheduleData?: ScheduleItem[];
   currentDate?: Date;
@@ -23,11 +29,7 @@ interface MonthlyPrecisionChartProps {
 
 const MonthlyPrecisionChart = ({ scheduleData = [], currentDate = new Date() }: MonthlyPrecisionChartProps) => {
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
-  const [summaryData, setSummaryData] = useState<any[]>([]);
-
-  useEffect(() => {
-    calculateMonthlyPrecision();
-  }, [scheduleData, currentDate]);
+  const [summaryData, setSummaryData] = useState<SummaryData[]>([]);
 
   const parseTimeRange = (timeRange: string): number => {
     if (!timeRange) return 0;
@@ -64,7 +66,7 @@ const MonthlyPrecisionChart = ({ scheduleData = [], currentDate = new Date() }: 
     return Math.round((end - start) * 100) / 100;
   };
 
-  const calculateMonthlyPrecision = () => {
+  const calculateMonthlyPrecision = useCallback(() => {
     const weekNames = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'];
     const weeks: MonthlyData[] = weekNames.map(name => ({
       name,
@@ -111,7 +113,11 @@ const MonthlyPrecisionChart = ({ scheduleData = [], currentDate = new Date() }: 
     ];
 
     setSummaryData(summary);
-  };
+  }, [scheduleData]);
+
+  useEffect(() => {
+    calculateMonthlyPrecision();
+  }, [calculateMonthlyPrecision]);
 
   const COLORS = ['#3B82F6', '#EF4444', '#E5E7EB'];
 

@@ -1,8 +1,12 @@
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+// Supabase Edge Function for sending emails
+// This file uses Deno runtime - TypeScript errors in VS Code are expected and don't affect runtime
+
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
+// @ts-ignore - Deno global is available in Edge Function runtime
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
@@ -22,7 +26,15 @@ interface EmailRequest {
   };
 }
 
-const getEmailTemplate = (type: string, data: any) => {
+interface EmailTemplateData {
+  username?: string;
+  resetLink?: string;
+  backupCodes?: string[];
+  alertMessage?: string;
+  notificationMessage?: string;
+}
+
+const getEmailTemplate = (type: string, data: EmailTemplateData) => {
   switch (type) {
     case 'password_reset':
       return {
@@ -162,10 +174,11 @@ const handler = async (req: Request): Promise<Response> => {
         },
       }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in send-email function:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

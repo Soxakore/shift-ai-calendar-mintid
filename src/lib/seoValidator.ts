@@ -43,7 +43,7 @@ export interface PageSEOMetrics {
   metaRobots: string | null;
   openGraphTags: Record<string, string>;
   twitterCardTags: Record<string, string>;
-  structuredData: any[];
+  structuredData: Record<string, unknown>[];
 }
 
 /**
@@ -249,7 +249,7 @@ export const extractPageMetrics = (): PageSEOMetrics => {
   });
 
   // Extract structured data
-  const structuredData: any[] = [];
+  const structuredData: Record<string, unknown>[] = [];
   document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
     try {
       const data = JSON.parse(script.textContent || '');

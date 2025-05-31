@@ -26,7 +26,7 @@ const AISettings = () => {
     { id: '3', user: 'Mike Brown', date: '2024-05-16', time: '00:00-08:00', confidence: 94 }
   ]);
 
-  const updateSetting = (key: string, value: any) => {
+  const updateSetting = (key: string, value: string | number | boolean | number[]) => {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 

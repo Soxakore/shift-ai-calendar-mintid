@@ -7,13 +7,27 @@ import { Badge } from '@/components/ui/badge';
 import { Upload, Image, FileText, Brain, CheckCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+interface Shift {
+  employee: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  department: string;
+}
+
+interface ExtractedData {
+  shifts: Shift[];
+  confidence: number;
+  warnings?: string[];
+}
+
 const ImageUpload = () => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [extractedData, setExtractedData] = useState<any>(null);
+  const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
 
   const handleFileSelect = () => {
     fileInputRef.current?.click();
@@ -73,13 +87,12 @@ const ImageUpload = () => {
       }
 
       // Simulate extracted schedule data
-      const mockExtractedData = {
-        scheduleFound: true,
+      const mockExtractedData: ExtractedData = {
         shifts: [
-          { date: '2025-06-02', startTime: '08:00', endTime: '16:00', notes: 'Regular shift' },
-          { date: '2025-06-03', startTime: '20:50', endTime: '07:08', notes: 'Night shift' },
-          { date: '2025-06-04', startTime: '09:00', endTime: '17:00', notes: 'Day shift' },
-          { date: '2025-06-05', startTime: '14:00', endTime: '22:00', notes: 'Evening shift' }
+          { employee: 'John Doe', date: '2025-06-02', startTime: '08:00', endTime: '16:00', department: 'Kitchen' },
+          { employee: 'Jane Smith', date: '2025-06-03', startTime: '20:50', endTime: '07:08', department: 'Drive-thru' },
+          { employee: 'Mike Johnson', date: '2025-06-04', startTime: '09:00', endTime: '17:00', department: 'Counter' },
+          { employee: 'Sarah Wilson', date: '2025-06-05', startTime: '14:00', endTime: '22:00', department: 'Kitchen' }
         ],
         confidence: 92,
         warnings: [
@@ -200,13 +213,13 @@ const ImageUpload = () => {
             <div className="bg-gray-50 rounded-lg p-4">
               <h4 className="font-medium mb-3">Detected Shifts ({extractedData.shifts.length})</h4>
               <div className="space-y-2">
-                {extractedData.shifts.map((shift: any, index: number) => (
+                {extractedData.shifts.map((shift: Shift, index: number) => (
                   <div key={index} className="flex items-center justify-between bg-white p-3 rounded border">
                     <div>
-                      <span className="font-medium">{shift.date}</span>
-                      <span className="ml-3 text-gray-600">{shift.startTime} - {shift.endTime}</span>
+                      <span className="font-medium">{shift.employee}</span>
+                      <span className="ml-3 text-gray-600">{shift.date} • {shift.startTime} - {shift.endTime}</span>
                     </div>
-                    <Badge variant="outline">{shift.notes}</Badge>
+                    <Badge variant="outline">{shift.department}</Badge>
                   </div>
                 ))}
               </div>
