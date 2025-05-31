@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Users, Calendar, BarChart3, Settings, Brain, Database, ArrowLeft, Building2, Shield, UserCog, UserPlus, Building, LogOut, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,7 @@ import SEOHead from '@/components/SEOHead';
 import { getPageMetadata } from '@/lib/seo';
 import GlobalNavigation from '@/components/admin/GlobalNavigation';
 import NotificationDropdown from '@/components/admin/NotificationDropdown';
-import ThemeToggle from '@/components/ThemeToggle';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import SuperAdminUserManagement from '@/components/admin/SuperAdminUserManagement';
 import EnhancedUserManagement from '@/components/admin/EnhancedUserManagement';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
