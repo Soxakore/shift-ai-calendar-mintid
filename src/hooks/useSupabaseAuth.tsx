@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +14,7 @@ export interface Profile {
   created_by?: string;
   created_at: string;
   updated_at: string;
+  tracking_id?: string; // Added missing tracking_id property
 }
 
 interface AuthContextType {
