@@ -1,3 +1,4 @@
+
 // Structured Data utilities for better SEO
 export const createWebApplicationSchema = () => ({
   "@context": "https://schema.org",
@@ -158,6 +159,12 @@ export const getPageMetadata = (page: string) => {
       description: 'Explore MinTid\'s role-based interface with different user perspectives. See how employees, managers, and admins experience the platform.',
       keywords: 'role-based access, user roles, employee view, manager dashboard, admin features, demo',
       canonical: `${baseUrl}/role-selector`
+    },
+    schedule: {
+      title: 'My Schedule - Employee Work Calendar | MinTid',
+      description: 'View and manage your work schedule with MinTid\'s interactive calendar. Track hours, shifts, and upcoming assignments in real-time.',
+      keywords: 'employee schedule, work calendar, shift management, time tracking, schedule overview',
+      canonical: `${baseUrl}/schedule`
     }
   };
 
