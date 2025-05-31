@@ -8,7 +8,9 @@ import {
   Upload,
   Calendar,
   ArrowLeft,
-  Clock
+  Clock,
+  BarChart3,
+  PieChart
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import EmployeeHeader from '@/components/EmployeeHeader';
@@ -18,6 +20,7 @@ import { getPageMetadata } from '@/lib/seo';
 import { useToast } from '@/hooks/use-toast';
 import WorkHoursStats from '@/components/WorkHoursStats';
 import HoursWorkedChart from '@/components/HoursWorkedChart';
+import MonthlyPrecisionChart from '@/components/MonthlyPrecisionChart';
 import EnhancedScheduleCalendar from '@/components/EnhancedScheduleCalendar';
 
 const SchedulePage = () => {
@@ -25,6 +28,7 @@ const SchedulePage = () => {
   const { toast } = useToast();
   const pageMetadata = getPageMetadata('schedule');
   const [currentDate, setCurrentDate] = useState(new Date()); // Current month (December 2024)
+  const [showPrecisionChart, setShowPrecisionChart] = useState(false);
 
   const handleUpdateProfile = () => {
     toast({
@@ -54,24 +58,24 @@ const SchedulePage = () => {
 
   const monthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-  // Enhanced mock schedule data with this week's data including overtime
+  // Enhanced mock schedule data with various time formats for testing
   const scheduleData = [
-    // This week's shifts (Dec 30, 2024 - Jan 5, 2025)
-    { day: 'Mon', date: 30, hours: '8', time: '09:00-17:00' }, // Dec 30
-    { day: 'Tue', date: 31, hours: '10', time: '08:00-18:00' }, // Dec 31 - overtime
-    { day: 'Wed', date: 1, hours: '8', time: '09:00-17:00' },   // Jan 1
-    { day: 'Thu', date: 2, hours: '9', time: '08:00-17:00' },   // Jan 2 - overtime
-    { day: 'Fri', date: 3, hours: '12', time: '22:00-10:00' },  // Jan 3 - overnight + overtime
+    // This week's shifts with different time formats
+    { day: 'Mon', date: 30, hours: '8', time: '09:00-17:00' }, // Standard format
+    { day: 'Tue', date: 31, hours: '10', time: '08:15-18:30' }, // With minutes
+    { day: 'Wed', date: 1, hours: '8', time: '9-17' },         // Short format
+    { day: 'Thu', date: 2, hours: '9', time: '07:45-16:50' },  // Odd minutes
+    { day: 'Fri', date: 3, hours: '12', time: '22:30-10:15' }, // Overnight shift
     
     // Previous data from May 2025 (for comparison)
-    { day: 'Thu', date: 6, hours: '6', time: '07:00-13:00' },
+    { day: 'Thu', date: 6, hours: '6', time: '7:15-13:30' },   // Single digit hour
     { day: 'Fri', date: 7, hours: '8', time: '09:00-17:00' },
-    { day: 'Mon', date: 10, hours: '6', time: '08:00-14:00' },
-    { day: 'Tue', date: 11, hours: '8', time: '09:00-17:00' },
-    { day: 'Thu', date: 13, hours: '7', time: '10:00-17:00' },
+    { day: 'Mon', date: 10, hours: '6', time: '8-14' },        // No colon format
+    { day: 'Tue', date: 11, hours: '8', time: '09:30-17:45' },
+    { day: 'Thu', date: 13, hours: '7', time: '10:15-17:30' },
     { day: 'Fri', date: 14, hours: '4', time: '13:00-17:00' },
     { day: 'Thu', date: 20, hours: '8', time: '22:00-06:00' },
-    { day: 'Fri', date: 21, hours: '4', time: '14:00-18:00' },
+    { day: 'Fri', date: 21, hours: '4', time: '14:30-18:45' },
     { day: 'Sat', date: 22, hours: '4', time: '10:00-14:00' }
   ];
 
@@ -80,6 +84,16 @@ const SchedulePage = () => {
     { label: 'Total', hours: '32 h' },
     { label: 'Horus', hours: '148 h' }
   ];
+
+  const toggleChartView = () => {
+    setShowPrecisionChart(!showPrecisionChart);
+    toast({
+      title: showPrecisionChart ? "Weekly Chart View" : "Monthly Precision View",
+      description: showPrecisionChart 
+        ? "Switched to weekly hours chart" 
+        : "Switched to monthly precision chart with detailed analytics",
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex flex-col">
@@ -171,16 +185,31 @@ const SchedulePage = () => {
             {/* Live Hours Worked Stats */}
             <WorkHoursStats scheduleData={scheduleData} currentDate={currentDate} />
 
-            {/* Live Hours Worked Chart */}
+            {/* Chart with Toggle */}
             <Card className="bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
-                  <Clock className="w-5 h-5" />
-                  Weekly Chart
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                    {showPrecisionChart ? <PieChart className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
+                    {showPrecisionChart ? 'Monthly Analytics' : 'Weekly Chart'}
+                  </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={toggleChartView}
+                    className="flex items-center gap-2"
+                  >
+                    {showPrecisionChart ? <BarChart3 className="w-4 h-4" /> : <PieChart className="w-4 h-4" />}
+                    {showPrecisionChart ? 'Weekly' : 'Monthly'}
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <HoursWorkedChart scheduleData={scheduleData} currentDate={currentDate} />
+                {showPrecisionChart ? (
+                  <MonthlyPrecisionChart scheduleData={scheduleData} currentDate={currentDate} />
+                ) : (
+                  <HoursWorkedChart scheduleData={scheduleData} currentDate={currentDate} />
+                )}
               </CardContent>
             </Card>
 

@@ -27,26 +27,39 @@ const WorkHoursStats = ({ scheduleData = [], currentDate = new Date() }: WorkHou
     calculateStats();
   }, [scheduleData, currentDate]);
 
-  const calculateHoursFromTimeRange = (timeRange: string): number => {
-    if (!timeRange || !timeRange.includes('-')) {
-      // Fallback to parsing hours string if no time range
+  const parseTimeRange = (timeRange: string): number => {
+    if (!timeRange) return 0;
+    
+    // Handle simple hour formats like "6 h" or "8"
+    if (!timeRange.includes('-')) {
       const hoursMatch = timeRange.match(/(\d+\.?\d*)/);
       return hoursMatch ? parseFloat(hoursMatch[1]) : 0;
     }
     
     const [startTime, endTime] = timeRange.split('-');
-    const [startHour, startMin] = startTime.split(':').map(Number);
-    const [endHour, endMin] = endTime.split(':').map(Number);
     
-    let start = startHour + (startMin || 0) / 60;
-    let end = endHour + (endMin || 0) / 60;
+    const parseTime = (time: string): number => {
+      // Handle formats like "7", "07", "7:30", "07:30", "21:09"
+      const cleanTime = time.trim();
+      
+      if (cleanTime.includes(':')) {
+        const [hours, minutes] = cleanTime.split(':').map(Number);
+        return hours + (minutes || 0) / 60;
+      } else {
+        // Single number format like "7" or "07"
+        return parseInt(cleanTime) || 0;
+      }
+    };
     
-    // Handle overnight shifts (e.g., 22:00-06:00)
+    const start = parseTime(startTime);
+    const end = parseTime(endTime);
+    
+    // Handle overnight shifts
     if (end < start) {
-      end += 24;
+      return (24 - start) + end;
     }
     
-    return Math.round((end - start) * 10) / 10;
+    return Math.round((end - start) * 100) / 100;
   };
 
   const calculateStats = () => {
@@ -61,7 +74,7 @@ const WorkHoursStats = ({ scheduleData = [], currentDate = new Date() }: WorkHou
 
     scheduleData.forEach(item => {
       // Calculate hours from time range or fallback to hours string
-      const hoursValue = calculateHoursFromTimeRange(item.time || item.hours);
+      const hoursValue = parseTimeRange(item.time || item.hours);
       
       // Only calculate for current month/year if we're viewing current month
       if (currentMonthYear) {
@@ -92,10 +105,10 @@ const WorkHoursStats = ({ scheduleData = [], currentDate = new Date() }: WorkHou
     });
 
     setStats({
-      day: Math.round(dayHours * 10) / 10,
-      week: Math.round(weekHours * 10) / 10,
-      month: Math.round(monthHours * 10) / 10,
-      total: Math.round(totalHours * 10) / 10
+      day: Math.round(dayHours * 100) / 100,
+      week: Math.round(weekHours * 100) / 100,
+      month: Math.round(monthHours * 100) / 100,
+      total: Math.round(totalHours * 100) / 100
     });
   };
 
@@ -106,7 +119,7 @@ const WorkHoursStats = ({ scheduleData = [], currentDate = new Date() }: WorkHou
   };
 
   const overallStats = [
-    { label: 'Overtime', value: `${Math.max(0, Math.round((stats.week - 40) * 10) / 10)} h` },
+    { label: 'Overtime', value: `${Math.max(0, Math.round((stats.week - 40) * 100) / 100)} h` },
     { label: 'Total Hours', value: `${stats.total} h` },
   ];
 

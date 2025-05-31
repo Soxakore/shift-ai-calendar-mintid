@@ -27,26 +27,39 @@ const HoursWorkedChart = ({ scheduleData = [], currentDate = new Date() }: Hours
     calculateWeeklyData();
   }, [scheduleData, currentDate]);
 
-  const calculateHoursFromTimeRange = (timeRange: string): number => {
-    if (!timeRange || !timeRange.includes('-')) {
-      // Fallback to parsing hours string if no time range
+  const parseTimeRange = (timeRange: string): number => {
+    if (!timeRange) return 0;
+    
+    // Handle simple hour formats like "6 h" or "8"
+    if (!timeRange.includes('-')) {
       const hoursMatch = timeRange.match(/(\d+\.?\d*)/);
       return hoursMatch ? parseFloat(hoursMatch[1]) : 0;
     }
     
     const [startTime, endTime] = timeRange.split('-');
-    const [startHour, startMin] = startTime.split(':').map(Number);
-    const [endHour, endMin] = endTime.split(':').map(Number);
     
-    let start = startHour + (startMin || 0) / 60;
-    let end = endHour + (endMin || 0) / 60;
+    const parseTime = (time: string): number => {
+      // Handle formats like "7", "07", "7:30", "07:30", "21:09"
+      const cleanTime = time.trim();
+      
+      if (cleanTime.includes(':')) {
+        const [hours, minutes] = cleanTime.split(':').map(Number);
+        return hours + (minutes || 0) / 60;
+      } else {
+        // Single number format like "7" or "07"
+        return parseInt(cleanTime) || 0;
+      }
+    };
     
-    // Handle overnight shifts (e.g., 22:00-06:00)
+    const start = parseTime(startTime);
+    const end = parseTime(endTime);
+    
+    // Handle overnight shifts
     if (end < start) {
-      end += 24;
+      return (24 - start) + end;
     }
     
-    return Math.round((end - start) * 10) / 10;
+    return Math.round((end - start) * 100) / 100;
   };
 
   const calculateWeeklyData = () => {
@@ -65,7 +78,7 @@ const HoursWorkedChart = ({ scheduleData = [], currentDate = new Date() }: Hours
 
     scheduleData.forEach(item => {
       // Calculate hours from time range or fallback to hours string
-      const hoursValue = calculateHoursFromTimeRange(item.time || item.hours);
+      const hoursValue = parseTimeRange(item.time || item.hours);
       
       // Create date for this schedule item
       const itemDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), item.date);
@@ -86,10 +99,10 @@ const HoursWorkedChart = ({ scheduleData = [], currentDate = new Date() }: Hours
       }
     });
 
-    // Round hours to 1 decimal place
+    // Round hours to 2 decimal places for precision
     const processedData = weekData.map(item => ({
       ...item,
-      hours: Math.round(item.hours * 10) / 10
+      hours: Math.round(item.hours * 100) / 100
     }));
 
     setData(processedData);
