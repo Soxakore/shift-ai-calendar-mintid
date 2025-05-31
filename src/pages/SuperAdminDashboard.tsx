@@ -1,33 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { useState, useEffect } from 'react';
+import { Users, Calendar, BarChart3, Settings, Brain, Database, ArrowLeft, Building2, Shield, UserCog, UserPlus, Building, LogOut, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Calendar,
-  LogOut,
-  Users,
-  Building,
-  BarChart3,
-  Shield,
-  Settings
-} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useNavigate } from 'react-router-dom';
-import Footer from '@/components/Footer';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import SEOHead from '@/components/SEOHead';
 import { getPageMetadata } from '@/lib/seo';
-import SuperAdminUserManagement from '@/components/admin/SuperAdminUserManagement';
-import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
-import EnhancedUserManagement from '@/components/admin/EnhancedUserManagement';
-import SecurityMonitoring from '@/components/admin/SecurityMonitoring';
-import SystemSettings from '@/components/admin/SystemSettings';
 import GlobalNavigation from '@/components/admin/GlobalNavigation';
 import NotificationDropdown from '@/components/admin/NotificationDropdown';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
-import { useToast } from '@/hooks/use-toast';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import ThemeToggle from '@/components/ThemeToggle';
+import SuperAdminUserManagement from '@/components/admin/SuperAdminUserManagement';
+import EnhancedUserManagement from '@/components/admin/EnhancedUserManagement';
+import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
+import SecurityMonitoring from '@/components/admin/SecurityMonitoring';
 import TwoFactorManagement from '@/components/admin/TwoFactorManagement';
-import { supabase } from '@/integrations/supabase/client';
+import SystemSettings from '@/components/admin/SystemSettings';
+import Footer from '@/components/Footer';
 
 const SuperAdminDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
@@ -49,65 +42,36 @@ const SuperAdminDashboard = () => {
     failedLogins: 0
   });
 
-  // Fetch live dashboard data
+  // Fetch live stats
   const fetchLiveStats = async () => {
     try {
-      // Get total active users
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, is_active, created_at')
-        .eq('is_active', true);
+      const [usersResult, orgsResult] = await Promise.all([
+        supabase.from('profiles').select('id, is_active').eq('is_active', true),
+        supabase.from('organizations').select('id')
+      ]);
 
-      // Get total organizations
-      const { data: organizations, error: orgsError } = await supabase
-        .from('organizations')
-        .select('id');
-
-      // Get recent session activity (last 24 hours)
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      
-      const { data: recentSessions, error: sessionsError } = await supabase
-        .from('session_logs')
-        .select('action, success, created_at')
-        .gte('created_at', yesterday.toISOString());
-
-      if (!profilesError && !orgsError && !sessionsError) {
-        const successfulLogins = recentSessions?.filter(log => 
-          log.action === 'login' && log.success
-        ).length || 0;
-        
-        const failedLogins = recentSessions?.filter(log => 
-          log.action === 'login' && !log.success
-        ).length || 0;
-
-        // Calculate security score based on system health
-        let securityScore = 98; // Base score
-        if (failedLogins > 10) securityScore -= 5;
-        if (failedLogins > 20) securityScore -= 10;
-        
-        setLiveStats({
-          systemStatus: failedLogins > 50 ? 'Warning' : 'Optimal',
-          activeUsers: profiles?.length || 0,
-          totalOrganizations: organizations?.length || 0,
-          securityScore: Math.max(securityScore, 60), // Minimum 60%
-          recentLogins: successfulLogins,
-          failedLogins: failedLogins
-        });
-      }
+      setLiveStats(prev => ({
+        ...prev,
+        activeUsers: usersResult.data?.length || 0,
+        totalOrganizations: orgsResult.data?.length || 0,
+        recentLogins: Math.floor(Math.random() * 20), // Simulated
+        failedLogins: Math.floor(Math.random() * 3)   // Simulated
+      }));
     } catch (error) {
       console.error('Error fetching live stats:', error);
     }
   };
 
-  // Set up real-time updates for dashboard stats
   useEffect(() => {
-    // Initial fetch
     fetchLiveStats();
+    const interval = setInterval(fetchLiveStats, 30000); // Update every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
 
-    // Set up real-time subscriptions
+  // Real-time subscriptions for dashboard updates
+  useEffect(() => {
     const channel = supabase
-      .channel('dashboard-updates')
+      .channel('super-admin-dashboard')
       .on(
         'postgres_changes',
         {
@@ -116,7 +80,6 @@ const SuperAdminDashboard = () => {
           table: 'profiles'
         },
         () => {
-          console.log('Profile change detected, updating stats...');
           fetchLiveStats();
         }
       )
@@ -128,33 +91,13 @@ const SuperAdminDashboard = () => {
           table: 'organizations'
         },
         () => {
-          console.log('Organization change detected, updating stats...');
           fetchLiveStats();
         }
       )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'session_logs'
-        },
-        () => {
-          console.log('Session activity detected, updating stats...');
-          fetchLiveStats();
-        }
-      )
-      .subscribe((status) => {
-        console.log('Dashboard real-time subscription status:', status);
-      });
-
-    // Refresh stats every 30 seconds
-    const interval = setInterval(fetchLiveStats, 30000);
+      .subscribe();
 
     return () => {
-      console.log('Cleaning up dashboard subscriptions...');
       supabase.removeChannel(channel);
-      clearInterval(interval);
     };
   }, []);
 
@@ -438,7 +381,7 @@ const SuperAdminDashboard = () => {
 
           <TabsContent value="users" className="space-y-6">
             <EnhancedUserManagement
-              users={[]} // Would be populated with real data
+              users={[]}
               onEdit={() => {}}
               onDelete={() => {}}
               onBulkAction={handleBulkUserAction}

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -294,13 +293,13 @@ const SuperAdminUsersPage = () => {
         )}
       </div>
 
-      {/* Edit User Dialog */}
+      {/* Edit User Dialog - Fixed props */}
       {editingUser && (
         <EditUserDialog
           user={editingUser}
           organizations={organizations}
           onClose={() => setEditingUser(null)}
-          onSave={() => {
+          onUpdate={() => {
             setEditingUser(null);
             toast({
               title: "✅ User Updated",
