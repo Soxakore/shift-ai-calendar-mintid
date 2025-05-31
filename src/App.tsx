@@ -125,7 +125,7 @@ const App = () => {
                     <Route
                       path="/schedule"
                       element={
-                        <ProtectedRoute requireRole="employee">
+                        <ProtectedRoute requireRole={["employee", "manager", "org_admin"]}>
                           <Suspense fallback={<LoadingSpinner text="Loading Schedule..." />}>
                             <SchedulePage />
                           </Suspense>
@@ -133,7 +133,7 @@ const App = () => {
                       }
                     />
                     
-                    {/* Default redirect */}
+                    {/* Default redirect based on authentication */}
                     <Route path="/" element={<Auth />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>

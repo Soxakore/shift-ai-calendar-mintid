@@ -1,143 +1,190 @@
 
-import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, EyeOff, LogIn, Shield } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Calendar, Shield, Users, Building2, Loader2 } from 'lucide-react';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useToast } from '@/hooks/use-toast';
-import { AuthLayout } from '@/components/auth/AuthLayout';
 
 const Auth = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const { signIn, user, profile } = useSupabaseAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  
+  const { user, profile, signIn } = useSupabaseAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Redirect if already authenticated
-  if (user && profile) {
-    switch (profile.user_type) {
-      case 'super_admin':
-        return <Navigate to="/super-admin" replace />;
-      case 'org_admin':
-        return <Navigate to="/org-admin" replace />;
-      case 'manager':
-        return <Navigate to="/manager" replace />;
-      case 'employee':
-        return <Navigate to="/employee" replace />;
-      default:
-        return <Navigate to="/" replace />;
+  useEffect(() => {
+    if (user && profile) {
+      const from = (location.state as any)?.from?.pathname;
+      if (from) {
+        navigate(from);
+      } else {
+        // Redirect based on user role
+        switch (profile.user_type) {
+          case 'super_admin':
+            navigate('/super-admin');
+            break;
+          case 'org_admin':
+            navigate('/org-admin');
+            break;
+          case 'manager':
+            navigate('/manager');
+            break;
+          case 'employee':
+            navigate('/employee');
+            break;
+          default:
+            navigate('/');
+        }
+      }
     }
-  }
+  }, [user, profile, navigate, location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !password) {
-      toast({
-        title: "❌ Missing Information",
-        description: "Please enter both username and password",
-        variant: "destructive"
-      });
+    if (!username.trim() || !password.trim()) {
+      setError('Please enter both username and password');
       return;
     }
 
-    setLoading(true);
-    const result = await signIn(username, password);
-    
-    if (result.success) {
-      toast({
-        title: "✅ Login Successful",
-        description: "Welcome back to MinTid!",
-      });
-    } else {
-      toast({
-        title: "❌ Login Failed",
-        description: result.error || "Invalid username or password",
-        variant: "destructive"
-      });
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const result = await signIn(username.trim(), password);
+      
+      if (result.success) {
+        toast({
+          title: "✅ Login Successful",
+          description: "Welcome back!",
+        });
+      } else {
+        setError(result.error || 'Login failed. Please check your credentials.');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-    setLoading(false);
   };
 
+  const demoUsers = [
+    { username: 'tiktok', role: 'Super Admin', icon: Shield, color: 'text-red-500' },
+    { username: 'orgadmin', role: 'Organization Admin', icon: Building2, color: 'text-blue-500' },
+    { username: 'manager', role: 'Manager', icon: Users, color: 'text-green-500' },
+    { username: 'employee', role: 'Employee', icon: Users, color: 'text-gray-500' }
+  ];
+
   return (
-    <AuthLayout 
-      title="Sign In to MinTid" 
-      subtitle="Access your work schedule management dashboard"
-    >
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <LogIn className="w-5 h-5" />
-            Employee Login
-          </CardTitle>
-          <CardDescription>
-            Enter your assigned username and password
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="your.username"
-                disabled={loading}
-                autoComplete="username"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+      <div className="w-full max-w-md space-y-6">
+        {/* Header */}
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Calendar className="w-8 h-8 text-green-500" />
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">MinTid</h1>
+          </div>
+          <p className="text-gray-600 dark:text-gray-300">Sign in to your account</p>
+        </div>
+
+        {/* Login Form */}
+        <Card className="dark:bg-gray-800 dark:border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-center dark:text-white">Welcome Back</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              
+              <div className="space-y-2">
+                <Label htmlFor="username" className="dark:text-gray-200">Username</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter your username"
+                  disabled={isLoading}
+                  className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="password" className="dark:text-gray-200">Password</Label>
                 <Input
                   id="password"
-                  type={showPassword ? "text" : "password"}
+                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  disabled={loading}
-                  autoComplete="current-password"
+                  placeholder="Enter your password"
+                  disabled={isLoading}
+                  className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </Button>
               </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full bg-green-500 hover:bg-green-600 text-white"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Signing In...
+                  </>
+                ) : (
+                  'Sign In'
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Demo Accounts */}
+        <Card className="dark:bg-gray-800 dark:border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-center text-sm dark:text-white">Demo Accounts</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {demoUsers.map((demo) => {
+                const IconComponent = demo.icon;
+                return (
+                  <div
+                    key={demo.username}
+                    className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    onClick={() => setUsername(demo.username)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <IconComponent className={`w-4 h-4 ${demo.color}`} />
+                      <span className="text-sm font-medium dark:text-white">{demo.role}</span>
+                    </div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">@{demo.username}</span>
+                  </div>
+                );
+              })}
             </div>
-
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign In"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      {/* Security Notice */}
-      <Card className="bg-yellow-50 border-yellow-200">
-        <CardContent className="pt-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Shield className="h-4 w-4 text-yellow-600" />
-            <h4 className="font-medium text-yellow-800">Security Notice</h4>
-          </div>
-          <p className="text-sm text-yellow-700">
-            Your login credentials are provided by your administrator. 
-            Contact your manager if you need assistance accessing your account.
-          </p>
-        </CardContent>
-      </Card>
-    </AuthLayout>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
+              Click to select username • Password: password123
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 };
 
