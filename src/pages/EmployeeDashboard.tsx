@@ -1,314 +1,243 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
-  Calendar, 
-  Clock,
-  User,
-  Settings, 
-  BarChart3,
-  CheckCircle,
-  Utensils,
-  MapPin,
-  Bell
+  Calendar, LogOut, Clock, User, BarChart3,
+  AlertTriangle, CheckCircle, Activity
 } from 'lucide-react';
-import Footer from '@/components/Footer';
-import SEOHead from '@/components/SEOHead';
-import { getPageMetadata } from '@/lib/seo';
+import { useNavigate } from 'react-router-dom';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useSystemStatus } from '@/hooks/useSystemStatus';
+import { useToast } from '@/hooks/use-toast';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const EmployeeDashboard = () => {
-  const pageMetadata = getPageMetadata('dashboard');
+  const { signOut, profile } = useSupabaseAuth();
+  const { systemStatus } = useSystemStatus();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('overview');
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "✅ Logged Out",
+        description: "You have been successfully logged out.",
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: "❌ Logout Error",
+        description: "There was an error logging out. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <SEOHead
-        title={pageMetadata.title}
-        description={pageMetadata.description}
-        keywords={pageMetadata.keywords}
-        canonicalUrl={pageMetadata.canonical}
-        pageName="dashboard"
-      />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       {/* Header */}
-      <header className="bg-white border-b px-4 sm:px-6 py-4 sticky top-0 z-40">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-gray-500" />
-              <div>
-                <h1 className="text-lg sm:text-2xl font-bold">Welcome to MinTid, Mary</h1>
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-gray-500 text-white text-xs">EMPLOYEE</Badge>
-                  <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600">
-                    <Utensils className="w-4 h-4" />
-                    Kitchen Department
+      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                  <Calendar className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+                    MinTid Employee
+                  </h1>
+                  <div className="flex items-center space-x-2">
+                    <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 shadow-sm">
+                      EMPLOYEE PORTAL
+                    </Badge>
+                    <span className="text-sm text-slate-600 dark:text-slate-400">
+                      {profile?.display_name || 'Employee'}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <div className={`w-2 h-2 rounded-full animate-pulse ${systemStatus.isEmergencyMode ? 'bg-red-500' : 'bg-green-500'}`}></div>
+                      <span className={`text-xs ${systemStatus.isEmergencyMode ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                        {systemStatus.isEmergencyMode ? 'EMERGENCY' : 'LIVE'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+            
+            <div className="flex items-center space-x-3">
+              <ThemeToggle />
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={handleLogout}
+                className="shadow-sm hover:shadow-md transition-shadow text-white"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           </div>
-          <Button variant="outline" size="sm" className="text-xs sm:text-sm">
-            <Settings className="w-4 h-4 mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">My </span>Profile
-          </Button>
         </div>
       </header>
 
+      {/* Emergency Alert */}
+      {systemStatus.isEmergencyMode && (
+        <Alert className="mx-4 mt-4 border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-800">
+          <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+          <AlertDescription className="text-red-800 dark:text-red-200">
+            <strong>🚨 SYSTEM EMERGENCY MODE ACTIVE</strong><br />
+            Please contact your manager. Some features may be temporarily unavailable.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          
-          {/* Current Shift */}
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-blue-700">
-                <Clock className="w-5 h-5" />
-                Current Shift
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="text-sm">
-                  <p className="font-medium">Today's Schedule</p>
-                  <p className="text-2xl font-bold text-blue-600">9 AM - 5 PM</p>
-                </div>
-                <div className="text-sm">
-                  <p className="font-medium">Station Assignment</p>
-                  <p className="text-blue-600">Grill Station</p>
-                </div>
-                <div className="text-sm">
-                  <p className="font-medium">Time Remaining</p>
-                  <p className="text-blue-600">3 hours 24 minutes</p>
-                </div>
-                <Button size="sm" className="w-full bg-blue-500 hover:bg-blue-600">
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Clock Out
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4 lg:w-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+            <TabsTrigger value="overview" className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+              <BarChart3 className="h-4 w-4" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="schedule" className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+              <Clock className="h-4 w-4" />
+              Schedule
+            </TabsTrigger>
+            <TabsTrigger value="timecard" className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+              <Activity className="h-4 w-4" />
+              Timecard
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+              <User className="h-4 w-4" />
+              Profile
+            </TabsTrigger>
+          </TabsList>
 
-          {/* My Schedule */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
-                My Schedule
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="text-sm">
-                  <p className="font-medium">Tomorrow</p>
-                  <p className="text-gray-600">10 AM - 6 PM (Prep Station)</p>
-                </div>
-                <div className="text-sm">
-                  <p className="font-medium">Friday</p>
-                  <p className="text-gray-600">9 AM - 5 PM (Grill Station)</p>
-                </div>
-                <div className="text-sm">
-                  <p className="font-medium">Weekend</p>
-                  <p className="text-gray-600">Off - Enjoy!</p>
-                </div>
-                <Button variant="outline" size="sm" className="w-full">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  View Full Schedule
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <TabsContent value="overview" className="space-y-6">
+            {/* Status Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-blue-900 dark:text-blue-100">Today's Shift</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    <Clock className="h-4 w-4 text-blue-600" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">9:00 - 17:00</div>
+                  <p className="text-xs text-blue-700 dark:text-blue-300">8 hours scheduled</p>
+                </CardContent>
+              </Card>
 
-          {/* My Performance */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />
-                My Performance
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="text-sm">
-                  <p className="font-medium">This Week</p>
-                  <p className="text-gray-600">36 hours worked</p>
-                </div>
-                <div className="text-sm">
-                  <p className="font-medium">Attendance Rate</p>
-                  <p className="text-green-600">100%</p>
-                </div>
-                <div className="text-sm">
-                  <p className="font-medium">Performance Score</p>
-                  <p className="text-green-600">95/100</p>
-                </div>
-                <Button variant="outline" size="sm" className="w-full">
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  View Details
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              <Card className="border-0 shadow-xl bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900 dark:to-green-800">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-green-900 dark:text-green-100">Clock Status</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <Activity className="h-4 w-4 text-green-600" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-900 dark:text-green-100">Clocked In</div>
+                  <p className="text-xs text-green-700 dark:text-green-300">Since 9:02 AM</p>
+                </CardContent>
+              </Card>
 
-          {/* Notifications */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="w-5 h-5" />
-                Notifications
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="text-sm">
-                  <p className="font-medium text-blue-600">Schedule Update</p>
-                  <p className="text-gray-600">Next week schedule available</p>
-                </div>
-                <div className="text-sm">
-                  <p className="font-medium text-green-600">Achievement</p>
-                  <p className="text-gray-600">Perfect attendance this month!</p>
-                </div>
-                <Button variant="outline" size="sm" className="w-full">
-                  <Bell className="w-4 h-4 mr-2" />
-                  View All
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              <Card className="border-0 shadow-xl bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900 dark:to-orange-800">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-orange-900 dark:text-orange-100">Hours This Week</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                    <BarChart3 className="h-4 w-4 text-orange-600" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">32.5</div>
+                  <p className="text-xs text-orange-700 dark:text-orange-300">of 40 hours</p>
+                </CardContent>
+              </Card>
 
-        </div>
-
-        {/* Today's Tasks */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5" />
-              Today's Tasks & Goals
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-              <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-400">
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                  <p className="font-medium text-green-800">Completed</p>
-                </div>
-                <p className="text-green-700">Food safety check</p>
-                <p className="text-green-600 text-xs">Completed at 9:15 AM</p>
-              </div>
-              <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-400">
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-4 h-4 text-blue-600" />
-                  <p className="font-medium text-blue-800">In Progress</p>
-                </div>
-                <p className="text-blue-700">Grill station operations</p>
-                <p className="text-blue-600 text-xs">Started at 11:00 AM</p>
-              </div>
-              <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-400">
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-4 h-4 text-yellow-600" />
-                  <p className="font-medium text-yellow-800">Upcoming</p>
-                </div>
-                <p className="text-yellow-700">Lunch rush prep</p>
-                <p className="text-yellow-600 text-xs">Starts at 2:00 PM</p>
-              </div>
-              <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-400">
-                <div className="flex items-center gap-2 mb-2">
-                  <BarChart3 className="w-4 h-4 text-purple-600" />
-                  <p className="font-medium text-purple-800">Goal</p>
-                </div>
-                <p className="text-purple-700">Complete 50 orders</p>
-                <p className="text-purple-600 text-xs">Progress: 32/50</p>
-              </div>
+              <Card className="border-0 shadow-xl bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">Next Break</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                    <Clock className="h-4 w-4 text-purple-600" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">12:00</div>
+                  <p className="text-xs text-purple-700 dark:text-purple-300">Lunch break</p>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Work Location Info */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="w-5 h-5" />
-                Work Location
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div>
-                  <p className="font-medium">McDonald's - Downtown Branch</p>
-                  <p className="text-sm text-gray-600">123 Main Street, Downtown</p>
-                  <p className="text-sm text-gray-600">Store Manager: Jennifer Smith</p>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-sm font-medium">Department: Kitchen</p>
-                  <p className="text-sm text-gray-600">Department Manager: John Kitchen</p>
-                  <p className="text-sm text-gray-600">Team Size: 24 employees</p>
-                </div>
-                <Button variant="outline" size="sm">
-                  <MapPin className="w-4 h-4 mr-2" />
-                  View Store Directory
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="w-5 h-5" />
-                My Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div>
-                  <p className="font-medium">Employee ID: #MC-K-001</p>
-                  <p className="text-sm text-gray-600">Hire Date: January 15, 2024</p>
-                  <p className="text-sm text-gray-600">Position: Kitchen Staff</p>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-sm font-medium">Contact Information</p>
-                  <p className="text-sm text-gray-600">Email: mary.cook@mcdonalds.com</p>
-                  <p className="text-sm text-gray-600">Phone: (555) 123-4567</p>
-                </div>
-                <Button variant="outline" size="sm">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Update Profile
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Button variant="outline" className="h-16 flex flex-col gap-1">
-                <Clock className="w-5 h-5" />
-                <span className="text-sm">View Schedule</span>
+            {/* Quick Actions */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Button 
+                onClick={() => setActiveTab('schedule')}
+                className="h-20 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                View Schedule
               </Button>
-              <Button variant="outline" className="h-16 flex flex-col gap-1">
-                <BarChart3 className="w-5 h-5" />
-                <span className="text-sm">My Reports</span>
+              <Button 
+                onClick={() => setActiveTab('timecard')}
+                className="h-20 bg-green-600 hover:bg-green-700 text-white"
+              >
+                Manage Timecard
               </Button>
-              <Button variant="outline" className="h-16 flex flex-col gap-1">
-                <Bell className="w-5 h-5" />
-                <span className="text-sm">Notifications</span>
-              </Button>
-              <Button variant="outline" className="h-16 flex flex-col gap-1">
-                <Settings className="w-5 h-5" />
-                <span className="text-sm">Profile Settings</span>
+              <Button 
+                onClick={() => setActiveTab('profile')}
+                className="h-20 bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                Update Profile
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </TabsContent>
+
+          <TabsContent value="schedule" className="space-y-6">
+            <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-slate-900 dark:text-slate-100">My Schedule</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-600 dark:text-slate-400">View your upcoming shifts and schedule here.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="timecard" className="space-y-6">
+            <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-slate-900 dark:text-slate-100">Timecard Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-600 dark:text-slate-400">Clock in/out and manage your time entries.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="profile" className="space-y-6">
+            <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-slate-900 dark:text-slate-100">My Profile</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-600 dark:text-slate-400">Update your personal information and preferences.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
-
-      {/* Footer */}
-      <Footer />
     </div>
   );
 };
