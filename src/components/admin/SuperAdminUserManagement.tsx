@@ -18,6 +18,7 @@ import EditUserDialog from './EditUserDialog';
 import OrganizationsList from './OrganizationsList';
 import UsersList from './UsersList';
 import OrganizationPauseManager from './OrganizationPauseManager';
+import HistoryButton from './HistoryButton';
 
 export default function SuperAdminUserManagement() {
   const { profile } = useSupabaseAuth();
@@ -33,12 +34,16 @@ export default function SuperAdminUserManagement() {
 
   const [users, setUsers] = useState<any[]>([]);
   const [organizations, setOrganizations] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [deletingOrgId, setDeletingOrgId] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     fetchStats();
     fetchUsers();
     fetchOrganizations();
+    fetchDepartments();
   }, []);
 
   const fetchStats = async () => {
@@ -111,16 +116,106 @@ export default function SuperAdminUserManagement() {
     }
   };
 
+  const fetchDepartments = async () => {
+    try {
+      const { data } = await supabase
+        .from('departments')
+        .select('*')
+        .order('name');
+      
+      setDepartments(data || []);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+    }
+  };
+
   const handleEditUser = (user: any) => {
     // Handle edit user logic
     console.log('Edit user:', user);
   };
 
   const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`Are you sure you want to delete "${userName}"? This action cannot be undone.`)) {
+      return;
+    }
+
     setDeletingUserId(userId);
-    // Handle delete user logic
-    console.log('Delete user:', userId, userName);
-    setDeletingUserId(null);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+
+      if (error) {
+        console.error('User deletion error:', error);
+        toast({
+          title: "❌ Error",
+          description: error.message || "Failed to delete user",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "✅ Success",
+        description: `User "${userName}" deleted successfully`,
+      });
+
+      fetchUsers();
+      fetchStats();
+      
+    } catch (error) {
+      console.error('Unexpected error deleting user:', error);
+      toast({
+        title: "❌ Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setDeletingUserId(null);
+    }
+  };
+
+  const handleDeleteOrganization = async (orgId: string, orgName: string) => {
+    if (!confirm(`Are you sure you want to delete "${orgName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingOrgId(orgId);
+    try {
+      const { error } = await supabase
+        .from('organizations')
+        .delete()
+        .eq('id', orgId);
+
+      if (error) {
+        console.error('Organization deletion error:', error);
+        toast({
+          title: "❌ Error",
+          description: error.message || "Failed to delete organization",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "✅ Success",
+        description: `Organization "${orgName}" deleted successfully`,
+      });
+
+      fetchOrganizations();
+      fetchStats();
+      
+    } catch (error) {
+      console.error('Unexpected error deleting organization:', error);
+      toast({
+        title: "❌ Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setDeletingOrgId(null);
+    }
   };
 
   const getUserOrganization = (orgId: string) => {
@@ -128,26 +223,105 @@ export default function SuperAdminUserManagement() {
     return org ? org.name : 'Unknown';
   };
 
-  const handleCreateUser = (userData: any) => {
-    console.log('Create user:', userData);
-    fetchUsers();
-    fetchStats();
-    setActiveView('users');
-    toast({
-      title: "✅ User Created",
-      description: "New user has been successfully created",
-    });
+  const handleCreateUser = async (userData: any) => {
+    setIsCreating(true);
+    try {
+      console.log('Creating user with data:', userData);
+      
+      const { data, error } = await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password,
+        options: {
+          data: {
+            username: userData.username,
+            display_name: userData.display_name,
+            user_type: userData.user_type,
+            organization_id: userData.organization_id,
+            department_id: userData.department_id,
+            created_by: profile?.id
+          }
+        }
+      });
+
+      if (error) {
+        console.error('User creation error:', error);
+        toast({
+          title: "❌ Error",
+          description: error.message || "Failed to create user",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('User created successfully:', data);
+      
+      toast({
+        title: "✅ User Created",
+        description: "New user has been successfully created",
+      });
+
+      fetchUsers();
+      fetchStats();
+      setActiveView('users');
+      
+    } catch (error) {
+      console.error('Unexpected error creating user:', error);
+      toast({
+        title: "❌ Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCreating(false);
+    }
   };
 
-  const handleCreateOrganization = (orgData: any) => {
-    console.log('Create organization:', orgData);
-    fetchOrganizations();
-    fetchStats();
-    setActiveView('organizations');
-    toast({
-      title: "✅ Organization Created",
-      description: "New organization has been successfully created",
-    });
+  const handleCreateOrganization = async (orgData: any) => {
+    setIsCreating(true);
+    try {
+      console.log('Creating organization with data:', orgData);
+      
+      const { data, error } = await supabase
+        .from('organizations')
+        .insert([{
+          name: orgData.name.trim(),
+          description: orgData.description.trim() || null,
+          alias: orgData.alias.trim() || null
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Organization creation error:', error);
+        toast({
+          title: "❌ Error",
+          description: error.message || "Failed to create organization",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('Organization created successfully:', data);
+      
+      toast({
+        title: "✅ Organization Created",
+        description: `Organization "${orgData.name}" created successfully`,
+      });
+
+      fetchOrganizations();
+      fetchStats();
+      setActiveView('organizations');
+      
+    } catch (error) {
+      console.error('Unexpected error creating organization:', error);
+      toast({
+        title: "❌ Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleOrganizationPauseChange = (orgId: string, isPaused: boolean) => {
@@ -167,7 +341,10 @@ export default function SuperAdminUserManagement() {
         return (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">User Management</h2>
+              <div className="flex items-center gap-4">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">User Management</h2>
+                <HistoryButton showBadge={true} />
+              </div>
               <div className="flex gap-2">
                 <Input
                   placeholder="Search users..."
@@ -201,7 +378,10 @@ export default function SuperAdminUserManagement() {
         return (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Organization Management</h2>
+              <div className="flex items-center gap-4">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Organization Management</h2>
+                <HistoryButton showBadge={true} />
+              </div>
               <div className="flex gap-2">
                 <Input
                   placeholder="Search organizations..."
@@ -217,27 +397,16 @@ export default function SuperAdminUserManagement() {
                 </Button>
               </div>
             </div>
-            <div className="space-y-4">
-              {organizations
-                .filter(org => 
-                  org.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  org.alias?.toLowerCase().includes(searchTerm.toLowerCase())
-                )
-                .map((org) => (
-                  <div key={org.id} className="p-4 border rounded-lg bg-white dark:bg-slate-800">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold text-slate-900 dark:text-slate-100">{org.name}</h3>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">{org.description}</p>
-                      </div>
-                      <OrganizationPauseManager 
-                        organization={org}
-                        onPauseChange={handleOrganizationPauseChange}
-                      />
-                    </div>
-                  </div>
-                ))}
-            </div>
+            <OrganizationsList
+              organizations={organizations.filter(org => 
+                org.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                org.alias?.toLowerCase().includes(searchTerm.toLowerCase())
+              )}
+              profiles={users}
+              departments={departments}
+              deletingOrgId={deletingOrgId}
+              onDelete={handleDeleteOrganization}
+            />
           </div>
         );
 
@@ -253,9 +422,10 @@ export default function SuperAdminUserManagement() {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Overview
               </Button>
+              <HistoryButton showBadge={true} />
             </div>
             <CreateUserForm 
-              isCreating={false}
+              isCreating={isCreating}
               organizations={organizations}
               onCancel={() => setActiveView('overview')}
               onSubmit={handleCreateUser}
@@ -275,9 +445,10 @@ export default function SuperAdminUserManagement() {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Overview
               </Button>
+              <HistoryButton showBadge={true} />
             </div>
             <CreateOrganizationForm 
-              isCreating={false}
+              isCreating={isCreating}
               onCancel={() => setActiveView('overview')}
               onSubmit={handleCreateOrganization}
             />
@@ -362,6 +533,11 @@ export default function SuperAdminUserManagement() {
               >
                 Create User
               </Button>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">System Activity & History</h3>
+              <HistoryButton variant="default" size="default" showBadge={true} />
             </div>
 
             {/* System Status Alert */}

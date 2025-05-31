@@ -25,6 +25,7 @@ import SecurityMonitoring from '@/components/admin/SecurityMonitoring';
 import SystemSettings from '@/components/admin/SystemSettings';
 import GlobalNavigation from '@/components/admin/GlobalNavigation';
 import NotificationDropdown from '@/components/admin/NotificationDropdown';
+import HistoryButton from '@/components/admin/HistoryButton';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -33,7 +34,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 const SuperAdminDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
-  const { signOut } = useSupabaseAuth();
+  const { signOut, profile } = useSupabaseAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -239,12 +240,18 @@ const SuperAdminDashboard = () => {
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                       <span className="text-xs text-green-600 dark:text-green-400">LIVE</span>
                     </div>
+                    {profile?.tracking_id && (
+                      <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs px-2 py-1 rounded">
+                        ID: {profile.tracking_id}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
             
             <div className="flex items-center space-x-3">
+              <HistoryButton variant="outline" size="sm" showBadge={true} />
               <NotificationDropdown />
               <ThemeToggle />
               <Button 

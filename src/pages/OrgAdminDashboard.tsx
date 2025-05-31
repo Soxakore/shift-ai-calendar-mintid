@@ -12,12 +12,13 @@ import { useNavigate } from 'react-router-dom';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import HistoryButton from '@/components/admin/HistoryButton';
 
 const OrgAdminDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
   const { t, currentLanguage } = useTranslation();
   const navigate = useNavigate();
-  const { signOut } = useSupabaseAuth();
+  const { signOut, profile } = useSupabaseAuth();
   const { toast } = useToast();
   const [superAdminContext, setSuperAdminContext] = useState<{
     id: string;
@@ -108,12 +109,18 @@ const OrgAdminDashboard = () => {
                     {superAdminContext ? 'SUPER ADMIN VIEW' : 'ORG ADMIN'}
                   </span>
                   <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t('tagline')}</span>
+                  {profile?.tracking_id && (
+                    <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs px-2 py-1 rounded">
+                      ID: {profile.tracking_id}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
           </div>
           
           <div className="flex items-center space-x-3">
+            <HistoryButton variant="outline" size="sm" showBadge={true} />
             <ThemeToggle />
             {!superAdminContext && (
               <Button 
