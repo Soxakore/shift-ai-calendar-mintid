@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +23,9 @@ import Footer from '@/components/Footer';
 import SEOHead from '@/components/SEOHead';
 import { getPageMetadata } from '@/lib/seo';
 import { useToast } from '@/hooks/use-toast';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 const SchedulePage = () => {
   const navigate = useNavigate();
@@ -30,21 +33,132 @@ const SchedulePage = () => {
   const pageMetadata = getPageMetadata('schedule');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isOnline, setIsOnline] = useState(true);
-  const [systemStatus, setSystemStatus] = useState('operational'); // operational, maintenance, emergency
+  const [systemStatus, setSystemStatus] = useState('operational');
+  const [isClockingOut, setIsClockingOut] = useState(false);
+  const [todayTimeLog, setTodayTimeLog] = useState<any>(null);
 
-  // Mock system status (in real app this would come from useSystemStatus hook)
-  React.useEffect(() => {
+  const { profile } = useSupabaseAuth();
+  const { schedules, timeLogs, refetch } = useSupabaseData();
+
+  useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  const handleClockOut = () => {
-    toast({
-      title: "Clock Out Successful",
-      description: "You have been clocked out at " + currentTime.toLocaleTimeString(),
-    });
+  // Real-time subscription
+  useEffect(() => {
+    if (!profile) return;
+
+    const channel = supabase
+      .channel('schedule-page-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'schedules',
+          filter: `user_id=eq.${profile.id}`
+        },
+        () => {
+          refetch();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'time_logs',
+          filter: `user_id=eq.${profile.id}`
+        },
+        () => {
+          refetch();
+          loadTodayTimeLog();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile, refetch]);
+
+  // Load today's time log
+  const loadTodayTimeLog = async () => {
+    if (!profile) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const { data } = await supabase
+      .from('time_logs')
+      .select('*')
+      .eq('user_id', profile.id)
+      .eq('date', today)
+      .single();
+
+    setTodayTimeLog(data);
+  };
+
+  useEffect(() => {
+    loadTodayTimeLog();
+  }, [profile]);
+
+  // Get today's schedule
+  const todaySchedule = schedules.find(schedule => {
+    const scheduleDate = new Date(schedule.date).toDateString();
+    const today = new Date().toDateString();
+    return scheduleDate === today;
+  });
+
+  // Get this week's hours
+  const getThisWeekHours = () => {
+    const today = new Date();
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay() + 1);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+
+    return schedules.filter(schedule => {
+      const scheduleDate = new Date(schedule.date);
+      return scheduleDate >= weekStart && scheduleDate <= weekEnd;
+    }).reduce((total, schedule) => {
+      const start = schedule.start_time.split(':');
+      const end = schedule.end_time.split(':');
+      const startHours = parseInt(start[0]) + parseInt(start[1]) / 60;
+      const endHours = parseInt(end[0]) + parseInt(end[1]) / 60;
+      return total + (endHours - startHours);
+    }, 0);
+  };
+
+  const handleClockOut = async () => {
+    if (!todayTimeLog || todayTimeLog.clock_out || isClockingOut) return;
+
+    setIsClockingOut(true);
+    const now = new Date().toISOString();
+
+    try {
+      const { error } = await supabase
+        .from('time_logs')
+        .update({ clock_out: now })
+        .eq('id', todayTimeLog.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Clock Out Successful",
+        description: "You have been clocked out at " + currentTime.toLocaleTimeString(),
+      });
+    } catch (error) {
+      console.error('Clock out error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to clock out. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsClockingOut(false);
+    }
   };
 
   const handleViewSchedule = () => {
@@ -78,6 +192,8 @@ const SchedulePage = () => {
       description: "Loading store directory...",
     });
   };
+
+  const weeklyHours = getThisWeekHours();
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex flex-col">
@@ -122,22 +238,42 @@ const SchedulePage = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <div className="text-sm">
-                  <p className="font-medium text-gray-900 dark:text-gray-100">Today's Schedule</p>
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">9 AM - 5 PM</p>
-                </div>
-                <div className="text-sm">
-                  <p className="font-medium text-gray-900 dark:text-gray-100">Station Assignment</p>
-                  <p className="text-blue-600 dark:text-blue-400">Grill Station</p>
-                </div>
-                <div className="text-sm">
-                  <p className="font-medium text-gray-900 dark:text-gray-100">Time Remaining</p>
-                  <p className="text-blue-600 dark:text-blue-400">3 hours 24 minutes</p>
-                </div>
-                <Button size="sm" className="w-full bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700" onClick={handleClockOut}>
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Clock Out
-                </Button>
+                {todaySchedule ? (
+                  <>
+                    <div className="text-sm">
+                      <p className="font-medium text-gray-900 dark:text-gray-100">Today's Schedule</p>
+                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                        {todaySchedule.start_time} - {todaySchedule.end_time}
+                      </p>
+                    </div>
+                    <div className="text-sm">
+                      <p className="font-medium text-gray-900 dark:text-gray-100">Station Assignment</p>
+                      <p className="text-blue-600 dark:text-blue-400">Grill Station</p>
+                    </div>
+                    <div className="text-sm">
+                      <p className="font-medium text-gray-900 dark:text-gray-100">Status</p>
+                      <p className="text-blue-600 dark:text-blue-400">
+                        {todayTimeLog?.clock_in && !todayTimeLog?.clock_out ? 'Active' : 
+                         todayTimeLog?.clock_out ? 'Completed' : 'Scheduled'}
+                      </p>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      className="w-full bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700" 
+                      onClick={handleClockOut}
+                      disabled={!todayTimeLog?.clock_in || todayTimeLog?.clock_out || isClockingOut}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      {isClockingOut ? 'Processing...' : 
+                       !todayTimeLog?.clock_in ? 'Not Clocked In' :
+                       todayTimeLog?.clock_out ? 'Completed' : 'Clock Out'}
+                    </Button>
+                  </>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-gray-600 dark:text-gray-400">No shift scheduled for today</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -152,18 +288,20 @@ const SchedulePage = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <div className="text-sm">
-                  <p className="font-medium text-gray-900 dark:text-gray-100">Tomorrow</p>
-                  <p className="text-gray-600 dark:text-gray-400">10 AM - 6 PM (Prep Station)</p>
-                </div>
-                <div className="text-sm">
-                  <p className="font-medium text-gray-900 dark:text-gray-100">Friday</p>
-                  <p className="text-gray-600 dark:text-gray-400">9 AM - 5 PM (Grill Station)</p>
-                </div>
-                <div className="text-sm">
-                  <p className="font-medium text-gray-900 dark:text-gray-100">Weekend</p>
-                  <p className="text-gray-600 dark:text-gray-400">Off - Enjoy!</p>
-                </div>
+                {schedules.slice(0, 3).map((schedule, index) => {
+                  const date = new Date(schedule.date);
+                  const isToday = date.toDateString() === new Date().toDateString();
+                  const dayName = isToday ? 'Today' : date.toLocaleDateString('en-US', { weekday: 'long' });
+                  
+                  return (
+                    <div key={schedule.id} className="text-sm">
+                      <p className="font-medium text-gray-900 dark:text-gray-100">{dayName}</p>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        {schedule.start_time} - {schedule.end_time} ({schedule.shift || 'Regular'})
+                      </p>
+                    </div>
+                  );
+                })}
                 <Button variant="outline" size="sm" className="w-full border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700" onClick={handleViewSchedule}>
                   <Calendar className="w-4 h-4 mr-2" />
                   View Full Calendar
@@ -184,11 +322,13 @@ const SchedulePage = () => {
               <div className="space-y-3">
                 <div className="text-sm">
                   <p className="font-medium text-gray-900 dark:text-gray-100">This Week</p>
-                  <p className="text-gray-600 dark:text-gray-400">36 hours worked</p>
+                  <p className="text-gray-600 dark:text-gray-400">{Math.round(weeklyHours)} hours worked</p>
                 </div>
                 <div className="text-sm">
                   <p className="font-medium text-gray-900 dark:text-gray-100">Attendance Rate</p>
-                  <p className="text-green-600 dark:text-green-400">100%</p>
+                  <p className="text-green-600 dark:text-green-400">
+                    {timeLogs.length > 0 ? '100%' : 'No data'}
+                  </p>
                 </div>
                 <div className="text-sm">
                   <p className="font-medium text-gray-900 dark:text-gray-100">Performance Score</p>
@@ -315,14 +455,22 @@ const SchedulePage = () => {
             <CardContent>
               <div className="space-y-3">
                 <div>
-                  <p className="font-medium text-gray-900 dark:text-gray-100">Employee ID: #MC-K-001</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Hire Date: January 15, 2024</p>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">
+                    Employee ID: {profile?.tracking_id || '#MC-K-001'}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Hire Date: {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'January 15, 2024'}
+                  </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Position: Kitchen Staff</p>
                 </div>
                 <div className="bg-gray-50 dark:bg-slate-700 p-3 rounded-lg">
                   <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Contact Information</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Email: mary.cook@mcdonalds.com</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Phone: (555) 123-4567</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Username: {profile?.username || 'mary.cook'}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Phone: {profile?.phone_number || '(555) 123-4567'}
+                  </p>
                 </div>
                 <Button variant="outline" size="sm" className="border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700" onClick={handleUpdateProfile}>
                   <Settings className="w-4 h-4 mr-2" />
@@ -361,7 +509,6 @@ const SchedulePage = () => {
         </Card>
       </main>
 
-      {/* Footer */}
       <Footer />
     </div>
   );

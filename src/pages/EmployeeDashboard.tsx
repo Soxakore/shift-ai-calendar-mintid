@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,31 +30,170 @@ import WorkHoursStats from '@/components/WorkHoursStats';
 import HoursWorkedChart from '@/components/HoursWorkedChart';
 import MonthlyPrecisionChart from '@/components/MonthlyPrecisionChart';
 import EnhancedScheduleCalendar from '@/components/EnhancedScheduleCalendar';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 const EmployeeDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
   const { toast } = useToast();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isOnline, setIsOnline] = useState(true);
-  const [systemStatus, setSystemStatus] = useState('operational'); // operational, maintenance, emergency
+  const [systemStatus, setSystemStatus] = useState('operational');
   const navigate = useNavigate();
-  const [currentDate, setCurrentDate] = useState(new Date()); // Current month (December 2024)
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [showPrecisionChart, setShowPrecisionChart] = useState(false);
+  const [isClockingIn, setIsClockingIn] = useState(false);
+  const [todayTimeLog, setTodayTimeLog] = useState<any>(null);
 
-  // Mock system status (in real app this would come from useSystemStatus hook)
-  React.useEffect(() => {
+  const { profile } = useSupabaseAuth();
+  const { schedules, timeLogs, refetch } = useSupabaseData();
+
+  useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  const handleClockOut = () => {
-    toast({
-      title: "Clock Out Successful",
-      description: "You have been clocked out at " + currentTime.toLocaleTimeString(),
-    });
+  // Real-time subscription for schedules and time logs
+  useEffect(() => {
+    if (!profile) return;
+
+    const channel = supabase
+      .channel('employee-dashboard-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'schedules',
+          filter: `user_id=eq.${profile.id}`
+        },
+        () => {
+          refetch();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'time_logs',
+          filter: `user_id=eq.${profile.id}`
+        },
+        () => {
+          refetch();
+          loadTodayTimeLog();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile, refetch]);
+
+  // Load today's time log
+  const loadTodayTimeLog = async () => {
+    if (!profile) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const { data } = await supabase
+      .from('time_logs')
+      .select('*')
+      .eq('user_id', profile.id)
+      .eq('date', today)
+      .single();
+
+    setTodayTimeLog(data);
   };
+
+  useEffect(() => {
+    loadTodayTimeLog();
+  }, [profile]);
+
+  // Convert Supabase schedule data to component format
+  const scheduleData = schedules.map(schedule => ({
+    day: new Date(schedule.date).toLocaleDateString('en-US', { weekday: 'short' }),
+    date: new Date(schedule.date).getDate(),
+    hours: calculateHours(schedule.start_time, schedule.end_time).toString(),
+    time: `${schedule.start_time}-${schedule.end_time}`
+  }));
+
+  const calculateHours = (startTime: string, endTime: string): number => {
+    const [startHour, startMin] = startTime.split(':').map(Number);
+    const [endHour, endMin] = endTime.split(':').map(Number);
+    
+    const start = startHour + (startMin || 0) / 60;
+    let end = endHour + (endMin || 0) / 60;
+    
+    if (end < start) {
+      end += 24;
+    }
+    
+    return Math.round((end - start) * 10) / 10;
+  };
+
+  const handleClockInOut = async () => {
+    if (!profile || isClockingIn) return;
+
+    setIsClockingIn(true);
+    const now = new Date().toISOString();
+    const today = new Date().toISOString().split('T')[0];
+
+    try {
+      if (!todayTimeLog) {
+        // Clock in
+        const { error } = await supabase
+          .from('time_logs')
+          .insert({
+            user_id: profile.id,
+            organization_id: profile.organization_id,
+            department_id: profile.department_id,
+            date: today,
+            clock_in: now,
+            method: 'manual'
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Clocked In Successfully",
+          description: `You clocked in at ${currentTime.toLocaleTimeString()}`,
+        });
+      } else if (!todayTimeLog.clock_out) {
+        // Clock out
+        const { error } = await supabase
+          .from('time_logs')
+          .update({ clock_out: now })
+          .eq('id', todayTimeLog.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Clocked Out Successfully",
+          description: `You clocked out at ${currentTime.toLocaleTimeString()}`,
+        });
+      }
+    } catch (error) {
+      console.error('Clock in/out error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to clock in/out. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsClockingIn(false);
+    }
+  };
+
+  // Get today's schedule
+  const todaySchedule = schedules.find(schedule => {
+    const scheduleDate = new Date(schedule.date).toDateString();
+    const today = new Date().toDateString();
+    return scheduleDate === today;
+  });
 
   const handleViewSchedule = () => {
     navigate('/schedule');
@@ -109,31 +248,9 @@ const EmployeeDashboard = () => {
 
   const monthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-  // Enhanced mock schedule data with various time formats for testing
-  const scheduleData = [
-    // This week's shifts with different time formats
-    { day: 'Mon', date: 30, hours: '8', time: '09:00-17:00' }, // Standard format
-    { day: 'Tue', date: 31, hours: '10', time: '08:15-18:30' }, // With minutes
-    { day: 'Wed', date: 1, hours: '8', time: '9-17' },         // Short format
-    { day: 'Thu', date: 2, hours: '9', time: '07:45-16:50' },  // Odd minutes
-    { day: 'Fri', date: 3, hours: '12', time: '22:30-10:15' }, // Overnight shift
-    
-    // Previous data from May 2025 (for comparison)
-    { day: 'Thu', date: 6, hours: '6', time: '7:15-13:30' },   // Single digit hour
-    { day: 'Fri', date: 7, hours: '8', time: '09:00-17:00' },
-    { day: 'Mon', date: 10, hours: '6', time: '8-14' },        // No colon format
-    { day: 'Tue', date: 11, hours: '8', time: '09:30-17:45' },
-    { day: 'Thu', date: 13, hours: '7', time: '10:15-17:30' },
-    { day: 'Fri', date: 14, hours: '4', time: '13:00-17:00' },
-    { day: 'Thu', date: 20, hours: '8', time: '22:00-06:00' },
-    { day: 'Fri', date: 21, hours: '4', time: '14:30-18:45' },
-    { day: 'Sat', date: 22, hours: '4', time: '10:00-14:00' }
-  ];
-
-  // Mock schedule data - now with time ranges for better calculation
   const urloardData = [
     { label: 'Total', hours: '32 h' },
-    { label: 'Horus', hours: '148 h' }
+    { label: 'Hours', hours: '148 h' }
   ];
 
   const toggleChartView = () => {
@@ -143,6 +260,48 @@ const EmployeeDashboard = () => {
       description: showPrecisionChart 
         ? "Switched to weekly hours chart" 
         : "Switched to monthly precision chart with detailed analytics",
+    });
+  };
+
+  const handleClockOut = () => {
+    toast({
+      title: "Clock Out Successful",
+      description: "You have been clocked out at " + currentTime.toLocaleTimeString(),
+    });
+  };
+
+  const handleViewReports = () => {
+    toast({
+      title: "Reports Opened",
+      description: "Loading your performance reports...",
+    });
+  };
+
+  const handleViewNotifications = () => {
+    toast({
+      title: "Notifications",
+      description: "You have 2 new notifications",
+    });
+  };
+
+  const handleUpdateProfile = () => {
+    toast({
+      title: "Profile Settings",
+      description: "Opening profile settings...",
+    });
+  };
+
+  const handleViewDirectory = () => {
+    toast({
+      title: "Store Directory",
+      description: "Loading store directory...",
+    });
+  };
+
+  const handleUploadImage = () => {
+    toast({
+      title: "Upload Schedule",
+      description: "Opening image upload for schedule...",
     });
   };
 
@@ -184,7 +343,7 @@ const EmployeeDashboard = () => {
             <div className="flex items-center gap-2 sm:gap-3">
               <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-gray-500 dark:text-gray-400" />
               <div>
-                <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Welcome to MinTid, Mary</h1>
+                <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Welcome to MinTid, {profile?.display_name || 'Employee'}</h1>
                 <div className="flex items-center gap-2">
                   <Badge className="bg-gray-500 text-white text-xs">EMPLOYEE</Badge>
                   <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
@@ -208,12 +367,6 @@ const EmployeeDashboard = () => {
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">My Schedule</h1>
-          <p className="text-gray-600 dark:text-gray-400">View and manage your work schedule</p>
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Calendar Section */}
           <div className="lg:col-span-2">
@@ -270,6 +423,63 @@ const EmployeeDashboard = () => {
 
           {/* Stats Section */}
           <div className="space-y-6">
+            {/* Current Shift with Clock In/Out */}
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-700">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                  <Clock className="w-5 h-5" />
+                  Current Shift
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {todaySchedule ? (
+                    <>
+                      <div className="text-sm">
+                        <p className="font-medium text-gray-900 dark:text-gray-100">Today's Schedule</p>
+                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                          {todaySchedule.start_time} - {todaySchedule.end_time}
+                        </p>
+                      </div>
+                      <div className="text-sm">
+                        <p className="font-medium text-gray-900 dark:text-gray-100">Status</p>
+                        <p className="text-blue-600 dark:text-blue-400">
+                          {todayTimeLog?.clock_in && !todayTimeLog?.clock_out ? 'Clocked In' : 
+                           todayTimeLog?.clock_out ? 'Completed' : 'Not Started'}
+                        </p>
+                      </div>
+                      {todayTimeLog?.clock_in && (
+                        <div className="text-sm">
+                          <p className="font-medium text-gray-900 dark:text-gray-100">
+                            {todayTimeLog.clock_out ? 'Worked' : 'Started at'}
+                          </p>
+                          <p className="text-blue-600 dark:text-blue-400">
+                            {new Date(todayTimeLog.clock_in).toLocaleTimeString()}
+                            {todayTimeLog.clock_out && ` - ${new Date(todayTimeLog.clock_out).toLocaleTimeString()}`}
+                          </p>
+                        </div>
+                      )}
+                      <Button 
+                        size="sm" 
+                        className="w-full bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700"
+                        onClick={handleClockInOut}
+                        disabled={isClockingIn}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        {isClockingIn ? 'Processing...' : 
+                         !todayTimeLog ? 'Clock In' :
+                         !todayTimeLog.clock_out ? 'Clock Out' : 'Completed'}
+                      </Button>
+                    </>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-gray-600 dark:text-gray-400">No shift scheduled for today</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Live Hours Worked Stats */}
             <WorkHoursStats scheduleData={scheduleData} currentDate={currentDate} />
 
@@ -336,34 +546,10 @@ const EmployeeDashboard = () => {
                 </Button>
               </CardContent>
             </Card>
-
-            {/* Mobile Time Period Selector */}
-            <div className="lg:hidden">
-              <Card className="bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
-                <CardContent className="p-4">
-                  <div className="grid grid-cols-4 gap-2">
-                    {['Day', 'Week', 'Month', 'Year'].map((period) => (
-                      <Button
-                        key={period}
-                        variant={period === 'Month' ? 'default' : 'outline'}
-                        size="sm"
-                        className={period === 'Month' 
-                          ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                          : 'border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300'
-                        }
-                      >
-                        {period}
-                      </Button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </div>
         </div>
       </main>
 
-      {/* Footer */}
       <Footer />
     </div>
   );
