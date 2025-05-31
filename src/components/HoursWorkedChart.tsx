@@ -2,79 +2,95 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, ResponsiveContainer } from 'recharts';
-import { getShifts } from '@/lib/storage';
-import { startOfWeek, eachDayOfInterval, endOfWeek, format, isSameDay } from 'date-fns';
+
+interface ScheduleItem {
+  day: string;
+  date: number;
+  hours: string;
+  time: string;
+}
 
 interface ChartData {
   day: string;
   hours: number;
 }
 
-const HoursWorkedChart = () => {
+interface HoursWorkedChartProps {
+  scheduleData?: ScheduleItem[];
+  currentDate?: Date;
+}
+
+const HoursWorkedChart = ({ scheduleData = [], currentDate = new Date() }: HoursWorkedChartProps) => {
   const [data, setData] = useState<ChartData[]>([]);
 
   useEffect(() => {
     calculateWeeklyData();
-  }, []);
+  }, [scheduleData, currentDate]);
 
   const calculateWeeklyData = () => {
-    const shifts = getShifts();
-    const now = new Date();
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+    const today = new Date();
+    const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     
-    const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
-    
-    const weekData = weekDays.map(day => {
-      const dayShifts = shifts.filter(shift => {
-        const shiftDate = new Date(shift.date);
-        return isSameDay(shiftDate, day);
-      });
+    // Initialize week data with 0 hours
+    const weekData: ChartData[] = weekDays.map(day => ({
+      day,
+      hours: 0
+    }));
 
-      const totalHours = dayShifts.reduce((sum, shift) => {
-        const start = new Date(`${shift.date}T${shift.startTime}`);
-        const end = new Date(`${shift.date}T${shift.endTime}`);
-        
-        // Handle overnight shifts
-        if (end < start) {
-          end.setDate(end.getDate() + 1);
+    // Calculate current week dates
+    const currentWeekStart = new Date(today);
+    currentWeekStart.setDate(today.getDate() - today.getDay() + 1); // Monday
+
+    scheduleData.forEach(item => {
+      // Parse hours from the hours string (e.g., "6 h" -> 6)
+      const hoursValue = parseFloat(item.hours.replace(' h', '')) || 0;
+      
+      // Create date for this schedule item
+      const itemDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), item.date);
+      
+      // Check if this item falls within the current week
+      const dayOfWeek = itemDate.getDay();
+      const mondayBasedDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday=0 to Sunday=6 in Monday-first week
+      
+      // Check if item is in current week
+      const weekStart = new Date(currentWeekStart);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      
+      if (itemDate >= weekStart && itemDate <= weekEnd) {
+        if (weekData[mondayBasedDay]) {
+          weekData[mondayBasedDay].hours += hoursValue;
         }
-        
-        const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-        return sum + hours;
-      }, 0);
-
-      return {
-        day: format(day, 'EEE'), // Mon, Tue, etc.
-        hours: Math.round(totalHours * 10) / 10
-      };
+      }
     });
 
-    setData(weekData);
+    // Round hours to 1 decimal place
+    const processedData = weekData.map(item => ({
+      ...item,
+      hours: Math.round(item.hours * 10) / 10
+    }));
+
+    setData(processedData);
   };
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="h-32">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data}>
-              <XAxis 
-                dataKey="day" 
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12, fill: '#6B7280' }}
-              />
-              <Bar 
-                dataKey="hours" 
-                fill="#3B82F6"
-                radius={[2, 2, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="h-32">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data}>
+          <XAxis 
+            dataKey="day" 
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 12, fill: '#6B7280' }}
+          />
+          <Bar 
+            dataKey="hours" 
+            fill="#3B82F6"
+            radius={[2, 2, 0, 0]}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 };
 

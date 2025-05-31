@@ -2,10 +2,20 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { getShifts } from '@/lib/storage';
-import { startOfDay, startOfWeek, startOfMonth, isWithinInterval } from 'date-fns';
 
-const WorkHoursStats = () => {
+interface ScheduleItem {
+  day: string;
+  date: number;
+  hours: string;
+  time: string;
+}
+
+interface WorkHoursStatsProps {
+  scheduleData?: ScheduleItem[];
+  currentDate?: Date;
+}
+
+const WorkHoursStats = ({ scheduleData = [], currentDate = new Date() }: WorkHoursStatsProps) => {
   const [stats, setStats] = useState({
     day: 0,
     week: 0,
@@ -15,47 +25,47 @@ const WorkHoursStats = () => {
 
   useEffect(() => {
     calculateStats();
-  }, []);
+  }, [scheduleData, currentDate]);
 
   const calculateStats = () => {
-    const shifts = getShifts();
-    const now = new Date();
-    
-    const dayStart = startOfDay(now);
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
-    const monthStart = startOfMonth(now);
+    const today = new Date();
+    const currentMonthYear = currentDate.getMonth() === today.getMonth() && 
+                           currentDate.getFullYear() === today.getFullYear();
 
     let dayHours = 0;
     let weekHours = 0;
     let monthHours = 0;
     let totalHours = 0;
 
-    shifts.forEach(shift => {
-      const shiftDate = new Date(shift.date);
-      const start = new Date(`${shift.date}T${shift.startTime}`);
-      const end = new Date(`${shift.date}T${shift.endTime}`);
+    scheduleData.forEach(item => {
+      // Parse hours from the hours string (e.g., "6 h" -> 6)
+      const hoursValue = parseFloat(item.hours.replace(' h', '')) || 0;
       
-      // Handle overnight shifts
-      if (end < start) {
-        end.setDate(end.getDate() + 1);
-      }
-      
-      const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-      totalHours += hours;
+      // Only calculate for current month/year if we're viewing current month
+      if (currentMonthYear) {
+        const itemDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), item.date);
+        
+        totalHours += hoursValue;
+        monthHours += hoursValue;
 
-      // Check if shift is within current day
-      if (isWithinInterval(shiftDate, { start: dayStart, end: now })) {
-        dayHours += hours;
-      }
+        // Check if it's today
+        if (item.date === today.getDate()) {
+          dayHours += hoursValue;
+        }
 
-      // Check if shift is within current week
-      if (isWithinInterval(shiftDate, { start: weekStart, end: now })) {
-        weekHours += hours;
-      }
+        // Check if it's in current week (simple week calculation)
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay() + 1); // Monday
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6); // Sunday
 
-      // Check if shift is within current month
-      if (isWithinInterval(shiftDate, { start: monthStart, end: now })) {
-        monthHours += hours;
+        if (itemDate >= weekStart && itemDate <= weekEnd) {
+          weekHours += hoursValue;
+        }
+      } else {
+        // For other months, just add to total and month
+        totalHours += hoursValue;
+        monthHours += hoursValue;
       }
     });
 

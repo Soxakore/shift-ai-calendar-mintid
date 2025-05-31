@@ -57,13 +57,13 @@ const SchedulePage = () => {
 
   // Mock schedule data
   const scheduleData = [
-    { day: 'Thu', date: 6, hours: '6 h', time: '20:50-03' },
-    { day: 'Fri', date: 7, hours: '84 h', time: '20:50-fri' },
-    { day: 'Mon', date: 10, hours: '6 h', time: '20:50-09' },
-    { day: 'Tue', date: 11, hours: '16 h', time: '20:50-08' },
-    { day: 'Thu', date: 13, hours: '30 h', time: '28:30-fri' },
+    { day: 'Thu', date: 6, hours: '6', time: '20:50-03' },
+    { day: 'Fri', date: 7, hours: '8', time: '20:50-fri' },
+    { day: 'Mon', date: 10, hours: '6', time: '20:50-09' },
+    { day: 'Tue', date: 11, hours: '8', time: '20:50-08' },
+    { day: 'Thu', date: 13, hours: '7', time: '28:30-fri' },
     { day: 'Fri', date: 14, hours: '4', time: '' },
-    { day: 'Thu', date: 20, hours: '26 h', time: '22:30-fri' },
+    { day: 'Thu', date: 20, hours: '8', time: '22:30-fri' },
     { day: 'Fri', date: 21, hours: '4', time: '' },
     { day: 'Sat', date: 22, hours: '4', time: '' },
     { day: 'Mon', date: 31, hours: '3', time: '' }
@@ -168,7 +168,7 @@ const SchedulePage = () => {
                             {scheduleItem && (
                               <div className="mt-1">
                                 <div className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-center">
-                                  <div className="font-medium">{scheduleItem.hours}</div>
+                                  <div className="font-medium">{scheduleItem.hours}h</div>
                                   {scheduleItem.time && (
                                     <div className="text-xs">{scheduleItem.time}</div>
                                   )}
@@ -200,7 +200,7 @@ const SchedulePage = () => {
           {/* Stats Section */}
           <div className="space-y-6">
             {/* Live Hours Worked Stats */}
-            <WorkHoursStats />
+            <WorkHoursStats scheduleData={scheduleData} currentDate={currentDate} />
 
             {/* Live Hours Worked Chart */}
             <Card className="bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
@@ -211,7 +211,7 @@ const SchedulePage = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <HoursWorkedChart />
+                <HoursWorkedChart scheduleData={scheduleData} currentDate={currentDate} />
               </CardContent>
             </Card>
 
