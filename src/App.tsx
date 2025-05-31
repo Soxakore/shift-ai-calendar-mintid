@@ -24,7 +24,8 @@ import {
   LazySuperAdminDashboard,
   LazyOrgAdminDashboard,
   LazyManagerDashboard,
-  LazyEmployeeDashboard
+  LazyEmployeeDashboard,
+  LazyUnifiedLogin
 } from "@/components/LazyComponents";
 
 // Initialize analytics and error tracking
