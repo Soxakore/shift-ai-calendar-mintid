@@ -1,9 +1,13 @@
+
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import { initializeStorage } from './lib/storage'
 import './index.css'
 
+console.log('🎬 main.tsx starting...');
+
 // Initialize storage with sample data
+console.log('💾 Initializing storage...');
 initializeStorage();
 
 // Register service worker for offline functionality
@@ -19,4 +23,11 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   });
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+console.log('🚀 Creating React root...');
+const rootElement = document.getElementById("root");
+if (!rootElement) {
+  console.error('❌ Root element not found!');
+} else {
+  console.log('✅ Root element found, rendering App...');
+  createRoot(rootElement).render(<App />);
+}

@@ -1,3 +1,4 @@
+
 import { Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -43,9 +44,8 @@ import { initPerformanceMonitoring, analyzeBundlePerformance } from "@/lib/perfo
 
 // Initialize performance monitoring
 // Temporarily disabled for debugging
+console.log('🚀 App starting up...');
 console.log('Performance monitoring disabled for debugging');
-// initPerformanceMonitoring();
-// analyzeBundlePerformance();
 
 const queryClient = new QueryClient();
 
@@ -61,16 +61,15 @@ const AnalyticsTracker = () => {
 
 const App = () => {
   useEffect(() => {
-    // Initialize analytics and error tracking
-    // Temporarily disabled for debugging
+    console.log('🎯 App useEffect running...');
     console.log('App initialized - analytics and sentry disabled for debugging');
-    // initGA();
-    // initSentry();
   }, []);
+
+  console.log('📱 App component rendering...');
 
   return (
     <HelmetProvider>
-      <ErrorBoundary>
+      <ErrorBoundary identifier="app-root" level="critical">
         <QueryClientProvider client={queryClient}>
           <ThemeProvider defaultTheme="system" storageKey="mintid-ui-theme">
             <SupabaseAuthProvider>
@@ -84,7 +83,14 @@ const App = () => {
                     <Route path="/login" element={<Login />} />
                     <Route path="/login-select" element={<LoginSelector />} />
                     <Route path="/auth" element={<Auth />} />
-                    <Route path="/setup" element={<SuperAdminInitial />} />
+                    <Route 
+                      path="/setup" 
+                      element={
+                        <ErrorBoundary identifier="setup-page" level="page">
+                          <SuperAdminInitial />
+                        </ErrorBoundary>
+                      } 
+                    />
                     
                     {/* Role-specific login routes for enhanced security */}
                     <Route path="/login/super-admin" element={<SuperAdminLogin />} />
