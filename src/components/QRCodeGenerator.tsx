@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,12 +15,14 @@ interface QRCodeGeneratorProps {
 
 interface QRCodeData {
   id: string;
-  user_id: string;
-  qr_code: string;
-  expires_at: string;
+  code: string;
+  name: string;
+  location: string;
+  organization_id: string;
+  department_id?: string;
   is_active: boolean;
   created_at: string;
-  used_at?: string;
+  updated_at: string;
 }
 
 const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ 
@@ -38,7 +41,6 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
       const { data, error } = await supabase
         .from('qr_codes')
         .select('*')
-        .eq('user_id', employeeId)
         .eq('organization_id', organizationId)
         .order('created_at', { ascending: false });
 
@@ -56,16 +58,14 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
     try {
       // Generate a unique QR code string
       const qrString = `mintid-qr-${employeeId}-${Date.now()}`;
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 30); // 30 days validity
 
       const { data, error } = await supabase
         .from('qr_codes')
         .insert({
-          user_id: employeeId,
+          code: qrString,
+          name: `QR Code for ${employeeName || 'Employee'}`,
+          location: 'Generated',
           organization_id: organizationId,
-          qr_code: qrString,
-          expires_at: expiresAt.toISOString(),
           is_active: true
         })
         .select()
@@ -75,7 +75,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
 
       toast({
         title: "✅ QR Code Generated",
-        description: "New QR code created with 30-day validity"
+        description: "New QR code created successfully"
       });
 
       loadQRCodes();
@@ -142,7 +142,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
 
   useEffect(() => {
     loadQRCodes();
-  }, [employeeId, loadQRCodes]);
+  }, [employeeId, organizationId]);
 
   return (
     <div className="space-y-4">
@@ -164,7 +164,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
             ) : (
               <RefreshCw className="w-4 h-4 mr-2" />
             )}
-            Generate New QR Code (30 days)
+            Generate New QR Code
           </Button>
 
           <div className="space-y-3">
@@ -176,32 +176,20 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
                       <Badge variant={qr.is_active ? 'default' : 'secondary'}>
                         {qr.is_active ? 'Active' : 'Inactive'}
                       </Badge>
-                      {qr.used_at && (
-                        <Badge variant="outline">Used</Badge>
-                      )}
                     </div>
                     <div className="text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
                         Created: {new Date(qr.created_at).toLocaleDateString()}
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        Expires: {new Date(qr.expires_at).toLocaleDateString()}
-                      </div>
-                      {qr.used_at && (
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          Used: {new Date(qr.used_at).toLocaleDateString()}
-                        </div>
-                      )}
+                      <div className="font-medium">{qr.name}</div>
                     </div>
                   </div>
                   <div className="flex gap-2">
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => downloadQRCode(qr.qr_code)}
+                      onClick={() => downloadQRCode(qr.code)}
                     >
                       <Download className="w-4 h-4" />
                     </Button>
@@ -223,7 +211,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
               <div className="text-center py-8 text-muted-foreground">
                 <div className="text-4xl mb-2">📱</div>
                 <p>No QR codes generated yet</p>
-                <p className="text-sm">Generate a QR code for one-time employee login</p>
+                <p className="text-sm">Generate a QR code for employee access</p>
               </div>
             )}
           </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,13 +15,10 @@ interface PasswordHistoryProps {
 interface PasswordHistoryEntry {
   id: string;
   user_id: string;
-  changed_by: string;
-  action: string;
-  organization_id: string;
+  action_type: string;
   created_at: string;
-  updated_at: string;
+  metadata?: any;
   changed_by_name?: string;
-  changed_by_profile?: { display_name: string };
 }
 
 const PasswordHistory: React.FC<PasswordHistoryProps> = ({ 
@@ -36,21 +34,19 @@ const PasswordHistory: React.FC<PasswordHistoryProps> = ({
     
     setLoading(true);
     try {
+      // Use audit_logs table to track password-related activities
       const { data, error } = await supabase
-        .from('password_histories')
-        .select(`
-          *,
-          changed_by_profile:profiles!password_histories_changed_by_fkey(display_name)
-        `)
-        .eq('user_id', employeeId)
-        .eq('organization_id', organizationId)
+        .from('audit_logs')
+        .select('*')
+        .eq('target_user_id', employeeId)
+        .in('action_type', ['password_created', 'password_changed', 'password_reset'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       const formattedHistory = data.map(entry => ({
         ...entry,
-        changed_by_name: entry.changed_by_profile?.display_name || 'System'
+        changed_by_name: 'System' // Default since we don't have profile joins here
       }));
 
       setHistory(formattedHistory);
@@ -68,11 +64,11 @@ const PasswordHistory: React.FC<PasswordHistoryProps> = ({
 
   const getActionBadgeVariant = (action: string) => {
     switch (action) {
-      case 'created':
+      case 'password_created':
         return 'default';
-      case 'changed':
+      case 'password_changed':
         return 'secondary';
-      case 'reset':
+      case 'password_reset':
         return 'destructive';
       default:
         return 'outline';
@@ -81,11 +77,11 @@ const PasswordHistory: React.FC<PasswordHistoryProps> = ({
 
   const getActionIcon = (action: string) => {
     switch (action) {
-      case 'created':
+      case 'password_created':
         return '🆕';
-      case 'changed':
+      case 'password_changed':
         return '🔄';
-      case 'reset':
+      case 'password_reset':
         return '🔒';
       default:
         return '📝';
@@ -96,7 +92,7 @@ const PasswordHistory: React.FC<PasswordHistoryProps> = ({
     const csvData = history.map(entry => ({
       Date: new Date(entry.created_at).toLocaleDateString(),
       Time: new Date(entry.created_at).toLocaleTimeString(),
-      Action: entry.action,
+      Action: entry.action_type,
       'Changed By': entry.changed_by_name || 'System'
     }));
 
@@ -118,7 +114,7 @@ const PasswordHistory: React.FC<PasswordHistoryProps> = ({
 
   useEffect(() => {
     loadPasswordHistory();
-  }, [employeeId, organizationId, loadPasswordHistory]);
+  }, [employeeId, organizationId]);
 
   return (
     <div className="space-y-4">
@@ -160,13 +156,13 @@ const PasswordHistory: React.FC<PasswordHistoryProps> = ({
             </Card>
             <Card className="p-4">
               <div className="text-2xl font-bold">
-                {history.filter(h => h.action === 'changed').length}
+                {history.filter(h => h.action_type === 'password_changed').length}
               </div>
               <div className="text-sm text-muted-foreground">Password Changes</div>
             </Card>
             <Card className="p-4">
               <div className="text-2xl font-bold">
-                {history.filter(h => h.action === 'reset').length}
+                {history.filter(h => h.action_type === 'password_reset').length}
               </div>
               <div className="text-sm text-muted-foreground">Resets</div>
             </Card>
@@ -179,13 +175,13 @@ const PasswordHistory: React.FC<PasswordHistoryProps> = ({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-lg">
-                      {getActionIcon(entry.action)}
+                      {getActionIcon(entry.action_type)}
                     </div>
                     <div>
                       <div className="font-medium flex items-center gap-2">
-                        Password {entry.action}
-                        <Badge variant={getActionBadgeVariant(entry.action)}>
-                          {entry.action.toUpperCase()}
+                        Password {entry.action_type.replace('password_', '')}
+                        <Badge variant={getActionBadgeVariant(entry.action_type)}>
+                          {entry.action_type.replace('password_', '').toUpperCase()}
                         </Badge>
                       </div>
                       <div className="text-sm text-muted-foreground">
