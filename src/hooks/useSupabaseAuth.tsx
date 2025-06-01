@@ -12,6 +12,7 @@ interface SupabaseAuthContextType {
   session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  signIn: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const SupabaseAuthContext = createContext<SupabaseAuthContextType | undefined>(undefined);
@@ -87,6 +88,48 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
   }, []);
 
+  const signIn = async (username: string, password: string) => {
+    console.log('🔐 Attempting to sign in with username:', username);
+    try {
+      // First, try to find the user by username to get their email
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('username', username)
+        .single();
+
+      if (profileError) {
+        console.error('❌ Error finding user profile:', profileError);
+        return { success: false, error: 'User not found' };
+      }
+
+      // Get the email from auth.users using the profile id
+      const { data: { user: authUser }, error: userError } = await supabase.auth.admin.getUserById(profiles.id);
+      
+      if (userError || !authUser?.email) {
+        console.error('❌ Error getting user email:', userError);
+        return { success: false, error: 'Unable to retrieve user email' };
+      }
+
+      // Now sign in with email and password
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: authUser.email,
+        password: password,
+      });
+
+      if (error) {
+        console.error('❌ Sign in error:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log('✅ Sign in successful:', data.user?.id);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ Sign in exception:', error);
+      return { success: false, error: 'An unexpected error occurred' };
+    }
+  };
+
   const signOut = async () => {
     console.log('🔐 Signing out...');
     try {
@@ -107,6 +150,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     session,
     loading,
     signOut,
+    signIn,
   };
 
   console.log('🔐 Auth provider state:', { 
