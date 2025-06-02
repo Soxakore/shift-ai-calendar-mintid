@@ -1,62 +1,68 @@
-
-import React from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
-
-type UserRole = 'super_admin' | 'org_admin' | 'manager' | 'employee';
+import { getRoleBasedDashboard } from '@/utils/roleUtils';
+import { Loader2 } from 'lucide-react';
 
 interface RoleBasedAuthProps {
   children: React.ReactNode;
-  allowedRoles: UserRole[];
+  allowedRoles?: ('super_admin' | 'org_admin' | 'manager' | 'employee')[];
+  redirectTo?: string;
 }
 
-const RoleBasedAuth: React.FC<RoleBasedAuthProps> = ({ children, allowedRoles }) => {
-  const { user, profile, loading } = useSupabaseAuth();
+const RoleBasedAuth: React.FC<RoleBasedAuthProps> = ({ 
+  children, 
+  allowedRoles = [], 
+  redirectTo 
+}) => {
+  const { profile, loading } = useSupabaseAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  console.log('🔐 RoleBasedAuth check:', { 
-    hasUser: !!user, 
-    hasProfile: !!profile, 
-    userType: profile?.user_type,
-    allowedRoles,
-    loading 
-  });
+  useEffect(() => {
+    if (loading) return;
+
+    // If no user is logged in, redirect to login
+    if (!profile) {
+      navigate('/login', { 
+        state: { from: location.pathname },
+        replace: true 
+      });
+      return;
+    }
+
+    // If user doesn't have required role, redirect to their dashboard
+    if (allowedRoles.length > 0 && !allowedRoles.includes(profile.user_type)) {
+      const userDashboard = getRoleBasedDashboard(profile.user_type);
+      navigate(userDashboard, { replace: true });
+      return;
+    }
+
+    // If redirectTo is specified, redirect there
+    if (redirectTo) {
+      navigate(redirectTo, { replace: true });
+    }
+  }, [profile, loading, navigate, location.pathname, allowedRoles, redirectTo]);
 
   if (loading) {
-    return <LoadingSpinner text="Checking authentication..." />;
-  }
-
-  if (!user) {
-    console.log('🔐 No user, redirecting to login');
-    return <Navigate to="/login" replace />;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p>Authenticating...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!profile) {
-    console.log('🔐 No profile, redirecting to login');
-    return <Navigate to="/login" replace />;
+    return null; // Will redirect to login
   }
 
-  // Check if user's role is in the allowed roles
-  const userRole = profile.user_type as UserRole;
-  if (!allowedRoles.includes(userRole)) {
-    console.log('🔐 User role not allowed:', userRole, 'Allowed:', allowedRoles);
-    
-    // Redirect to appropriate dashboard based on user's actual role
-    switch (userRole) {
-      case 'super_admin':
-        return <Navigate to="/super-admin" replace />;
-      case 'org_admin':
-        return <Navigate to="/org-admin" replace />;
-      case 'manager':
-        return <Navigate to="/manager" replace />;
-      case 'employee':
-        return <Navigate to="/employee" replace />;
-      default:
-        return <Navigate to="/login" replace />;
-    }
+  if (allowedRoles.length > 0 && !allowedRoles.includes(profile.user_type)) {
+    return null; // Will redirect to appropriate dashboard
   }
 
-  console.log('🔐 Access granted for role:', userRole);
   return <>{children}</>;
 };
 

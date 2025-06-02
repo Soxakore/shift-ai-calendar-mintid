@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,11 +29,8 @@ const RoleBasedDashboard = () => {
     return <div>Please log in to continue.</div>;
   }
 
-  // Convert AuthUser to include role property for permissions - properly type the role
-  const userWithRole = { 
-    ...user, 
-    role: user.role as 'super_admin' | 'org_admin' | 'manager' | 'employee'
-  };
+  // Convert AuthUser to include role property for permissions
+  const userWithRole = { ...user, role: user.role };
   const permissions = getUIPermissions(userWithRole);
   
   const getRoleIcon = (role: string) => {

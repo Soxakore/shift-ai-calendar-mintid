@@ -24,6 +24,17 @@ interface ErrorContext {
   errorBoundaryId?: string;
 }
 
+// Type declaration for Sentry and analytics on window
+declare global {
+  interface Window {
+    Sentry?: {
+      captureException: (error: Error, context?: Record<string, unknown>) => void;
+      setContext: (name: string, context: Record<string, unknown>) => void;
+    };
+    gtag?: (...args: unknown[]) => void;
+  }
+}
+
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
@@ -52,13 +63,13 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     }
     
     // Send error to monitoring service with enhanced context
-    if (typeof window !== 'undefined' && (window as any).Sentry) {
-      (window as any).Sentry.setContext('errorBoundary', {
+    if (typeof window !== 'undefined' && window.Sentry) {
+      window.Sentry.setContext('errorBoundary', {
         level: this.props.level || 'component',
         identifier: this.props.identifier,
         ...errorContext
       });
-      (window as any).Sentry.captureException(error, { 
+      window.Sentry.captureException(error, { 
         extra: { ...errorInfo, ...errorContext },
         tags: {
           errorBoundary: true,
@@ -68,8 +79,8 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     }
 
     // Track error in analytics
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'exception', {
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('event', 'exception', {
         description: error.message,
         fatal: this.props.level === 'critical',
         error_boundary_id: this.props.identifier

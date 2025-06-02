@@ -265,7 +265,7 @@ const SuperAdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       <SEOHead
         title={pageMetadata.title}
         description={pageMetadata.description}
@@ -274,27 +274,33 @@ const SuperAdminDashboard = () => {
         pageName="dashboard"
       />
       
-      {/* Enhanced Header */}
-      <header className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 shadow-lg sticky top-0 z-50">
+      {/* Enhanced Header with Global Navigation */}
+      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
-                <div className="p-3 bg-gradient-to-br from-red-500 to-red-600 rounded-xl shadow-lg">
+                <div className="p-2 bg-gradient-to-br from-red-500 to-red-600 rounded-xl shadow-lg">
                   <Calendar className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
                     MinTid Super Admin
                   </h1>
                   <div className="flex items-center space-x-2">
                     <Badge className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 shadow-sm">
-                      ADMIN CONSOLE
+                      ENHANCED ADMIN CONSOLE
                     </Badge>
+                    <span className="text-sm text-slate-600 dark:text-slate-400">Complete System Management</span>
                     <div className="flex items-center gap-1">
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span className="text-xs text-green-600 dark:text-green-400 font-medium">LIVE</span>
+                      <span className="text-xs text-green-600 dark:text-green-400">LIVE</span>
                     </div>
+                    {profile?.tracking_id && (
+                      <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs px-2 py-1 rounded">
+                        ID: {profile.tracking_id}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -308,7 +314,7 @@ const SuperAdminDashboard = () => {
                 variant="destructive" 
                 size="sm" 
                 onClick={handleLogout}
-                className="shadow-sm hover:shadow-md transition-shadow"
+                className="shadow-sm hover:shadow-md transition-shadow text-white"
               >
                 <LogOut className="w-4 h-4 mr-2" />
                 Logout
@@ -318,118 +324,142 @@ const SuperAdminDashboard = () => {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Global Navigation */}
+      <GlobalNavigation
+        currentPath={currentPath}
+        onNavigate={handleNavigate}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+      />
+
+      {/* Main Content with Enhanced Tabs */}
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 backdrop-blur-sm">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-6 lg:w-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+            <TabsTrigger value="overview" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
               <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Overview</span>
+              Overview
             </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2">
+            <TabsTrigger value="users" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
               <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Users</span>
+              Users
             </TabsTrigger>
-            <TabsTrigger value="organizations" className="flex items-center gap-2">
+            <TabsTrigger value="organizations" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
               <Building className="h-4 w-4" />
-              <span className="hidden sm:inline">Organizations</span>
+              Organizations
             </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center gap-2">
+            <TabsTrigger value="analytics" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
+              <BarChart3 className="h-4 w-4" />
+              Analytics
+            </TabsTrigger>
+            <TabsTrigger value="security" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
               <Shield className="h-4 w-4" />
-              <span className="hidden sm:inline">Security</span>
+              Security
+              <Badge variant="destructive" className="text-xs text-white">New</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="2fa" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
+              <Shield className="h-4 w-4" />
+              2FA
+              <Badge className="bg-blue-500 text-white text-xs">New</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="system" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
+              <Settings className="h-4 w-4" />
+              System
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/50 dark:to-blue-800/50 backdrop-blur-sm">
+              <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-blue-900 dark:text-blue-100">System Status</CardTitle>
+                  <CardTitle className="text-sm font-medium">System Status</CardTitle>
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <div className={`w-2 h-2 rounded-full ${liveStats.systemStatus === 'Optimal' ? 'bg-green-500 animate-pulse' : 'bg-yellow-500 animate-pulse'}`}></div>
+                    <Shield className="h-4 w-4 text-blue-600" />
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">{liveStats.systemStatus}</div>
                   <p className="text-xs text-blue-700 dark:text-blue-300">
-                    All systems operational
+                    {liveStats.failedLogins > 0 ? `${liveStats.failedLogins} failed logins today` : 'All systems operational'}
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-xl bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/50 dark:to-green-800/50 backdrop-blur-sm">
+              <Card className="border-0 shadow-xl bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900 dark:to-green-800">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-green-900 dark:text-green-100">Active Users</CardTitle>
+                  <CardTitle className="text-sm font-medium">Active Users</CardTitle>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <Users className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <Users className="h-4 w-4 text-green-600" />
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-green-900 dark:text-green-100">{liveStats.activeUsers}</div>
                   <p className="text-xs text-green-700 dark:text-green-300">
-                    {liveStats.recentLogins} recent logins
+                    {liveStats.recentLogins > 0 ? `${liveStats.recentLogins} logins today` : 'No recent activity'}
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-xl bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/50 dark:to-purple-800/50 backdrop-blur-sm">
+              <Card className="border-0 shadow-xl bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">Organizations</CardTitle>
+                  <CardTitle className="text-sm font-medium">Organizations</CardTitle>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-                    <Building className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    <Building className="h-4 w-4 text-purple-600" />
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">{liveStats.totalOrganizations}</div>
                   <p className="text-xs text-purple-700 dark:text-purple-300">
-                    Active organizations
+                    {liveStats.totalOrganizations > 0 ? `${Math.round(liveStats.activeUsers / Math.max(liveStats.totalOrganizations, 1))} avg users/org` : 'No organizations yet'}
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-xl bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/50 dark:to-orange-800/50 backdrop-blur-sm">
+              <Card className="border-0 shadow-xl bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900 dark:to-orange-800">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-orange-900 dark:text-orange-100">Security Score</CardTitle>
+                  <CardTitle className="text-sm font-medium">Security Score</CardTitle>
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <Shield className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                    <div className={`w-2 h-2 rounded-full ${liveStats.securityScore >= 90 ? 'bg-green-500' : liveStats.securityScore >= 70 ? 'bg-yellow-500' : 'bg-red-500'} animate-pulse`}></div>
+                    <Shield className="h-4 w-4 text-orange-600" />
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">{liveStats.securityScore}%</div>
                   <p className="text-xs text-orange-700 dark:text-orange-300">
-                    Excellent security
+                    {liveStats.securityScore >= 90 ? 'Excellent security' : liveStats.securityScore >= 70 ? 'Good security' : 'Needs attention'}
                   </p>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Main Management Component */}
-            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-lg border border-slate-200 dark:border-slate-700 shadow-xl">
-              <RoleBasedUserManagement />
-            </div>
+            <RoleBasedUserManagement />
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
-            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-lg border border-slate-200 dark:border-slate-700 shadow-xl p-6">
-              <SuperAdminUserManagement />
-            </div>
+            <SuperAdminUserManagement />
           </TabsContent>
 
           <TabsContent value="organizations" className="space-y-6">
-            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-lg border border-slate-200 dark:border-slate-700 shadow-xl p-6">
-              <OrganizationManagement />
-            </div>
+            <OrganizationManagement />
+          </TabsContent>
+
+          <TabsContent value="analytics" className="space-y-6">
+            <AnalyticsDashboard />
           </TabsContent>
 
           <TabsContent value="security" className="space-y-6">
-            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-lg border border-slate-200 dark:border-slate-700 shadow-xl p-6">
-              <SecurityMonitoring />
-            </div>
+            <SecurityMonitoring />
+          </TabsContent>
+
+          <TabsContent value="2fa" className="space-y-6">
+            <TwoFactorManagement />
+          </TabsContent>
+
+          <TabsContent value="system" className="space-y-6">
+            <SystemSettings />
           </TabsContent>
         </Tabs>
       </main>

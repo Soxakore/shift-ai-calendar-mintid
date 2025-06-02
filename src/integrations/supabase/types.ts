@@ -129,8 +129,12 @@ export type Database = {
           display_name: string
           id: string
           is_active: boolean | null
+          last_login: string | null
           organization_id: string | null
+          password_changed_at: string | null
           phone_number: string | null
+          qr_code_enabled: boolean | null
+          qr_code_expires_at: string | null
           tracking_id: string | null
           updated_at: string
           user_type: string
@@ -143,8 +147,12 @@ export type Database = {
           display_name: string
           id: string
           is_active?: boolean | null
+          last_login?: string | null
           organization_id?: string | null
+          password_changed_at?: string | null
           phone_number?: string | null
+          qr_code_enabled?: boolean | null
+          qr_code_expires_at?: string | null
           tracking_id?: string | null
           updated_at?: string
           user_type: string
@@ -157,8 +165,12 @@ export type Database = {
           display_name?: string
           id?: string
           is_active?: boolean | null
+          last_login?: string | null
           organization_id?: string | null
+          password_changed_at?: string | null
           phone_number?: string | null
+          qr_code_enabled?: boolean | null
+          qr_code_expires_at?: string | null
           tracking_id?: string | null
           updated_at?: string
           user_type?: string
@@ -183,44 +195,44 @@ export type Database = {
       }
       qr_codes: {
         Row: {
-          code: string
-          created_at: string
-          department_id: string | null
           id: string
-          is_active: boolean | null
-          location: string
-          name: string
+          user_id: string
           organization_id: string
+          qr_code: string
+          expires_at: string
+          is_active: boolean | null
+          used_at: string | null
+          created_at: string
           updated_at: string
         }
         Insert: {
-          code: string
-          created_at?: string
-          department_id?: string | null
           id?: string
-          is_active?: boolean | null
-          location: string
-          name: string
+          user_id: string
           organization_id: string
+          qr_code: string
+          expires_at: string
+          is_active?: boolean | null
+          used_at?: string | null
+          created_at?: string
           updated_at?: string
         }
         Update: {
-          code?: string
-          created_at?: string
-          department_id?: string | null
           id?: string
-          is_active?: boolean | null
-          location?: string
-          name?: string
+          user_id?: string
           organization_id?: string
+          qr_code?: string
+          expires_at?: string
+          is_active?: boolean | null
+          used_at?: string | null
+          created_at?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "qr_codes_department_id_fkey"
-            columns: ["department_id"]
+            foreignKeyName: "qr_codes_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "departments"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -445,6 +457,58 @@ export type Database = {
           },
         ]
       }
+      password_histories: {
+        Row: {
+          id: string
+          user_id: string
+          changed_by: string
+          action: string
+          organization_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          changed_by: string
+          action: string
+          organization_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          changed_by?: string
+          action?: string
+          organization_id?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "password_histories_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "password_histories_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "password_histories_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -463,7 +527,7 @@ export type Database = {
         Returns: string
       }
       get_user_role: {
-        Args: Record<PropertyKey, never> | { user_id: string }
+        Args: { user_id: string }
         Returns: string
       }
       log_audit_event: {

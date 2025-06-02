@@ -1,9 +1,8 @@
-
 // Google Analytics 4 utilities with enhanced production configuration
 declare global {
   interface Window {
-    gtag: (...args: any[]) => void;
-    dataLayer: any[];
+    gtag: (...args: unknown[]) => void;
+    dataLayer: unknown[];
   }
 }
 
@@ -32,7 +31,7 @@ export const initGA = () => {
 
   // Initialize dataLayer
   window.dataLayer = window.dataLayer || [];
-  window.gtag = function(...args: any[]) {
+  window.gtag = function(...args: unknown[]) {
     window.dataLayer.push(args);
   };
 
@@ -73,7 +72,7 @@ export const trackEvent = (
   category: string,
   label?: string,
   value?: number,
-  custom_parameters?: Record<string, any>
+  custom_parameters?: Record<string, unknown>
 ) => {
   if (typeof window.gtag !== 'function') return;
 
@@ -86,7 +85,7 @@ export const trackEvent = (
 };
 
 // Enhanced ecommerce tracking (for future use)
-export const trackPurchase = (transaction_id: string, value: number, currency = 'USD', items: any[] = []) => {
+export const trackPurchase = (transaction_id: string, value: number, currency = 'USD', items: unknown[] = []) => {
   if (typeof window.gtag !== 'function') return;
 
   window.gtag('event', 'purchase', {
@@ -159,7 +158,7 @@ export const trackTiming = (name: string, value: number, category = 'performance
 };
 
 // User properties
-export const setUserProperties = (properties: Record<string, any>) => {
+export const setUserProperties = (properties: Record<string, unknown>) => {
   if (typeof window.gtag !== 'function') return;
 
   window.gtag('config', GA_MEASUREMENT_ID, {

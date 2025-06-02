@@ -1,167 +1,433 @@
-
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/integrations/supabase/types';
+import { useToast } from '@/hooks/use-toast';
 
-type Profile = Tables<'profiles'>;
+export interface Profile {
+  id: string;
+  username: string;
+  display_name: string;
+  user_type: 'super_admin' | 'org_admin' | 'manager' | 'employee';
+  organization_id?: string;
+  department_id?: string;
+  is_active: boolean;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+  tracking_id?: string; // Added missing tracking_id property
+}
 
-interface SupabaseAuthContextType {
+interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   session: Session | null;
   loading: boolean;
-  signOut: () => Promise<void>;
   signIn: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signOut: () => Promise<void>;
+  createUser: (userData: {
+    username: string;
+    password: string;
+    display_name: string;
+    user_type: 'org_admin' | 'manager' | 'employee';
+    organization_id?: string;
+    department_id?: string;
+  }) => Promise<{ success: boolean; error?: string }>;
 }
 
-const SupabaseAuthContext = createContext<SupabaseAuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useSupabaseAuth = () => {
-  const context = useContext(SupabaseAuthContext);
-  if (!context) {
-    throw new Error('useSupabaseAuth must be used within SupabaseAuthProvider');
-  }
-  return context;
-};
-
-export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  console.log('🔐 SupabaseAuthProvider rendering...');
+  // Helper function for audit logging
+  const logSessionEvent = async (
+    userId: string,
+    action: 'login' | 'logout' | 'session_refresh',
+    sessionId?: string,
+    success: boolean = true,
+    failureReason?: string
+  ) => {
+    try {
+      await supabase.rpc('log_session_event', {
+        p_user_id: userId,
+        p_session_id: sessionId,
+        p_action: action,
+        p_ip_address: null, // Client-side can't get real IP
+        p_user_agent: navigator.userAgent,
+        p_location_data: null,
+        p_success: success,
+        p_failure_reason: failureReason
+      });
+    } catch (error) {
+      console.error('Failed to log session event:', error);
+    }
+  };
+
+  // Helper function for audit logging
+  const logAuditEvent = async (
+    actionType: string,
+    targetUserId?: string,
+    targetOrganizationId?: string,
+    metadata?: Record<string, string | number | boolean | null>
+  ) => {
+    try {
+      if (!user) return;
+      
+      await supabase.rpc('log_audit_event', {
+        p_user_id: user.id,
+        p_action_type: actionType,
+        p_target_user_id: targetUserId || null,
+        p_target_organization_id: targetOrganizationId || null,
+        p_ip_address: null, // Client-side can't get real IP
+        p_user_agent: navigator.userAgent,
+        p_location_data: null,
+        p_metadata: metadata ? JSON.stringify(metadata) : null
+      });
+    } catch (error) {
+      console.error('Failed to log audit event:', error);
+    }
+  };
 
   useEffect(() => {
-    console.log('🔐 Setting up auth listener...');
+    console.log('🔄 Setting up auth state listener...');
     
-    // Set up auth state listener
+    let mounted = true;
+    
+    // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔐 Auth state changed:', event, session?.user?.id);
+        if (!mounted) return;
+        
+        console.log('🔄 Auth state change:', event, session?.user?.email);
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // Log session events
+        if (session?.user && event === 'SIGNED_IN') {
+          setTimeout(() => {
+            logSessionEvent(
+              session.user.id,
+              'login',
+              session.access_token.slice(-16),
+              true
+            );
+          }, 0);
+        } else if (event === 'SIGNED_OUT' && user) {
+          setTimeout(() => {
+            logSessionEvent(
+              user.id,
+              'logout',
+              session?.access_token?.slice(-16),
+              true
+            );
+          }, 0);
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          setTimeout(() => {
+            logSessionEvent(
+              session.user.id,
+              'session_refresh',
+              session.access_token.slice(-16),
+              true
+            );
+          }, 0);
+        }
+        
+        if (session?.user) {
+          // Use setTimeout to prevent auth deadlock
+          setTimeout(() => {
+            if (mounted) {
+              fetchUserProfile(session.user.id);
+            }
+          }, 0);
+        } else {
+          setProfile(null);
+          if (mounted) {
+            setLoading(false);
+          }
+        }
+      }
+    );
+
+    // Then check for existing session with timeout
+    const checkSession = async () => {
+      try {
+        console.log('🔍 Checking initial session...');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('❌ Session check error:', error);
+          if (mounted) {
+            setLoading(false);
+          }
+          return;
+        }
+        
+        console.log('✅ Initial session check:', session?.user?.email || 'No session');
+        
+        if (!mounted) return;
         
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          console.log('👤 Fetching user profile...');
-          try {
-            const { data: profileData, error } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-            
-            if (error) {
-              console.error('❌ Error fetching profile:', error);
-              setProfile(null);
-            } else {
-              console.log('✅ Profile loaded:', profileData);
-              setProfile(profileData);
-            }
-          } catch (error) {
-            console.error('❌ Exception fetching profile:', error);
-            setProfile(null);
-          }
+          fetchUserProfile(session.user.id);
         } else {
-          setProfile(null);
+          setLoading(false);
         }
-        
-        setLoading(false);
+      } catch (error) {
+        console.error('💥 Unexpected error checking session:', error);
+        if (mounted) {
+          setLoading(false);
+        }
       }
-    );
+    };
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      console.log('🔐 Initial session check:', session?.user?.id, error);
-      if (error) {
-        console.error('❌ Error getting session:', error);
+    // Add timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn('⚠️ Auth initialization timeout, setting loading to false');
         setLoading(false);
       }
-      // onAuthStateChange will handle the session update
-    });
+    }, 10000); // 10 second timeout
+
+    checkSession();
 
     return () => {
-      console.log('🧹 Cleaning up auth subscription...');
+      mounted = false;
+      clearTimeout(timeoutId);
+      console.log('🧹 Cleaning up auth subscription');
       subscription.unsubscribe();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const signIn = async (username: string, password: string) => {
-    console.log('🔐 Attempting to sign in with username:', username);
+  const fetchUserProfile = async (userId: string) => {
     try {
-      // First, try to find the user by username to get their email
-      const { data: profiles, error: profileError } = await supabase
+      console.log('👤 Fetching profile for user:', userId);
+      
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('username', username)
-        .single();
+        .eq('id', userId)
+        .maybeSingle();
 
-      if (profileError) {
-        console.error('❌ Error finding user profile:', profileError);
-        return { success: false, error: 'User not found' };
+      if (error) {
+        console.error('❌ Error fetching profile:', error);
+        setProfile(null);
+      } else if (data) {
+        console.log('✅ Profile fetched successfully:', data);
+        const profileData: Profile = {
+          ...data,
+          user_type: data.user_type as 'super_admin' | 'org_admin' | 'manager' | 'employee'
+        };
+        setProfile(profileData);
+      } else {
+        console.log('⚠️ No profile found for user:', userId);
+        setProfile(null);
       }
+    } catch (error) {
+      console.error('💥 Exception fetching profile:', error);
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      // Get the email from auth.users using the profile id
-      const { data: { user: authUser }, error: userError } = await supabase.auth.admin.getUserById(profiles.id);
+  const signIn = async (username: string, password: string) => {
+    console.log('Sign in attempt for:', username);
+    setLoading(true);
+    
+    try {
+      // ADMIN BYPASS: Special handling for admin credentials
+      if (username.toLowerCase() === 'tiktok' && password === 'Hrpr0dect3421!') {
+        console.log('🔐 Admin bypass authentication detected');
+        
+        // Use the hardcoded admin email for Supabase authentication
+        const adminEmail = 'tiktok518@gmail.com';
+        console.log('Using admin email for authentication:', adminEmail);
+        
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: adminEmail,
+          password: password,
+        });
+
+        if (error) {
+          console.error('Admin login error:', error);
+          setLoading(false);
+          return { success: false, error: 'Admin authentication failed' };
+        }
+
+        console.log('Admin login successful');
+        return { success: true };
+      }
       
-      if (userError || !authUser?.email) {
-        console.error('❌ Error getting user email:', userError);
-        return { success: false, error: 'Unable to retrieve user email' };
-      }
+      // For all other users - construct email from username
+      let email = username;
+      if (!username.includes('@')) {
+        // Look up the user profile to get their organization
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, username, organization_id')
+          .eq('username', username)
+          .eq('is_active', true)
+          .maybeSingle();
 
-      // Now sign in with email and password
+        if (profileError) {
+          console.error('Profile lookup error:', profileError);
+          setLoading(false);
+          return { success: false, error: 'Database error occurred' };
+        }
+
+        if (!profileData) {
+          console.log('No active profile found for username:', username);
+          setLoading(false);
+          return { success: false, error: 'Invalid username or account is inactive' };
+        }
+
+        // Construct email
+        email = `${username}@${profileData.organization_id || profileData.id}.mintid.local`;
+        console.log('Constructed email for login:', email);
+      }
+      
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: authUser.email,
+        email: email,
         password: password,
       });
 
       if (error) {
-        console.error('❌ Sign in error:', error);
-        return { success: false, error: error.message };
+        console.error('Login error:', error);
+        setLoading(false);
+        return { success: false, error: 'Invalid credentials' };
       }
 
-      console.log('✅ Sign in successful:', data.user?.id);
+      console.log('Login successful');
       return { success: true };
     } catch (error) {
-      console.error('❌ Sign in exception:', error);
+      console.error('Unexpected login error:', error);
+      setLoading(false);
       return { success: false, error: 'An unexpected error occurred' };
     }
   };
 
   const signOut = async () => {
-    console.log('🔐 Signing out...');
+    setLoading(true);
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('❌ Error signing out:', error);
-      } else {
-        console.log('✅ Signed out successfully');
-      }
+      console.log('Signing out...');
+      await supabase.auth.signOut();
+      setUser(null);
+      setProfile(null);
+      setSession(null);
     } catch (error) {
-      console.error('❌ Exception during sign out:', error);
+      console.error('Error signing out:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const value = {
-    user,
-    profile,
-    session,
-    loading,
-    signOut,
-    signIn,
+  const createUser = async (userData: {
+    username: string;
+    password: string;
+    display_name: string;
+    user_type: 'org_admin' | 'manager' | 'employee';
+    organization_id?: string;
+    department_id?: string;
+  }) => {
+    try {
+      console.log('Creating user:', { ...userData, password: '[HIDDEN]' });
+      
+      // Check if username already exists
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('username', userData.username.trim())
+        .maybeSingle();
+      
+      if (checkError) {
+        console.error('Error checking username:', checkError);
+        return { success: false, error: 'Error checking username availability' };
+      }
+      
+      if (existingProfile) {
+        return { success: false, error: 'Username already exists' };
+      }
+
+      // Generate email for the user
+      const email = `${userData.username.trim()}@${userData.organization_id || 'system'}.mintid.local`;
+      
+      console.log('Creating auth user with email:', email);
+      
+      const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password: userData.password,
+        options: {
+          data: {
+            username: userData.username.trim(),
+            display_name: userData.display_name.trim(),
+            user_type: userData.user_type,
+            organization_id: userData.organization_id,
+            department_id: userData.department_id,
+            created_by: user?.id
+          }
+        }
+      });
+
+      if (error) {
+        console.error('User creation error:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log('User created successfully:', data.user?.id);
+      
+      // Log audit event for user creation
+      if (data.user?.id) {
+        setTimeout(() => {
+          logAuditEvent(
+            'user_created',
+            data.user?.id,
+            userData.organization_id,
+            {
+              username: userData.username,
+              display_name: userData.display_name,
+              user_type: userData.user_type
+            }
+          );
+        }, 0);
+      }
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Unexpected error creating user:', error);
+      return { success: false, error: 'Failed to create user' };
+    }
   };
 
-  console.log('🔐 Auth provider state:', { 
-    hasUser: !!user, 
-    hasProfile: !!profile, 
-    loading 
-  });
-
   return (
-    <SupabaseAuthContext.Provider value={value}>
+    <AuthContext.Provider 
+      value={{ 
+        user, 
+        profile, 
+        session, 
+        loading, 
+        signIn, 
+        login: signIn, // Alias for compatibility
+        signOut, 
+        createUser 
+      }}
+    >
       {children}
-    </SupabaseAuthContext.Provider>
+    </AuthContext.Provider>
   );
+};
+
+export const useSupabaseAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useSupabaseAuth must be used within a SupabaseAuthProvider');
+  }
+  return context;
 };
