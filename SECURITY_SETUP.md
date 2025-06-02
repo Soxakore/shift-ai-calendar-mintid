@@ -76,19 +76,17 @@ Your Supabase integration is **fully functional** with:
 After updating your environment variables:
 
 1. ✅ Development server starts without errors
-2. ✅ User authentication works with proper user accounts
+2. ✅ User authentication works (try logging in with demo accounts)
 3. ✅ Dashboard loads with real-time data
 4. ✅ All admin functions operate normally
 
-## 🔐 User Account Management
+## 🔐 Demo Accounts Available
 
-Your system uses secure authentication with role-based access control:
-- **Super Admin**: Full system access and organization management
-- **Org Admin**: Organization-specific management capabilities
-- **Manager**: Department-level user and task management
-- **Employee**: Personal data and task access only
-
-Create user accounts through the Super Admin dashboard interface.
+Your system includes these demo accounts:
+- **Super Admin**: `tiktok` (email: tiktok518@gmail.com)
+- **Org Admin**: `orgadmin`
+- **Manager**: `manager`
+- **Employee**: `employee`
 
 ## 💡 Next Steps
 

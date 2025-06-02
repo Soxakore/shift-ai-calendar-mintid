@@ -1,3 +1,4 @@
+
 // Role-based permission definitions
 import { EnhancedUser } from './organization';
 
@@ -6,7 +7,7 @@ export type PermissionAction = 'create' | 'read' | 'update' | 'delete' | 'manage
 export interface Permission {
   id: string;
   name: string;
-  category: 'users' | 'departments' | 'reports' | 'settings' | 'organization' | 'schedule';
+  category: 'users' | 'departments' | 'reports' | 'settings' | 'organization';
   actions: PermissionAction[];
   scope: 'own_department' | 'own_organization' | 'all_organizations';
 }
@@ -52,13 +53,6 @@ export const rolePermissions: Record<string, Permission[]> = {
       category: 'reports',
       actions: ['read', 'manage_all'],
       scope: 'all_organizations'
-    },
-    {
-      id: 'manage_all_schedules',
-      name: 'Manage All Schedules',
-      category: 'schedule',
-      actions: ['create', 'read', 'update', 'delete', 'manage_all'],
-      scope: 'all_organizations'
     }
   ],
 
@@ -83,13 +77,6 @@ export const rolePermissions: Record<string, Permission[]> = {
       category: 'reports',
       actions: ['read'],
       scope: 'own_organization'
-    },
-    {
-      id: 'manage_org_schedules',
-      name: 'Manage Organization Schedules',
-      category: 'schedule',
-      actions: ['create', 'read', 'update', 'delete'],
-      scope: 'own_organization'
     }
   ],
 
@@ -107,13 +94,6 @@ export const rolePermissions: Record<string, Permission[]> = {
       category: 'reports',
       actions: ['read'],
       scope: 'own_department'
-    },
-    {
-      id: 'manage_dept_schedules',
-      name: 'Manage Department Schedules',
-      category: 'schedule',
-      actions: ['create', 'read', 'update', 'delete'],
-      scope: 'own_department'
     }
   ],
 
@@ -124,16 +104,91 @@ export const rolePermissions: Record<string, Permission[]> = {
       category: 'users',
       actions: ['read'],
       scope: 'own_department'
-    },
-    {
-      id: 'view_own_schedule',
-      name: 'View Own Schedule',
-      category: 'schedule',
-      actions: ['read'],
-      scope: 'own_department'
     }
   ]
 };
+
+// Enhanced demo users with specific roles
+export const demoUsersWithRoles: (EnhancedUser & { role: 'super_admin' | 'org_admin' | 'manager' | 'employee' })[] = [
+  // Super Admin (You)
+  {
+    id: 'super_1',
+    organizationId: 'system',
+    departmentId: 'admin',
+    roleId: 'super_admin',
+    role: 'super_admin',
+    username: 'super.admin',
+    displayName: 'System Administrator (You)',
+    email: 'admin@workflow.com',
+    password: 'admin123',
+    isActive: true,
+    createdBy: 'system',
+    userType: 'super_admin',
+    createdAt: new Date().toISOString()
+  },
+
+  {
+    id: 'mc_admin',
+    organizationId: '1',
+    departmentId: '3',
+    roleId: 'org_admin',
+    role: 'org_admin',
+    username: 'mc.admin',
+    displayName: 'McDonald\'s Admin',
+    email: 'admin@mcdonalds.com',
+    password: 'mcadmin123',
+    isActive: true,
+    createdBy: 'super_1',
+    userType: 'org_admin',
+    createdAt: new Date().toISOString()
+  },
+
+  {
+    id: 'mc_kitchen_mgr',
+    organizationId: '1',
+    departmentId: '1',
+    roleId: 'manager',
+    role: 'manager',
+    username: 'kitchen.manager',
+    displayName: 'John - Kitchen Manager',
+    email: 'john@mcdonalds.com',
+    password: 'manager123',
+    isActive: true,
+    createdBy: 'mc_admin',
+    userType: 'manager',
+    createdAt: new Date().toISOString()
+  },
+
+  {
+    id: 'mc_cook1',
+    organizationId: '1',
+    departmentId: '1',
+    roleId: 'employee',
+    role: 'employee',
+    username: 'mary.cook',
+    displayName: 'Mary - Cook',
+    password: 'worker123',
+    isActive: true,
+    createdBy: 'mc_kitchen_mgr',
+    userType: 'employee',
+    createdAt: new Date().toISOString()
+  },
+
+  {
+    id: 'sb_manager',
+    organizationId: '2',
+    departmentId: '4',
+    roleId: 'manager',
+    role: 'manager',
+    username: 'starbucks.manager',
+    displayName: 'Sarah - Store Manager',
+    password: 'sbmanager123',
+    isActive: true,
+    createdBy: 'super_1',
+    userType: 'manager',
+    createdAt: new Date().toISOString()
+  }
+];
 
 // Helper function to get role from user - works with both AuthUser and EnhancedUser
 const getUserRole = (user: AuthUser | EnhancedUser): string => {
@@ -198,13 +253,6 @@ export const getUIPermissions = (user: AuthUser | EnhancedUser) => {
     canEditUsers: permissions.some(p => p.id.includes('users') && p.actions.includes('update')),
     canDeleteUsers: permissions.some(p => p.id.includes('users') && p.actions.includes('delete')),
     
-    // Schedule management
-    canViewSchedules: permissions.some(p => p.category === 'schedule'),
-    canCreateSchedules: permissions.some(p => p.category === 'schedule' && p.actions.includes('create')),
-    canEditSchedules: permissions.some(p => p.category === 'schedule' && p.actions.includes('update')),
-    canDeleteSchedules: permissions.some(p => p.category === 'schedule' && p.actions.includes('delete')),
-    canManageAllSchedules: permissions.some(p => p.id === 'manage_all_schedules'),
-    
     // Organization management
     canManageOrganizations: userRole === 'super_admin',
     canAccessSystemSettings: userRole === 'super_admin',
@@ -214,52 +262,4 @@ export const getUIPermissions = (user: AuthUser | EnhancedUser) => {
                userRole === 'org_admin' ? 'organization' : 
                userRole === 'manager' ? 'department' : 'self'
   };
-};
-
-// Schedule-specific permission helpers
-export const checkSchedulePermission = (
-  user: AuthUser | EnhancedUser,
-  action: PermissionAction,
-  targetUser?: AuthUser | EnhancedUser
-): boolean => {
-  const userRole = getUserRole(user);
-  
-  // Super admin can do everything
-  if (userRole === 'super_admin') {
-    return true;
-  }
-  
-  // Check for specific schedule permissions
-  const schedulePermissions = [
-    'manage_all_schedules',
-    'manage_org_schedules', 
-    'manage_dept_schedules',
-    'view_own_schedule'
-  ];
-  
-  for (const permission of schedulePermissions) {
-    if (checkPermission(user, permission, action, targetUser)) {
-      return true;
-    }
-  }
-  
-  return false;
-};
-
-// Helper to get schedule access level for a user
-export const getScheduleAccessLevel = (user: AuthUser | EnhancedUser): 'all' | 'organization' | 'department' | 'own' | 'none' => {
-  const userRole = getUserRole(user);
-  
-  switch (userRole) {
-    case 'super_admin':
-      return 'all';
-    case 'org_admin':
-      return 'organization';
-    case 'manager':
-      return 'department';
-    case 'employee':
-      return 'own';
-    default:
-      return 'none';
-  }
 };

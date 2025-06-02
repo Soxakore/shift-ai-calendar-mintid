@@ -25,10 +25,10 @@ const AuthRedirect = () => {
           navigate('/employee');
           break;
         default:
-          navigate('/login-select');
+          navigate('/auth');
       }
     } else if (!loading && !user) {
-      navigate('/login-select');
+      navigate('/auth');
     }
   }, [user, profile, loading, navigate]);
 

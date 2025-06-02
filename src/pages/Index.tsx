@@ -7,12 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Link, useNavigate } from 'react-router-dom';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/hooks/useTranslation';
 import { SupportedLanguage } from '@/lib/translations';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import WorkHoursStats from '@/components/WorkHoursStats';
 import ImageScheduleParser from '@/components/ImageScheduleParser';
 import SickNoticeModal from '@/components/SickNoticeModal';
@@ -37,22 +36,21 @@ import { createWebApplicationSchema, createOrganizationSchema, getPageMetadata }
 
 const Index = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const { user, profile, signOut } = useSupabaseAuth();
+  const { user, logout, hasRole } = useAuth();
   const { t, currentLanguage, setLanguage, getLanguageName } = useTranslation();
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   // Welcome message on component mount
   useEffect(() => {
     const timer = setTimeout(() => {
       toast({
         title: `${t('appName')} 🎉`,
-        description: `${t('loading')} ${profile?.display_name || user?.email || 'User'}! All features are now fully functional with real-time updates.`,
+        description: `${t('loading')} ${user?.name || 'User'}! All features are now fully functional with real-time updates.`,
       });
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [profile?.display_name, user?.email, toast, t]);
+  }, [user?.name, toast, t]);
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     setCurrentDate(prev => {
@@ -76,7 +74,7 @@ const Index = () => {
 
   const handleLanguageChange = (newLanguage: string) => {
     setLanguage(newLanguage as SupportedLanguage);
-    trackFeatureUsage('language_change', profile?.user_type);
+    trackFeatureUsage('language_change', user?.role);
     toast({
       title: "🌐 Language Changed",
       description: `Interface language switched to ${getLanguageName(newLanguage as SupportedLanguage)}`,
@@ -84,8 +82,8 @@ const Index = () => {
   };
 
   const handleLogout = async () => {
-    trackAuthAction('logout', profile?.user_type);
-    await signOut();
+    trackAuthAction('logout', user?.role);
+    await logout();
     toast({
       title: `👋 ${t('logout')}`,
       description: "You have been successfully logged out.",
@@ -99,7 +97,7 @@ const Index = () => {
       reports: t('reports')
     };
     
-    trackFeatureUsage(`tab_${tabValue}`, profile?.user_type);
+    trackFeatureUsage(`tab_${tabValue}`, user?.role);
     
     toast({
       title: "📂 Tab Switched",
@@ -108,168 +106,19 @@ const Index = () => {
   };
 
   const handleRoleSwitch = () => {
-    trackFeatureUsage('role_switch', profile?.user_type);
+    trackFeatureUsage('role_switch', user?.role);
     toast({
       title: "🎭 Role Switcher",
       description: "Opening role selection panel...",
     });
   };
 
-  // Auto-setup function to create org admin user and organization
-  const createOrgAdminAndNavigate = async () => {
-    try {
-      // Show loading toast
-      toast({
-        title: "🔧 Setting up Org Admin...",
-        description: "Creating organization and admin user...",
-      });
-
-      // First, create an organization
-      const orgData = {
-        name: "Demo Organization",
-        description: "Automatically created demo organization for testing",
-        alias: "demo-org"
-      };
-
-      const { data: orgResult, error: orgError } = await supabase
-        .from('organizations')
-        .insert([orgData])
-        .select()
-        .single();
-
-      if (orgError) {
-        console.error('Organization creation error:', orgError);
-        toast({
-          title: "❌ Error",
-          description: "Failed to create organization",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Create org admin user
-      const orgAdminData = {
-        username: "orgadmin",
-        display_name: "Organization Administrator",
-        user_type: "org_admin",
-        organization_id: orgResult.id,
-        password: "admin123"
-      };
-
-      // Generate email for the user
-      const email = `${orgAdminData.username}@${orgResult.id}.mintid.local`;
-      
-      const { data: userResult, error: userError } = await supabase.auth.signUp({
-        email: email,
-        password: orgAdminData.password,
-        options: {
-          data: {
-            username: orgAdminData.username,
-            display_name: orgAdminData.display_name,
-            user_type: orgAdminData.user_type,
-            organization_id: orgResult.id,
-            created_by: profile?.id || 'auto-setup'
-          }
-        }
-      });
-
-      if (userError) {
-        console.error('User creation error:', userError);
-        toast({
-          title: "❌ Error", 
-          description: "Failed to create org admin user",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Success! Show credentials and navigate
-      toast({
-        title: "✅ Org Admin Created!",
-        description: `Username: orgadmin | Password: admin123 | Organization: ${orgData.name}`,
-      });
-
-      // Auto-login the new org admin user
-      setTimeout(async () => {
-        try {
-          await signOut(); // Sign out current user
-          
-          // Sign in as the new org admin
-          const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-            email: email,
-            password: orgAdminData.password,
-          });
-
-          if (loginError) {
-            console.error('Auto-login error:', loginError);
-            toast({
-              title: "✅ Account Created",
-              description: "Please manually login with: orgadmin / admin123",
-            });
-          } else {
-            toast({
-              title: "🎉 Auto-logged in!",
-              description: "Redirecting to org admin dashboard...",
-            });
-            // The useEffect in auth will handle navigation
-          }
-        } catch (error) {
-          console.error('Auto-login error:', error);
-          toast({
-            title: "✅ Account Created",
-            description: "Please manually login with: orgadmin / admin123",
-          });
-        }
-      }, 2000);
-
-    } catch (error) {
-      console.error('Setup error:', error);
-      toast({
-        title: "❌ Error",
-        description: "Failed to setup org admin",
-        variant: "destructive"
-      });
-    }
-  };
-
   const handleAdminPanel = () => {
-    trackFeatureUsage('admin_panel_access', profile?.user_type);
-    
-    if (!profile) {
-      toast({
-        title: "❌ Error",
-        description: "Please log in to access admin panel.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Navigate based on user role
-    switch (profile.user_type) {
-      case 'super_admin':
-        navigate('/super-admin');
-        break;
-      case 'org_admin':
-        navigate('/org-admin');
-        break;
-      case 'manager':
-        navigate('/manager');
-        break;
-      case 'employee':
-        navigate('/employee');
-        break;
-      default:
-        toast({
-          title: "❌ Access Denied",
-          description: "You don't have permission to access admin panel.",
-          variant: "destructive"
-        });
-    }
-  };
-
-  // Helper function to check if user has admin privileges
-  const hasAdminAccess = () => {
-    return profile && ['super_admin', 'org_admin'].includes(profile.user_type);
+    trackFeatureUsage('admin_panel_access', user?.role);
+    toast({
+      title: `⚙️ ${t('settings')}`,
+      description: "Opening administrative dashboard...",
+    });
   };
 
   const formatMonth = (date: Date) => {
@@ -318,9 +167,9 @@ const Index = () => {
                     >
                       🎭 Switch Role
                     </Link>
-                    {hasAdminAccess() && (
+                    {hasRole('admin') && (
                       <Link 
-                        to="#" 
+                        to="/admin" 
                         className="block w-full text-left p-3 rounded-lg hover:bg-gray-100 transition-colors"
                         onClick={handleAdminPanel}
                       >
@@ -383,9 +232,9 @@ const Index = () => {
                 </Button>
               </Link>
               
-              {hasAdminAccess() && (
-                <Link to="#" onClick={handleAdminPanel}>
-                  <Button variant="outline" size="sm">
+              {hasRole('admin') && (
+                <Link to="/admin">
+                  <Button variant="outline" size="sm" onClick={handleAdminPanel}>
                     <Settings className="w-4 h-4 mr-2" />
                     {t('settings')}
                   </Button>
@@ -396,7 +245,7 @@ const Index = () => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2">
                     <User className="w-4 h-4" />
-                    <span className="hidden sm:inline">{profile?.display_name || user?.email || 'User'}</span>
+                    <span className="hidden sm:inline">{user?.name}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -448,13 +297,6 @@ const Index = () => {
                 <CardContent className="space-y-2">
                   <SickNoticeModal />
                   <QRCodeScanner />
-                  <Button 
-                    onClick={createOrgAdminAndNavigate}
-                    className="w-full"
-                    variant="outline"
-                  >
-                    🏢 Create Org Admin & Test
-                  </Button>
                 </CardContent>
               </Card>
               

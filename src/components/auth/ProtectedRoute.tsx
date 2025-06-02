@@ -13,11 +13,6 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
   const { user, profile, loading } = useSupabaseAuth();
   const location = useLocation();
 
-  // BYPASS: Allow direct access to org-admin page for demo/testing purposes
-  if (location.pathname === '/org-admin') {
-    return <>{children}</>;
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">

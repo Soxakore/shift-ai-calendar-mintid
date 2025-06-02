@@ -129,12 +129,8 @@ export type Database = {
           display_name: string
           id: string
           is_active: boolean | null
-          last_login: string | null
           organization_id: string | null
-          password_changed_at: string | null
           phone_number: string | null
-          qr_code_enabled: boolean | null
-          qr_code_expires_at: string | null
           tracking_id: string | null
           updated_at: string
           user_type: string
@@ -147,12 +143,8 @@ export type Database = {
           display_name: string
           id: string
           is_active?: boolean | null
-          last_login?: string | null
           organization_id?: string | null
-          password_changed_at?: string | null
           phone_number?: string | null
-          qr_code_enabled?: boolean | null
-          qr_code_expires_at?: string | null
           tracking_id?: string | null
           updated_at?: string
           user_type: string
@@ -165,12 +157,8 @@ export type Database = {
           display_name?: string
           id?: string
           is_active?: boolean | null
-          last_login?: string | null
           organization_id?: string | null
-          password_changed_at?: string | null
           phone_number?: string | null
-          qr_code_enabled?: boolean | null
-          qr_code_expires_at?: string | null
           tracking_id?: string | null
           updated_at?: string
           user_type?: string
@@ -195,44 +183,44 @@ export type Database = {
       }
       qr_codes: {
         Row: {
-          id: string
-          user_id: string
-          organization_id: string
-          qr_code: string
-          expires_at: string
-          is_active: boolean | null
-          used_at: string | null
+          code: string
           created_at: string
+          department_id: string | null
+          id: string
+          is_active: boolean | null
+          location: string
+          name: string
+          organization_id: string
           updated_at: string
         }
         Insert: {
-          id?: string
-          user_id: string
-          organization_id: string
-          qr_code: string
-          expires_at: string
-          is_active?: boolean | null
-          used_at?: string | null
+          code: string
           created_at?: string
+          department_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          location: string
+          name: string
+          organization_id: string
           updated_at?: string
         }
         Update: {
-          id?: string
-          user_id?: string
-          organization_id?: string
-          qr_code?: string
-          expires_at?: string
-          is_active?: boolean | null
-          used_at?: string | null
+          code?: string
           created_at?: string
+          department_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          location?: string
+          name?: string
+          organization_id?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "qr_codes_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "qr_codes_department_id_fkey"
+            columns: ["department_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "departments"
             referencedColumns: ["id"]
           },
           {
@@ -450,58 +438,6 @@ export type Database = {
           },
           {
             foreignKeyName: "time_logs_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      password_histories: {
-        Row: {
-          id: string
-          user_id: string
-          changed_by: string
-          action: string
-          organization_id: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          changed_by: string
-          action: string
-          organization_id: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          changed_by?: string
-          action?: string
-          organization_id?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "password_histories_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "password_histories_changed_by_fkey"
-            columns: ["changed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "password_histories_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"

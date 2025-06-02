@@ -1,9 +1,13 @@
+
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Upload, Calendar, Clock, CheckCircle } from 'lucide-react';
-import { useToast } from './ui/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useToast } from '@/hooks/use-toast';
+import dataStore from '@/lib/dataStore';
 
 interface ParsedSchedule {
   userId: string;
@@ -25,22 +29,8 @@ export const ImageScheduleParser: React.FC<ImageScheduleParserProps> = ({ onSche
   const [parsedSchedules, setParsedSchedules] = useState<ParsedSchedule[]>([]);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   
-  // Mock user data
-  const user = {
-    id: 'mock-user-id',
-    organizationId: 'mock-org-id',
-    departmentId: 'mock-dept-id'
-  };
-  
-  // Mock translation function
-  const t = (key: string) => {
-    const translations: Record<string, string> = {
-      'success': 'Success',
-      'error': 'Error'
-    };
-    return translations[key] || key;
-  };
-  
+  const { user } = useAuth();
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,54 +47,32 @@ export const ImageScheduleParser: React.FC<ImageScheduleParserProps> = ({ onSche
       };
       reader.readAsDataURL(file);
 
-      // Enhanced AI parsing simulation with better mock data
-      const simulateAIParsing = async (file: File): Promise<ParsedSchedule[]> => {
-        // Simulate processing time based on file size
-        const processingTime = Math.min(3000, Math.max(1000, file.size / 1000));
-        await new Promise(resolve => setTimeout(resolve, processingTime));
-        
-        // Generate more realistic mock schedules
-        const shifts = ['morning', 'afternoon', 'night'] as const;
-        const statuses = ['scheduled', 'checked-in'] as const;
-        const today = new Date();
-        
-        const mockSchedules: ParsedSchedule[] = [];
-        
-        // Generate 3-7 schedule entries
-        const numEntries = Math.floor(Math.random() * 5) + 3;
-        
-        for (let i = 0; i < numEntries; i++) {
-          const scheduleDate = new Date(today);
-          scheduleDate.setDate(today.getDate() + i);
-          
-          const shiftType = shifts[Math.floor(Math.random() * shifts.length)];
-          const startTimes = {
-            morning: ['06:00', '07:00', '08:00', '09:00'],
-            afternoon: ['12:00', '13:00', '14:00', '15:00'],
-            night: ['18:00', '19:00', '20:00', '21:00']
-          };
-          
-          const startTime = startTimes[shiftType][Math.floor(Math.random() * startTimes[shiftType].length)];
-          const startHour = parseInt(startTime.split(':')[0]);
-          const endTime = `${String(startHour + 8).padStart(2, '0')}:00`;
-          
-          mockSchedules.push({
-            userId: user?.id || '',
-            organizationId: user?.organizationId || '',
-            departmentId: user?.departmentId || '',
-            date: scheduleDate.toISOString().split('T')[0],
-            startTime,
-            endTime,
-            shift: shiftType,
-            status: statuses[Math.floor(Math.random() * statuses.length)]
-          });
-        }
-        
-        return mockSchedules;
-      };
-
       // Simulate AI parsing (in real implementation, this would call an AI service)
-      const mockSchedules = await simulateAIParsing(file);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Mock parsed schedule data
+      const mockSchedules = [
+        {
+          userId: user.id,
+          organizationId: user.organizationId || '',
+          departmentId: user.departmentId || '',
+          date: new Date().toISOString().split('T')[0],
+          startTime: '09:00',
+          endTime: '17:00',
+          shift: 'morning' as const,
+          status: 'scheduled' as const
+        },
+        {
+          userId: user.id,
+          organizationId: user.organizationId || '',
+          departmentId: user.departmentId || '',
+          date: new Date(Date.now() + 86400000).toISOString().split('T')[0], // tomorrow
+          startTime: '10:00',
+          endTime: '18:00',
+          shift: 'afternoon' as const,
+          status: 'scheduled' as const
+        }
+      ];
 
       setParsedSchedules(mockSchedules);
       
@@ -128,14 +96,7 @@ export const ImageScheduleParser: React.FC<ImageScheduleParserProps> = ({ onSche
     if (parsedSchedules.length === 0) return;
 
     try {
-      // Mock data store implementation
-      const addedSchedules = parsedSchedules.map(schedule => ({
-        ...schedule,
-        id: `schedule-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      }));
-      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const addedSchedules = dataStore.addScheduleFromImage(parsedSchedules);
       
       toast({
         title: t('success'),

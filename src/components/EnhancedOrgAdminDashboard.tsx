@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,172 +10,192 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { 
   Users, 
   Building2, 
+  Settings, 
+  BarChart3,
+  Plus,
   UserCheck,
   Calendar,
+  TrendingUp,
   Clock,
+  MapPin,
   AlertTriangle,
+  CheckCircle,
   UserPlus,
   ArrowUp
 } from 'lucide-react';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useSupabaseData } from '@/hooks/useSupabaseData';
+import dataStore from '@/lib/dataStore';
 import SickNoticeModal from '@/components/SickNoticeModal';
 import QRCodeScanner from '@/components/QRCodeScanner';
-import { Tables } from '@/integrations/supabase/types';
 
-type Profile = Tables<'profiles'>;
-type Department = Tables<'departments'>;
-type Schedule = Tables<'schedules'>;
-type SickNotice = Tables<'sick_notices'>;
-type TimeLog = Tables<'time_logs'>;
+interface User {
+  id: string;
+  username: string;
+  displayName: string;
+  email?: string;
+  userType: string;
+  department?: string;
+  departmentId?: string;
+  organizationId: string;
+  createdAt: string;
+}
+
+interface SickNotice {
+  id: string;
+  userId: string;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  status: string;
+  submittedAt: string;
+}
+
+interface Department {
+  id: string;
+  name: string;
+  organizationId: string;
+}
+
+interface Activity {
+  id: string;
+  type: string;
+  message: string;
+  time: string;
+  priority: string;
+}
+
+interface Schedule {
+  id: string;
+  userId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+}
+
+interface TimeLog {
+  id: string;
+  userId: string;
+  clockIn?: string;
+  clockOut?: string;
+  date: string;
+  totalHours?: number;
+  status: string;
+}
+
+interface DashboardData {
+  users: User[];
+  departments: Department[];
+  sickNotices: SickNotice[];
+  recentActivities: Activity[];
+  schedules: Schedule[];
+  timeLogs: TimeLog[];
+  totalEmployees: number;
+  activeToday: number;
+  onTime: number;
+  allUsers: User[];
+  managers: User[];
+}
 
 const EnhancedOrgAdminDashboard = () => {
-  const { profile: authProfile } = useSupabaseAuth();
+  const { user } = useAuth();
   const { t } = useTranslation();
   const { toast } = useToast();
-  const { 
-    departments, 
-    profiles: allUsers, 
-    schedules, 
-    sickNotices, 
-    timeLogs,
-    loading 
-  } = useSupabaseData();
-
-  // Mock profile for demo purposes when no user is authenticated
-  const profile = authProfile || {
-    id: 'demo-org-admin',
-    username: 'demo-orgadmin',
-    display_name: 'Demo Organization Admin',
-    user_type: 'org_admin' as const,
-    organization_id: 'demo-org-1',
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
-
-  // Mock data when not authenticated
-  const mockDepartments = [
-    { id: 'dept-1', name: 'Kitchen', description: 'Food preparation', organization_id: 'demo-org-1', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-    { id: 'dept-2', name: 'Front Counter', description: 'Customer service', organization_id: 'demo-org-1', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-    { id: 'dept-3', name: 'Management', description: 'Leadership team', organization_id: 'demo-org-1', created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
-  ];
-
-  const mockUsers = [
-    { id: 'user-1', username: 'john_doe', display_name: 'John Doe', user_type: 'employee', organization_id: 'demo-org-1', department_id: 'dept-1', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-    { id: 'user-2', username: 'jane_smith', display_name: 'Jane Smith', user_type: 'manager', organization_id: 'demo-org-1', department_id: 'dept-2', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-    { id: 'user-3', username: 'mike_wilson', display_name: 'Mike Wilson', user_type: 'employee', organization_id: 'demo-org-1', department_id: 'dept-1', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
-  ];
-
-  // Use real data if authenticated, otherwise use mock data
-  const currentDepartments = authProfile ? departments : mockDepartments;
-  const currentUsers = authProfile ? allUsers : mockUsers;
   
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const [showCreateDepartment, setShowCreateDepartment] = useState(false);
   const [showPromoteEmployee, setShowPromoteEmployee] = useState(false);
   
-  // Add loading states
-  const [isAddingEmployee, setIsAddingEmployee] = useState(false);
-  const [isCreatingDepartment, setIsCreatingDepartment] = useState(false);
-  const [isPromotingEmployee, setIsPromotingEmployee] = useState(false);
-  
-  // Add form validation states
-  const [employeeFormErrors, setEmployeeFormErrors] = useState({
-    username: '',
-    display_name: '',
-    department_id: ''
-  });
-  
   const [newEmployee, setNewEmployee] = useState({
     username: '',
-    display_name: '',
+    displayName: '',
     email: '',
     password: '',
-    department_id: '',
-    user_type: 'employee' as 'employee' | 'manager'
+    departmentId: '',
+    userType: 'employee' as const
   });
   
   const [newDepartment, setNewDepartment] = useState({
     name: '',
-    description: ''
+    description: '',
+    color: '#3b82f6'
   });
   
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
 
-  // Calculate dashboard data from Supabase data
-  const dashboardData = React.useMemo(() => {
-    if (!profile?.organization_id || !currentUsers || !currentDepartments) return null;
+  // Load dashboard data and set up real-time updates
+  useEffect(() => {
+    if (!user?.organizationId) return;
 
-    const orgUsers = currentUsers.filter(u => u.organization_id === profile.organization_id);
-    const orgDepartments = currentDepartments.filter(d => d.organization_id === profile.organization_id);
-    const orgSchedules = schedules?.filter(s => s.organization_id === profile.organization_id) || [];
-    const orgSickNotices = sickNotices?.filter(s => s.organization_id === profile.organization_id && s.status === 'pending') || [];
-    const orgTimeLogs = timeLogs?.filter(t => t.organization_id === profile.organization_id) || [];
-
-    // Get today's date
-    const today = new Date().toISOString().split('T')[0];
-    const todaySchedules = orgSchedules.filter(s => s.date === today);
-    const todayTimeLogs = orgTimeLogs.filter(t => t.date === today);
-
-    return {
-      users: orgUsers,
-      departments: orgDepartments,
-      sickNotices: orgSickNotices,
-      schedules: todaySchedules,
-      timeLogs: todayTimeLogs,
-      totalEmployees: orgUsers.length,
-      activeToday: todayTimeLogs.filter(log => log.clock_in).length,
-      onTime: todayTimeLogs.filter(log => log.clock_in && log.clock_out).length,
-      managers: orgUsers.filter(u => u.user_type === 'manager'),
-    };
-  }, [profile?.organization_id, currentUsers, currentDepartments, schedules, sickNotices, timeLogs]);
-
-  // Form validation function
-  const validateEmployeeForm = () => {
-    const errors = {
-      username: '',
-      display_name: '',
-      department_id: ''
+    const loadData = () => {
+      const data = dataStore.getTodaysData(user.organizationId!);
+      const departments = dataStore.getDepartments(user.organizationId);
+      const allUsers = dataStore.getUsers(user.organizationId);
+      const sickNotices = dataStore.getSickNotices(user.organizationId, 'pending');
+      
+      setDashboardData({
+        ...data,
+        departments,
+        allUsers,
+        sickNotices,
+        managers: allUsers.filter(u => u.userType === 'manager'),
+        recentActivities: generateRecentActivities(allUsers, sickNotices)
+      });
     };
 
-    if (!newEmployee.username.trim()) {
-      errors.username = 'Username is required';
-    } else if (newEmployee.username.length < 3) {
-      errors.username = 'Username must be at least 3 characters';
-    } else if (!/^[a-zA-Z0-9._-]+$/.test(newEmployee.username)) {
-      errors.username = 'Username can only contain letters, numbers, dots, hyphens, and underscores';
-    }
+    loadData();
 
-    if (!newEmployee.display_name.trim()) {
-      errors.display_name = 'Full name is required';
-    } else if (newEmployee.display_name.length < 2) {
-      errors.display_name = 'Full name must be at least 2 characters';
-    }
+    // Subscribe to real-time updates - now returns unsubscribe functions
+    const unsubscribes = [
+      dataStore.subscribe('user_added', loadData),
+      dataStore.subscribe('user_updated', loadData),
+      dataStore.subscribe('department_added', loadData),
+      dataStore.subscribe('sick_notice_submitted', loadData),
+      dataStore.subscribe('time_logged', loadData)
+    ];
 
-    if (!newEmployee.department_id) {
-      errors.department_id = 'Department selection is required';
-    }
+    return () => {
+      unsubscribes.forEach(unsubscribe => unsubscribe());
+    };
+  }, [user?.organizationId]);
 
-    setEmployeeFormErrors(errors);
-    return !Object.values(errors).some(error => error);
+  const generateRecentActivities = (users: User[], sickNotices: SickNotice[]) => {
+    const activities = [];
+    
+    // Recent sick notices
+    sickNotices.slice(0, 3).forEach(notice => {
+      const employee = users.find(u => u.id === notice.userId);
+      activities.push({
+        id: `sick_${notice.id}`,
+        type: 'sick_notice',
+        message: `${employee?.displayName || 'Employee'} submitted sick notice`,
+        time: notice.submittedAt,
+        priority: 'high'
+      });
+    });
+    
+    // Recent user additions (last 24 hours)
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    users.filter(u => new Date(u.createdAt) > yesterday).forEach(user => {
+      activities.push({
+        id: `user_${user.id}`,
+        type: 'new_user',
+        message: `New employee added: ${user.displayName}`,
+        time: user.createdAt,
+        priority: 'normal'
+      });
+    });
+    
+    return activities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
   };
 
   const handleAddEmployee = async () => {
-    // Demo mode - show mock success message instead of real database operation
-    if (!authProfile) {
-      toast({
-        title: "🎭 Demo Mode",
-        description: "This is a demo. In real mode, this would add a new employee to your organization.",
-      });
-      setShowAddEmployee(false);
-      return;
-    }
-
-    if (!profile?.organization_id || !newEmployee.username || !newEmployee.display_name || !newEmployee.department_id) {
+    if (!user?.organizationId || !newEmployee.username || !newEmployee.displayName || !newEmployee.departmentId) {
       toast({
         title: t('error'),
         description: "Please fill in all required fields",
@@ -183,74 +204,41 @@ const EnhancedOrgAdminDashboard = () => {
       return;
     }
 
-    setIsAddingEmployee(true);
     try {
-      // Generate email for the user
-      const email = `${newEmployee.username.trim()}@${profile.organization_id}.mintid.local`;
-      
-      const { data, error } = await supabase.auth.signUp({
-        email: email,
-        password: newEmployee.password || `temp${Date.now()}`,
-        options: {
-          data: {
-            username: newEmployee.username.trim(),
-            display_name: newEmployee.display_name.trim(),
-            user_type: newEmployee.user_type,
-            organization_id: profile.organization_id,
-            department_id: newEmployee.department_id,
-            created_by: profile.id
-          }
-        }
+      const addedUser = dataStore.addUser({
+        ...newEmployee,
+        organizationId: user.organizationId,
+        roleId: 'employee_role',
+        password: newEmployee.password || 'temp123',
+        isActive: true,
+        createdBy: user.id
       });
-
-      if (error) {
-        console.error('User creation error:', error);
-        toast({
-          title: t('error'),
-          description: error.message || "Failed to create user",
-          variant: "destructive"
-        });
-        return;
-      }
 
       toast({
         title: t('success'),
-        description: `Employee ${newEmployee.display_name} added successfully. Login: ${newEmployee.username}`
+        description: `Employee ${addedUser.displayName} added successfully`
       });
 
       setNewEmployee({
         username: '',
-        display_name: '',
+        displayName: '',
         email: '',
         password: '',
-        department_id: '',
-        user_type: 'employee'
+        departmentId: '',
+        userType: 'employee'
       });
       setShowAddEmployee(false);
     } catch (error) {
-      console.error('Unexpected error creating user:', error);
       toast({
         title: t('error'),
         description: "Failed to add employee",
         variant: "destructive"
       });
-    } finally {
-      setIsAddingEmployee(false);
     }
   };
 
   const handleCreateDepartment = async () => {
-    // Demo mode - show mock success message instead of real database operation
-    if (!authProfile) {
-      toast({
-        title: "🎭 Demo Mode",
-        description: "This is a demo. In real mode, this would create a new department in your organization.",
-      });
-      setShowCreateDepartment(false);
-      return;
-    }
-
-    if (!profile?.organization_id || !newDepartment.name) {
+    if (!user?.organizationId || !newDepartment.name) {
       toast({
         title: t('error'),
         description: "Please provide a department name",
@@ -259,134 +247,67 @@ const EnhancedOrgAdminDashboard = () => {
       return;
     }
 
-    setIsCreatingDepartment(true);
     try {
-      const { data, error } = await supabase
-        .from('departments')
-        .insert([{
-          name: newDepartment.name.trim(),
-          description: newDepartment.description.trim() || null,
-          organization_id: profile.organization_id
-        }])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Department creation error:', error);
-        toast({
-          title: t('error'),
-          description: error.message || "Failed to create department",
-          variant: "destructive"
-        });
-        return;
-      }
+      const addedDepartment = dataStore.addDepartment({
+        ...newDepartment,
+        organizationId: user.organizationId
+      });
 
       toast({
         title: t('success'),
-        description: `Department ${newDepartment.name} created successfully`
+        description: `Department ${addedDepartment.name} created successfully`
       });
 
       setNewDepartment({
         name: '',
-        description: ''
+        description: '',
+        color: '#3b82f6'
       });
       setShowCreateDepartment(false);
     } catch (error) {
-      console.error('Unexpected error creating department:', error);
       toast({
         title: t('error'),
         description: "Failed to create department",
         variant: "destructive"
       });
-    } finally {
-      setIsCreatingDepartment(false);
     }
   };
 
   const handlePromoteEmployee = async () => {
-    // Demo mode - show mock success message instead of real database operation
-    if (!authProfile) {
-      toast({
-        title: "🎭 Demo Mode",
-        description: "This is a demo. In real mode, this would promote the selected employee to manager.",
-      });
-      setShowPromoteEmployee(false);
-      return;
-    }
-
     if (!selectedEmployeeId) return;
 
-    setIsPromotingEmployee(true);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ user_type: 'manager' })
-        .eq('id', selectedEmployeeId);
-
-      if (error) {
-        console.error('User promotion error:', error);
+      const success = dataStore.promoteUser(selectedEmployeeId, 'manager', 'manager_role');
+      
+      if (success) {
         toast({
-          title: t('error'),
-          description: error.message || "Failed to promote employee",
-          variant: "destructive"
+          title: t('success'),
+          description: "Employee promoted to manager successfully"
         });
-        return;
+        setShowPromoteEmployee(false);
+        setSelectedEmployeeId('');
+      } else {
+        throw new Error('Failed to promote');
       }
-
-      toast({
-        title: t('success'),
-        description: "Employee promoted to manager successfully"
-      });
-      setShowPromoteEmployee(false);
-      setSelectedEmployeeId('');
     } catch (error) {
-      console.error('Unexpected error promoting user:', error);
       toast({
         title: t('error'),
         description: "Failed to promote employee",
         variant: "destructive"
       });
-    } finally {
-      setIsPromotingEmployee(false);
     }
   };
 
   const approveSickNotice = async (noticeId: string) => {
-    // Demo mode - show mock success message instead of real database operation
-    if (!authProfile) {
-      toast({
-        title: "🎭 Demo Mode",
-        description: "This is a demo. In real mode, this would approve the sick notice.",
-      });
-      return;
-    }
-
     try {
-      const { error } = await supabase
-        .from('sick_notices')
-        .update({ 
-          status: 'approved',
-          reviewed_by: profile?.id,
-          reviewed_at: new Date().toISOString()
-        })
-        .eq('id', noticeId);
-
-      if (error) {
-        console.error('Sick notice approval error:', error);
+      const success = dataStore.approveSickNotice(noticeId, user?.id || '');
+      if (success) {
         toast({
-          title: t('error'),
-          description: error.message || "Failed to approve sick notice",
-          variant: "destructive"
+          title: t('success'),
+          description: "Sick notice approved"
         });
-        return;
       }
-
-      toast({
-        title: t('success'),
-        description: "Sick notice approved successfully"
-      });
     } catch (error) {
-      console.error('Unexpected error approving sick notice:', error);
       toast({
         title: t('error'),
         description: "Failed to approve sick notice",
@@ -395,51 +316,31 @@ const EnhancedOrgAdminDashboard = () => {
     }
   };
 
-  if (loading) {
-    return <div className="p-6">Loading...</div>;
-  }
-
   if (!dashboardData) {
-    return <div className="p-6">No organization data available</div>;
+    return <div className="p-6">{t('loading')}...</div>;
   }
 
   return (
     <div className="space-y-6 p-6">
-      {/* Demo Mode Banner */}
-      {!authProfile && (
-        <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 rounded-lg shadow-lg">
-          <div className="flex items-center gap-3">
-            <div className="text-2xl">🎭</div>
-            <div>
-              <h3 className="font-bold text-lg">Demo Mode - Organization Admin Dashboard</h3>
-              <p className="text-sm opacity-90">
-                This is a preview of the org admin interface. All actions will show demo messages instead of making real changes.
-                <span className="ml-2 bg-white/20 px-2 py-1 rounded text-xs">Login disabled for demo</span>
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Organization Management</h1>
+          <h1 className="text-2xl font-bold">{t('organizationManagement')}</h1>
           <p className="text-muted-foreground">
-            MinTid - Shift Scheduling Management
+            {t('appName')} - {t('tagline')}
           </p>
         </div>
         <div className="flex space-x-2">
           <SickNoticeModal trigger={
             <Button variant="outline" size="sm">
               <AlertTriangle className="w-4 h-4 mr-2" />
-              Sick Notice
+              {t('sickNotice')}
             </Button>
           } />
           <QRCodeScanner trigger={
             <Button variant="outline" size="sm">
               <Clock className="w-4 h-4 mr-2" />
-              QR Time Logging
+              {t('qrTimeLogging')}
             </Button>
           } />
         </div>
@@ -452,7 +353,7 @@ const EnhancedOrgAdminDashboard = () => {
             <div className="flex items-center space-x-2">
               <Users className="h-8 w-8 text-blue-600" />
               <div>
-                <p className="text-sm font-medium text-blue-800">Total Employees</p>
+                <p className="text-sm font-medium text-blue-800">{t('totalEmployees')}</p>
                 <p className="text-2xl font-bold text-blue-600">{dashboardData.totalEmployees}</p>
               </div>
             </div>
@@ -464,7 +365,7 @@ const EnhancedOrgAdminDashboard = () => {
             <div className="flex items-center space-x-2">
               <Clock className="h-8 w-8 text-green-600" />
               <div>
-                <p className="text-sm font-medium">Active Today</p>
+                <p className="text-sm font-medium">{t('activeToday')}</p>
                 <p className="text-2xl font-bold text-green-600">{dashboardData.activeToday}</p>
               </div>
             </div>
@@ -476,7 +377,7 @@ const EnhancedOrgAdminDashboard = () => {
             <div className="flex items-center space-x-2">
               <Building2 className="h-8 w-8 text-purple-600" />
               <div>
-                <p className="text-sm font-medium">Departments</p>
+                <p className="text-sm font-medium">{t('departments')}</p>
                 <p className="text-2xl font-bold text-purple-600">{dashboardData.departments.length}</p>
               </div>
             </div>
@@ -488,7 +389,7 @@ const EnhancedOrgAdminDashboard = () => {
             <div className="flex items-center space-x-2">
               <UserCheck className="h-8 w-8 text-orange-600" />
               <div>
-                <p className="text-sm font-medium">Managers</p>
+                <p className="text-sm font-medium">{t('managers')}</p>
                 <p className="text-2xl font-bold text-orange-600">{dashboardData.managers.length}</p>
               </div>
             </div>
@@ -503,17 +404,17 @@ const EnhancedOrgAdminDashboard = () => {
             <Card className="cursor-pointer hover:shadow-md transition-shadow">
               <CardContent className="p-6 text-center">
                 <UserPlus className="h-8 w-8 mx-auto mb-2 text-blue-600" />
-                <h3 className="font-semibold">Add Employee</h3>
+                <h3 className="font-semibold">{t('addEmployee')}</h3>
                 <p className="text-sm text-muted-foreground">Add new team members</p>
               </CardContent>
             </Card>
           </DialogTrigger>
-          <DialogContent className="max-h-[80vh] overflow-y-auto">
+          <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add Employee</DialogTitle>
+              <DialogTitle>{t('addEmployee')}</DialogTitle>
               <DialogDescription>Add a new employee to your organization</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Username</Label>
@@ -522,64 +423,41 @@ const EnhancedOrgAdminDashboard = () => {
                     onChange={(e) => setNewEmployee({...newEmployee, username: e.target.value})}
                     placeholder="john.doe"
                   />
-                  {employeeFormErrors.username && (
-                    <p className="text-red-500 text-xs mt-1">{employeeFormErrors.username}</p>
-                  )}
                 </div>
                 <div>
                   <Label>Full Name</Label>
                   <Input
-                    value={newEmployee.display_name}
-                    onChange={(e) => setNewEmployee({...newEmployee, display_name: e.target.value})}
+                    value={newEmployee.displayName}
+                    onChange={(e) => setNewEmployee({...newEmployee, displayName: e.target.value})}
                     placeholder="John Doe"
                   />
-                  {employeeFormErrors.display_name && (
-                    <p className="text-red-500 text-xs mt-1">{employeeFormErrors.display_name}</p>
-                  )}
                 </div>
               </div>
               <div>
-                <Label>Temporary Password (Optional)</Label>
+                <Label>Email</Label>
                 <Input
-                  type="password"
-                  value={newEmployee.password}
-                  onChange={(e) => setNewEmployee({...newEmployee, password: e.target.value})}
-                  placeholder="Leave blank for auto-generated password"
+                  type="email"
+                  value={newEmployee.email}
+                  onChange={(e) => setNewEmployee({...newEmployee, email: e.target.value})}
+                  placeholder="john@company.com"
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  If left blank, a temporary password will be auto-generated
-                </p>
               </div>
               <div>
                 <Label>Department</Label>
-                <Select value={newEmployee.department_id} onValueChange={(value) => setNewEmployee({...newEmployee, department_id: value})}>
+                <Select value={newEmployee.departmentId} onValueChange={(value) => setNewEmployee({...newEmployee, departmentId: value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select Department" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-[200px] overflow-y-auto">
+                  <SelectContent>
                     {dashboardData.departments.map((dept: Department) => (
                       <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>Employee Type</Label>
-                <Select value={newEmployee.user_type} onValueChange={(value) => setNewEmployee({...newEmployee, user_type: value as 'employee' | 'manager'})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="employee">Employee</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
               <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setShowAddEmployee(false)}>Cancel</Button>
-                <Button onClick={handleAddEmployee} disabled={isAddingEmployee}>
-                  {isAddingEmployee ? 'Adding...' : 'Add'}
-                </Button>
+                <Button variant="outline" onClick={() => setShowAddEmployee(false)}>{t('cancel')}</Button>
+                <Button onClick={handleAddEmployee}>{t('add')}</Button>
               </div>
             </div>
           </DialogContent>
@@ -590,35 +468,33 @@ const EnhancedOrgAdminDashboard = () => {
             <Card className="cursor-pointer hover:shadow-md transition-shadow">
               <CardContent className="p-6 text-center">
                 <ArrowUp className="h-8 w-8 mx-auto mb-2 text-green-600" />
-                <h3 className="font-semibold">Promote to Manager</h3>
+                <h3 className="font-semibold">{t('promoteToManager')}</h3>
                 <p className="text-sm text-muted-foreground">Promote employees</p>
               </CardContent>
             </Card>
           </DialogTrigger>
-          <DialogContent className="max-h-[80vh] overflow-y-auto">
+          <DialogContent>
             <DialogHeader>
-              <DialogTitle>Promote to Manager</DialogTitle>
+              <DialogTitle>{t('promoteToManager')}</DialogTitle>
               <DialogDescription>Select an employee to promote to manager</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4">
               <div>
                 <Label>Select Employee</Label>
                 <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select Employee" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-[200px] overflow-y-auto">
-                    {dashboardData.users.filter((u: Profile) => u.user_type === 'employee').map((emp: Profile) => (
-                      <SelectItem key={emp.id} value={emp.id}>{emp.display_name}</SelectItem>
+                  <SelectContent>
+                    {dashboardData.allUsers.filter((u: User) => u.userType === 'employee').map((emp: User) => (
+                      <SelectItem key={emp.id} value={emp.id}>{emp.displayName}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setShowPromoteEmployee(false)}>Cancel</Button>
-                <Button onClick={handlePromoteEmployee} disabled={!selectedEmployeeId || isPromotingEmployee}>
-                  {isPromotingEmployee ? 'Promoting...' : 'Promote to Manager'}
-                </Button>
+                <Button variant="outline" onClick={() => setShowPromoteEmployee(false)}>{t('cancel')}</Button>
+                <Button onClick={handlePromoteEmployee} disabled={!selectedEmployeeId}>{t('promoteToManager')}</Button>
               </div>
             </div>
           </DialogContent>
@@ -629,17 +505,17 @@ const EnhancedOrgAdminDashboard = () => {
             <Card className="cursor-pointer hover:shadow-md transition-shadow">
               <CardContent className="p-6 text-center">
                 <Building2 className="h-8 w-8 mx-auto mb-2 text-purple-600" />
-                <h3 className="font-semibold">Create Department</h3>
+                <h3 className="font-semibold">{t('createDepartment')}</h3>
                 <p className="text-sm text-muted-foreground">Add new departments</p>
               </CardContent>
             </Card>
           </DialogTrigger>
-          <DialogContent className="max-h-[80vh] overflow-y-auto">
+          <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create Department</DialogTitle>
+              <DialogTitle>{t('createDepartment')}</DialogTitle>
               <DialogDescription>Create a new department in your organization</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4">
               <div>
                 <Label>Department Name</Label>
                 <Input
@@ -656,11 +532,17 @@ const EnhancedOrgAdminDashboard = () => {
                   placeholder="Department Description"
                 />
               </div>
+              <div>
+                <Label>Color</Label>
+                <Input
+                  type="color"
+                  value={newDepartment.color}
+                  onChange={(e) => setNewDepartment({...newDepartment, color: e.target.value})}
+                />
+              </div>
               <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setShowCreateDepartment(false)}>Cancel</Button>
-                <Button onClick={handleCreateDepartment} disabled={isCreatingDepartment}>
-                  {isCreatingDepartment ? 'Creating...' : 'Create'}
-                </Button>
+                <Button variant="outline" onClick={() => setShowCreateDepartment(false)}>{t('cancel')}</Button>
+                <Button onClick={handleCreateDepartment}>{t('create')}</Button>
               </div>
             </div>
           </DialogContent>
@@ -674,18 +556,18 @@ const EnhancedOrgAdminDashboard = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="w-5 h-5" />
-              Today's Schedule Overview
+              {t('today')}'s {t('schedule')} Overview
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {dashboardData.schedules.map((schedule: Schedule) => {
-                const employee = dashboardData.users.find((u: Profile) => u.id === schedule.user_id);
+                const employee = dashboardData.allUsers.find((u: User) => u.id === schedule.userId);
                 return (
                   <div key={schedule.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
-                      <p className="font-medium">{employee?.display_name || 'Unknown'}</p>
-                      <p className="text-sm text-gray-600">{schedule.start_time} - {schedule.end_time}</p>
+                      <p className="font-medium">{employee?.displayName || 'Unknown'}</p>
+                      <p className="text-sm text-gray-600">{schedule.startTime} - {schedule.endTime}</p>
                     </div>
                     <Badge variant={schedule.status === 'checked-in' ? 'default' : 'outline'}>
                       {schedule.status}
@@ -694,41 +576,40 @@ const EnhancedOrgAdminDashboard = () => {
                 );
               })}
               {dashboardData.schedules.length === 0 && (
-                <p className="text-muted-foreground text-center py-4">No schedules for today</p>
+                <p className="text-muted-foreground text-center py-4">{t('noData')}</p>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Pending Sick Notices */}
+        {/* Recent Activities */}
         <Card>
           <CardHeader>
-            <CardTitle>Pending Sick Notices</CardTitle>
+            <CardTitle>Recent Organization Activities</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {dashboardData.sickNotices.map((notice: SickNotice) => {
-                const employee = dashboardData.users.find((u: Profile) => u.id === notice.user_id);
-                return (
-                  <div key={notice.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <AlertTriangle className="w-4 h-4 text-orange-500" />
-                      <div>
-                        <p className="text-sm font-medium">{employee?.display_name || 'Unknown'}</p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(notice.start_date).toLocaleDateString()} - {new Date(notice.end_date).toLocaleDateString()}
-                        </p>
-                        <p className="text-xs text-gray-600">{notice.reason}</p>
-                      </div>
+              {dashboardData.recentActivities.map((activity: Activity) => (
+                <div key={activity.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    {activity.type === 'sick_notice' && <AlertTriangle className="w-4 h-4 text-orange-500" />}
+                    {activity.type === 'new_user' && <UserPlus className="w-4 h-4 text-blue-500" />}
+                    <div>
+                      <p className="text-sm font-medium">{activity.message}</p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(activity.time).toLocaleString()}
+                      </p>
                     </div>
-                    <Button size="sm" onClick={() => approveSickNotice(notice.id)}>
-                      Approve
-                    </Button>
                   </div>
-                );
-              })}
-              {dashboardData.sickNotices.length === 0 && (
-                <p className="text-muted-foreground text-center py-4">No pending sick notices</p>
+                  {activity.type === 'sick_notice' && (
+                    <Button size="sm" onClick={() => approveSickNotice(activity.id.replace('sick_', ''))}>
+                      {t('approve')}
+                    </Button>
+                  )}
+                </div>
+              ))}
+              {dashboardData.recentActivities.length === 0 && (
+                <p className="text-muted-foreground text-center py-4">No recent activities</p>
               )}
             </div>
           </CardContent>
@@ -740,13 +621,13 @@ const EnhancedOrgAdminDashboard = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <UserCheck className="w-5 h-5" />
-            Current Managers
+            Current {t('managers')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {dashboardData.managers.map((manager: Profile) => {
-              const department = dashboardData.departments.find((d: Department) => d.id === manager.department_id);
+            {dashboardData.managers.map((manager: User) => {
+              const department = dashboardData.departments.find((d: Department) => d.id === manager.departmentId);
               return (
                 <div key={manager.id} className="p-4 border rounded-lg">
                   <div className="flex items-center gap-3">
@@ -754,19 +635,16 @@ const EnhancedOrgAdminDashboard = () => {
                       <UserCheck className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
-                      <p className="font-medium">{manager.display_name}</p>
+                      <p className="font-medium">{manager.displayName}</p>
                       <p className="text-sm text-gray-600">{department?.name || 'Unknown Department'}</p>
                       <Badge variant="secondary" className="text-xs">
-                        {manager.user_type}
+                        {manager.userType}
                       </Badge>
                     </div>
                   </div>
                 </div>
               );
             })}
-            {dashboardData.managers.length === 0 && (
-              <p className="text-muted-foreground text-center py-4 col-span-3">No managers found</p>
-            )}
           </div>
         </CardContent>
       </Card>

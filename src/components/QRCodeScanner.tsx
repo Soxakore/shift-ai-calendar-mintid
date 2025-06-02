@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { QrCode, Camera, Clock, MapPin } from 'lucide-react';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useToast } from '@/hooks/use-toast';
 import dataStore, { TimeLog } from '@/lib/dataStore';
@@ -21,7 +21,7 @@ export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({ trigger }) => {
   const [isScanning, setIsScanning] = useState(false);
   const [lastScan, setLastScan] = useState<TimeLog | null>(null);
   
-  const { user, profile } = useSupabaseAuth();
+  const { user } = useAuth();
   const { t } = useTranslation();
   const { toast } = useToast();
 
@@ -159,7 +159,7 @@ export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({ trigger }) => {
           )}
 
           {/* Available QR Codes for Demo */}
-          {profile?.organization_id && (
+          {user?.organizationId && (
             <div className="space-y-2">
               <Label>Available QR Codes (Demo)</Label>
               <div className="grid grid-cols-1 gap-2">
