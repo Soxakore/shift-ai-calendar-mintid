@@ -10,8 +10,8 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   
   return {
-    // GitHub Pages deployment configuration
-    base: process.env.NODE_ENV === 'production' ? '/' : '/',
+    // Netlify deployment configuration
+    base: '/',
     plugins: [
       react(),
       mode === 'development' &&
