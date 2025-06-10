@@ -7,7 +7,7 @@ import {
   Calendar,
   LogOut,
   Users,
-  Building,
+  Building2,
   BarChart3,
   Shield,
   Settings,
@@ -29,9 +29,12 @@ import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import TwoFactorManagement from '@/components/admin/TwoFactorManagement';
 import { supabase } from '@/integrations/supabase/client';
-import OrganizationManagement from '@/components/admin/OrganizationManagement';
+import DataDebugComponent from '@/components/debug/DataDebugComponent';
+import OrganisationManagement from '@/components/admin/OrganisationManagement';
 import RoleBasedUserManagement from '@/components/admin/RoleBasedUserManagement';
 import SuperAdminUserManagement from '@/components/admin/SuperAdminUserManagement';
+import { LiveReportsManager } from '@/components/LiveReportsManager';
+import { LiveScheduleAutomation } from '@/components/LiveScheduleAutomation';
 
 interface User {
   id: string;
@@ -54,7 +57,7 @@ const SuperAdminDashboard = () => {
   const [liveStats, setLiveStats] = useState({
     systemStatus: 'Optimal',
     activeUsers: 0,
-    totalOrganizations: 0,
+    totalOrganisations: 0,
     securityScore: 98,
     recentLogins: 0,
     failedLogins: 0
@@ -69,9 +72,9 @@ const SuperAdminDashboard = () => {
         .select('id, is_active, created_at')
         .eq('is_active', true);
 
-      // Get total organizations
-      const { data: organizations, error: orgsError } = await supabase
-        .from('organizations')
+      // Get total organisations
+      const { data: organisations, error: orgsError } = await supabase
+        .from('organisations')
         .select('id');
 
       // Get recent session activity (last 24 hours)
@@ -100,7 +103,7 @@ const SuperAdminDashboard = () => {
         setLiveStats({
           systemStatus: failedLogins > 50 ? 'Warning' : 'Optimal',
           activeUsers: profiles?.length || 0,
-          totalOrganizations: organizations?.length || 0,
+          totalOrganisations: organisations?.length || 0,
           securityScore: Math.max(securityScore, 60), // Minimum 60%
           recentLogins: successfulLogins,
           failedLogins: failedLogins
@@ -136,10 +139,10 @@ const SuperAdminDashboard = () => {
         {
           event: '*',
           schema: 'public',
-          table: 'organizations'
+          table: 'organisations'
         },
         () => {
-          console.log('Organization change detected, updating stats...');
+          console.log('Organisation change detected, updating stats...');
           fetchLiveStats();
         }
       )
@@ -193,7 +196,7 @@ const SuperAdminDashboard = () => {
     const pathToTab = {
       '/super-admin': 'overview',
       '/super-admin/users': 'users',
-      '/super-admin/organizations': 'organizations',
+      '/super-admin/organisations': 'organisations',
       '/super-admin/analytics': 'analytics',
       '/super-admin/security': 'security',
       '/super-admin/2fa': '2fa',
@@ -335,7 +338,7 @@ const SuperAdminDashboard = () => {
       {/* Main Content with Enhanced Tabs */}
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 lg:w-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+          <TabsList className="grid w-full grid-cols-7 lg:w-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
             <TabsTrigger value="overview" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
               <BarChart3 className="h-4 w-4" />
               Overview
@@ -344,13 +347,18 @@ const SuperAdminDashboard = () => {
               <Users className="h-4 w-4" />
               Users
             </TabsTrigger>
-            <TabsTrigger value="organizations" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
-              <Building className="h-4 w-4" />
-              Organizations
+            <TabsTrigger value="organisations" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
+              <Building2 className="h-4 w-4" />
+              Organisations
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
               <BarChart3 className="h-4 w-4" />
               Analytics
+            </TabsTrigger>
+            <TabsTrigger value="debug" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
+              <Settings className="h-4 w-4" />
+              Debug
+              <Badge className="bg-red-500 text-white text-xs">Test</Badge>
             </TabsTrigger>
             <TabsTrigger value="security" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
               <Shield className="h-4 w-4" />
@@ -404,16 +412,16 @@ const SuperAdminDashboard = () => {
 
               <Card className="border-0 shadow-xl bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Organizations</CardTitle>
+                  <CardTitle className="text-sm font-medium">Organisations</CardTitle>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-                    <Building className="h-4 w-4 text-purple-600" />
+                    <Building2 className="h-4 w-4 text-purple-600" />
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">{liveStats.totalOrganizations}</div>
+                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">{liveStats.totalOrganisations}</div>
                   <p className="text-xs text-purple-700 dark:text-purple-300">
-                    {liveStats.totalOrganizations > 0 ? `${Math.round(liveStats.activeUsers / Math.max(liveStats.totalOrganizations, 1))} avg users/org` : 'No organizations yet'}
+                    {liveStats.totalOrganisations > 0 ? `${Math.round(liveStats.activeUsers / Math.max(liveStats.totalOrganisations, 1))} avg users/org` : 'No organisations yet'}
                   </p>
                 </CardContent>
               </Card>
@@ -442,12 +450,26 @@ const SuperAdminDashboard = () => {
             <SuperAdminUserManagement />
           </TabsContent>
 
-          <TabsContent value="organizations" className="space-y-6">
-            <OrganizationManagement />
+          <TabsContent value="organisations" className="space-y-6">
+            <OrganisationManagement />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
             <AnalyticsDashboard />
+            
+            {/* Live Reports Manager */}
+            <div className="mt-8">
+              <LiveReportsManager />
+            </div>
+            
+            {/* Live Schedule Automation */}
+            <div className="mt-8">
+              <LiveScheduleAutomation />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="debug" className="space-y-6">
+            <DataDebugComponent />
           </TabsContent>
 
           <TabsContent value="security" className="space-y-6">

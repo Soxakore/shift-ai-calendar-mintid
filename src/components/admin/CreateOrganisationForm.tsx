@@ -7,21 +7,21 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Building, X } from 'lucide-react';
 
-interface CreateOrganizationFormProps {
+interface CreateOrganisationFormProps {
   isCreating: boolean;
   onCancel: () => void;
   onSubmit: (orgData: {
     name: string;
-    description: string;
-    alias: string;
+    description?: string;
+    alias?: string;
   }) => void;
 }
 
-export default function CreateOrganizationForm({
+export default function CreateOrganisationForm({
   isCreating,
   onCancel,
   onSubmit
-}: CreateOrganizationFormProps) {
+}: CreateOrganisationFormProps) {
   const [orgData, setOrgData] = useState({
     name: '',
     description: '',

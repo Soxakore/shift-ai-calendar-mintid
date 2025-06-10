@@ -40,6 +40,13 @@ export default function UsersList({
 }: UsersListProps) {
   const { toast } = useToast();
 
+  // Add debugging
+  console.log('🔍 UsersList received data:', {
+    usersCount: users?.length || 0,
+    organizationsCount: organizations?.length || 0,
+    firstUser: users?.[0] || null
+  });
+
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'super_admin': return 'destructive';

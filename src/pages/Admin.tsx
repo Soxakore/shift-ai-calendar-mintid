@@ -1,145 +1,125 @@
-import { useState, Suspense } from 'react';
-import { Users, Calendar, BarChart3, Settings, Brain, Database, ArrowLeft, Building2, Shield, UserCog } from 'lucide-react';
+import React, { Suspense } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LoadingSpinner } from '@/components/ui/loading';
+import { Users, Calendar, BarChart3, Settings, Brain, Database, ArrowLeft, Building2, Shield, UserCog } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import ScheduleManagement from '@/components/admin/ScheduleManagement';
-import RoleBasedUIDemo from '@/components/admin/RoleBasedUIDemo';
-import UserAccountManager from '@/components/admin/UserAccountManager';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
 import SEOHead from '@/components/SEOHead';
-
-// Lazy loaded admin components  
+import { getPageMetadata } from '@/lib/seo';
+import { useAuth } from '@/hooks/useAuth';
 import {
-  LazyUsersManagement,
   LazyAISettings,
+  LazyOrganisationManagement,
   LazySystemSettings,
-  LazyOrganizationManagement,
+  LazyUsersManagement,
   LazyAdminReportsManagement
 } from '@/components/LazyComponents';
 
-// SEO imports
-import { createSoftwareSchema, getPageMetadata } from '@/lib/seo';
-
-const Admin = () => {
+export default function Admin() {
   const { user, logout } = useAuth();
   const pageMetadata = getPageMetadata('admin');
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <SEOHead
-        title={pageMetadata.title}
-        description={pageMetadata.description}
-        keywords={pageMetadata.keywords}
-        canonicalUrl={pageMetadata.canonical}
-        pageName="admin"
-        structuredData={[createSoftwareSchema()]}
-      />
-      {/* Header */}
-      <header className="bg-blue-900 text-white px-4 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link to="/" className="flex items-center gap-2 text-white hover:text-blue-200">
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back to App</span>
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="w-[400px]">
+          <CardHeader>
+            <CardTitle>Access Denied</CardTitle>
+            <CardDescription>You must be logged in to access the admin panel.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link to="/login">
+              <Button className="w-full">Go to Login</Button>
             </Link>
-            <h1 className="text-xl font-bold">WorkFlow AI</h1>
-            <span className="text-blue-200">Admin Panel</span>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <SEOHead {...pageMetadata} />
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center py-6">
+              <div className="flex items-center space-x-4">
+                <Link to="/" className="text-gray-600 hover:text-gray-900">
+                  <ArrowLeft className="h-6 w-6" />
+                </Link>
+                <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+              </div>
+              <div className="flex items-center space-x-4">
+                <span className="text-sm text-gray-600">Welcome, {user.username}</span>
+                <Button variant="outline" onClick={logout}>
+                  Logout
+                </Button>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-blue-200">Welcome, {user?.name}</span>
-            <Button variant="outline" className="text-white border-white hover:bg-blue-800" onClick={logout}>
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto p-4">
-        <Tabs defaultValue="organizations" className="w-full">
-          <TabsList className="grid w-full grid-cols-8 mb-6">
-            <TabsTrigger value="organizations" className="flex items-center gap-2">
-              <Building2 className="w-4 h-4" />
-              Organizations
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Users
-            </TabsTrigger>
-            <TabsTrigger value="accounts" className="flex items-center gap-2">
-              <UserCog className="w-4 h-4" />
-              Accounts
-            </TabsTrigger>
-            <TabsTrigger value="schedule" className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Schedule
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              Reports
-            </TabsTrigger>
-            <TabsTrigger value="ai-settings" className="flex items-center gap-2">
-              <Brain className="w-4 h-4" />
-              AI Settings
-            </TabsTrigger>
-            <TabsTrigger value="system" className="flex items-center gap-2">
-              <Settings className="w-4 h-4" />
-              System
-            </TabsTrigger>
-            <TabsTrigger value="role-demo" className="flex items-center gap-2">
-              <Shield className="w-4 h-4" />
-              Role Demo
-            </TabsTrigger>
-          </TabsList>
+        {/* Main Content */}
+        <main className="max-w-7xl mx-auto p-4">
+          <Tabs defaultValue="organisations" className="w-full">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="organisations" className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Organisations
+              </TabsTrigger>
+              <TabsTrigger value="users" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Users
+              </TabsTrigger>
+              <TabsTrigger value="reports" className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Reports
+              </TabsTrigger>
+              <TabsTrigger value="ai" className="flex items-center gap-2">
+                <Brain className="h-4 w-4" />
+                AI Settings
+              </TabsTrigger>
+              <TabsTrigger value="system" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                System
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="organizations">
-            <Suspense fallback={<LoadingSpinner text="Loading Organization Management..." />}>
-              <LazyOrganizationManagement />
-            </Suspense>
-          </TabsContent>
+            <TabsContent value="organisations">
+              <Suspense fallback={<LoadingSpinner text="Loading Organisation Management..." />}>
+                <LazyOrganisationManagement />
+              </Suspense>
+            </TabsContent>
 
-          <TabsContent value="users">
-            <Suspense fallback={<LoadingSpinner text="Loading User Management..." />}>
-              <LazyUsersManagement />
-            </Suspense>
-          </TabsContent>
+            <TabsContent value="users">
+              <Suspense fallback={<LoadingSpinner text="Loading Users Management..." />}>
+                <LazyUsersManagement />
+              </Suspense>
+            </TabsContent>
 
-          <TabsContent value="accounts">
-            <UserAccountManager />
-          </TabsContent>
+            <TabsContent value="reports">
+              <Suspense fallback={<LoadingSpinner text="Loading Reports Management..." />}>
+                <LazyAdminReportsManagement />
+              </Suspense>
+            </TabsContent>
 
-          <TabsContent value="schedule">
-            <ScheduleManagement />
-          </TabsContent>
+            <TabsContent value="ai">
+              <Suspense fallback={<LoadingSpinner text="Loading AI Settings..." />}>
+                <LazyAISettings />
+              </Suspense>
+            </TabsContent>
 
-          <TabsContent value="reports">
-            <Suspense fallback={<LoadingSpinner text="Loading Reports..." />}>
-              <LazyAdminReportsManagement />
-            </Suspense>
-          </TabsContent>
-
-          <TabsContent value="ai-settings">
-            <Suspense fallback={<LoadingSpinner text="Loading AI Settings..." />}>
-              <LazyAISettings />
-            </Suspense>
-          </TabsContent>
-
-          <TabsContent value="system">
-            <Suspense fallback={<LoadingSpinner text="Loading System Settings..." />}>
-              <LazySystemSettings />
-            </Suspense>
-          </TabsContent>
-
-          <TabsContent value="role-demo">
-            <RoleBasedUIDemo />
-          </TabsContent>
-        </Tabs>
-      </main>
-    </div>
+            <TabsContent value="system">
+              <Suspense fallback={<LoadingSpinner text="Loading System Settings..." />}>
+                <LazySystemSettings />
+              </Suspense>
+            </TabsContent>
+          </Tabs>
+        </main>
+      </div>
+    </>
   );
-};
-
-export default Admin;
+}

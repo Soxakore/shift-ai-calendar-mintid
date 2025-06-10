@@ -9,438 +9,464 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      audit_logs: {
+      ai_optimization_metrics: {
         Row: {
-          action_type: string
-          created_at: string
+          ai_conflicts_detected: number | null
+          ai_conflicts_resolved: number | null
+          ai_schedule_changes: number | null
+          ai_suggestions_accepted: number | null
+          ai_suggestions_made: number | null
+          cost_savings_percentage: number | null
+          created_at: string | null
+          early_departures: number | null
           id: string
-          ip_address: unknown | null
-          location_data: Json | null
-          metadata: Json | null
-          target_organization_id: string | null
-          target_user_id: string | null
-          user_agent: string | null
-          user_id: string | null
+          labor_cost_actual: number | null
+          labor_cost_optimized: number | null
+          late_arrivals: number | null
+          metric_date: string
+          model_confidence: number | null
+          month_start_date: string | null
+          no_show_incidents: number | null
+          org_id: string | null
+          overstaffed_hours: number | null
+          overtime_hours: number | null
+          prediction_accuracy: number | null
+          shift_swap_requests: number | null
+          total_scheduled_hours: number | null
+          total_worked_hours: number | null
+          tracking_id: string | null
+          understaffed_hours: number | null
+          week_start_date: string | null
         }
         Insert: {
-          action_type: string
-          created_at?: string
+          ai_conflicts_detected?: number | null
+          ai_conflicts_resolved?: number | null
+          ai_schedule_changes?: number | null
+          ai_suggestions_accepted?: number | null
+          ai_suggestions_made?: number | null
+          cost_savings_percentage?: number | null
+          created_at?: string | null
+          early_departures?: number | null
           id?: string
-          ip_address?: unknown | null
-          location_data?: Json | null
-          metadata?: Json | null
-          target_organization_id?: string | null
-          target_user_id?: string | null
-          user_agent?: string | null
-          user_id?: string | null
+          labor_cost_actual?: number | null
+          labor_cost_optimized?: number | null
+          late_arrivals?: number | null
+          metric_date: string
+          model_confidence?: number | null
+          month_start_date?: string | null
+          no_show_incidents?: number | null
+          org_id?: string | null
+          overstaffed_hours?: number | null
+          overtime_hours?: number | null
+          prediction_accuracy?: number | null
+          shift_swap_requests?: number | null
+          total_scheduled_hours?: number | null
+          total_worked_hours?: number | null
+          tracking_id?: string | null
+          understaffed_hours?: number | null
+          week_start_date?: string | null
         }
         Update: {
-          action_type?: string
-          created_at?: string
+          ai_conflicts_detected?: number | null
+          ai_conflicts_resolved?: number | null
+          ai_schedule_changes?: number | null
+          ai_suggestions_accepted?: number | null
+          ai_suggestions_made?: number | null
+          cost_savings_percentage?: number | null
+          created_at?: string | null
+          early_departures?: number | null
           id?: string
-          ip_address?: unknown | null
-          location_data?: Json | null
-          metadata?: Json | null
-          target_organization_id?: string | null
-          target_user_id?: string | null
-          user_agent?: string | null
-          user_id?: string | null
+          labor_cost_actual?: number | null
+          labor_cost_optimized?: number | null
+          late_arrivals?: number | null
+          metric_date?: string
+          model_confidence?: number | null
+          month_start_date?: string | null
+          no_show_incidents?: number | null
+          org_id?: string | null
+          overstaffed_hours?: number | null
+          overtime_hours?: number | null
+          prediction_accuracy?: number | null
+          shift_swap_requests?: number | null
+          total_scheduled_hours?: number | null
+          total_worked_hours?: number | null
+          tracking_id?: string | null
+          understaffed_hours?: number | null
+          week_start_date?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "audit_logs_target_organization_id_fkey"
-            columns: ["target_organization_id"]
+            foreignKeyName: "ai_optimization_metrics_org_id_fkey"
+            columns: ["org_id"]
             isOneToOne: false
-            referencedRelation: "organizations"
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          diff_json: Json | null
+          id: string
+          row_id: string
+          table_name: string
+          timestamp: string | null
+          tracking_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          diff_json?: Json | null
+          id?: string
+          row_id: string
+          table_name: string
+          timestamp?: string | null
+          tracking_id?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          diff_json?: Json | null
+          id?: string
+          row_id?: string
+          table_name?: string
+          timestamp?: string | null
+          tracking_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
       }
       departments: {
         Row: {
-          created_at: string
+          created_at: string | null
           description: string | null
           id: string
           name: string
-          organization_id: string
-          updated_at: string
+          organisation_id: string | null
+          updated_at: string | null
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           description?: string | null
           id?: string
           name: string
-          organization_id: string
-          updated_at?: string
+          organisation_id?: string | null
+          updated_at?: string | null
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           description?: string | null
           id?: string
           name?: string
-          organization_id?: string
-          updated_at?: string
+          organisation_id?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "departments_organization_id_fkey"
-            columns: ["organization_id"]
+            foreignKeyName: "departments_organisation_id_fkey"
+            columns: ["organisation_id"]
             isOneToOne: false
-            referencedRelation: "organizations"
+            referencedRelation: "organisations"
             referencedColumns: ["id"]
           },
         ]
       }
-      organizations: {
+      organisations: {
         Row: {
-          alias: string | null
-          created_at: string
-          description: string | null
+          created_at: string | null
           id: string
           name: string
-          organization_number: string | null
-          updated_at: string
+          settings_json: Json
+          tracking_id: string
+          updated_at: string | null
         }
         Insert: {
-          alias?: string | null
-          created_at?: string
-          description?: string | null
+          created_at?: string | null
           id?: string
           name: string
-          organization_number?: string | null
-          updated_at?: string
+          settings_json?: Json
+          tracking_id?: string
+          updated_at?: string | null
         }
         Update: {
-          alias?: string | null
-          created_at?: string
-          description?: string | null
+          created_at?: string | null
           id?: string
           name?: string
-          organization_number?: string | null
-          updated_at?: string
+          settings_json?: Json
+          tracking_id?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
       profiles: {
         Row: {
-          created_at: string
+          created_at: string | null
           created_by: string | null
           department_id: string | null
-          display_name: string
-          id: string
+          display_name: string | null
+          id: number
           is_active: boolean | null
-          organization_id: string | null
+          last_login: string | null
+          organisation_id: string | null
+          password_changed_at: string | null
           phone_number: string | null
+          qr_code_enabled: boolean | null
+          qr_code_expires_at: string | null
           tracking_id: string | null
-          updated_at: string
+          updated_at: string | null
+          user_id: string | null
           user_type: string
-          username: string
+          username: string | null
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           created_by?: string | null
           department_id?: string | null
-          display_name: string
-          id: string
+          display_name?: string | null
+          id?: never
           is_active?: boolean | null
-          organization_id?: string | null
+          last_login?: string | null
+          organisation_id?: string | null
+          password_changed_at?: string | null
           phone_number?: string | null
+          qr_code_enabled?: boolean | null
+          qr_code_expires_at?: string | null
           tracking_id?: string | null
-          updated_at?: string
-          user_type: string
-          username: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          department_id?: string | null
-          display_name?: string
-          id?: string
-          is_active?: boolean | null
-          organization_id?: string | null
-          phone_number?: string | null
-          tracking_id?: string | null
-          updated_at?: string
+          updated_at?: string | null
+          user_id?: string | null
           user_type?: string
-          username?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profiles_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      qr_codes: {
-        Row: {
-          code: string
-          created_at: string
-          department_id: string | null
-          id: string
-          is_active: boolean | null
-          location: string
-          name: string
-          organization_id: string
-          updated_at: string
-        }
-        Insert: {
-          code: string
-          created_at?: string
-          department_id?: string | null
-          id?: string
-          is_active?: boolean | null
-          location: string
-          name: string
-          organization_id: string
-          updated_at?: string
+          username?: string | null
         }
         Update: {
-          code?: string
-          created_at?: string
+          created_at?: string | null
+          created_by?: string | null
           department_id?: string | null
-          id?: string
+          display_name?: string | null
+          id?: never
           is_active?: boolean | null
-          location?: string
-          name?: string
-          organization_id?: string
-          updated_at?: string
+          last_login?: string | null
+          organisation_id?: string | null
+          password_changed_at?: string | null
+          phone_number?: string | null
+          qr_code_enabled?: boolean | null
+          qr_code_expires_at?: string | null
+          tracking_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          user_type?: string
+          username?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "qr_codes_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "qr_codes_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      schedules: {
-        Row: {
-          created_at: string
-          date: string
-          department_id: string
-          end_time: string
-          id: string
-          organization_id: string
-          shift: string | null
-          start_time: string
-          status: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          date: string
-          department_id: string
-          end_time: string
-          id?: string
-          organization_id: string
-          shift?: string | null
-          start_time: string
-          status?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          date?: string
-          department_id?: string
-          end_time?: string
-          id?: string
-          organization_id?: string
-          shift?: string | null
-          start_time?: string
-          status?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "schedules_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "schedules_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       session_logs: {
         Row: {
           action: string
-          created_at: string
+          created_at: string | null
           failure_reason: string | null
           id: string
           ip_address: unknown | null
-          location_data: Json | null
+          metadata: Json | null
           session_id: string | null
           success: boolean | null
           user_agent: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           action: string
-          created_at?: string
+          created_at?: string | null
           failure_reason?: string | null
           id?: string
           ip_address?: unknown | null
-          location_data?: Json | null
+          metadata?: Json | null
           session_id?: string | null
           success?: boolean | null
           user_agent?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           action?: string
-          created_at?: string
+          created_at?: string | null
           failure_reason?: string | null
           id?: string
           ip_address?: unknown | null
-          location_data?: Json | null
+          metadata?: Json | null
           session_id?: string | null
           success?: boolean | null
           user_agent?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
-      sick_notices: {
+      shifts: {
         Row: {
-          created_at: string
-          department_id: string
-          end_date: string
+          created_at: string | null
+          end_time: string
           id: string
-          organization_id: string
-          reason: string
-          reviewed_at: string | null
-          reviewed_by: string | null
-          start_date: string
-          status: string | null
-          submitted_at: string
+          note: string | null
+          start_time: string
+          status: Database["public"]["Enums"]["shift_status"]
+          tracking_id: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
-          created_at?: string
-          department_id: string
-          end_date: string
+          created_at?: string | null
+          end_time: string
           id?: string
-          organization_id: string
-          reason: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          start_date: string
-          status?: string | null
-          submitted_at?: string
+          note?: string | null
+          start_time: string
+          status?: Database["public"]["Enums"]["shift_status"]
+          tracking_id?: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
-          created_at?: string
-          department_id?: string
-          end_date?: string
+          created_at?: string | null
+          end_time?: string
           id?: string
-          organization_id?: string
-          reason?: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          start_date?: string
-          status?: string | null
-          submitted_at?: string
+          note?: string | null
+          start_time?: string
+          status?: Database["public"]["Enums"]["shift_status"]
+          tracking_id?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "sick_notices_department_id_fkey"
-            columns: ["department_id"]
+            foreignKeyName: "shifts_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sick_notices_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
       }
-      time_logs: {
+      swap_requests: {
         Row: {
-          clock_in: string | null
-          clock_out: string | null
-          created_at: string
-          date: string
-          department_id: string
+          created_at: string | null
+          from_shift_id: string
           id: string
-          location: string | null
-          method: string | null
-          organization_id: string
-          updated_at: string
-          user_id: string
+          message: string | null
+          requesting_user_id: string
+          state: Database["public"]["Enums"]["swap_state"]
+          target_user_id: string
+          to_shift_id: string
+          tracking_id: string
+          updated_at: string | null
         }
         Insert: {
-          clock_in?: string | null
-          clock_out?: string | null
-          created_at?: string
-          date: string
-          department_id: string
+          created_at?: string | null
+          from_shift_id: string
           id?: string
-          location?: string | null
-          method?: string | null
-          organization_id: string
-          updated_at?: string
-          user_id: string
+          message?: string | null
+          requesting_user_id: string
+          state?: Database["public"]["Enums"]["swap_state"]
+          target_user_id: string
+          to_shift_id: string
+          tracking_id?: string
+          updated_at?: string | null
         }
         Update: {
-          clock_in?: string | null
-          clock_out?: string | null
-          created_at?: string
-          date?: string
-          department_id?: string
+          created_at?: string | null
+          from_shift_id?: string
           id?: string
-          location?: string | null
-          method?: string | null
-          organization_id?: string
-          updated_at?: string
-          user_id?: string
+          message?: string | null
+          requesting_user_id?: string
+          state?: Database["public"]["Enums"]["swap_state"]
+          target_user_id?: string
+          to_shift_id?: string
+          tracking_id?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "time_logs_department_id_fkey"
-            columns: ["department_id"]
+            foreignKeyName: "swap_requests_from_shift_id_fkey"
+            columns: ["from_shift_id"]
             isOneToOne: false
-            referencedRelation: "departments"
+            referencedRelation: "shifts"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "time_logs_organization_id_fkey"
-            columns: ["organization_id"]
+            foreignKeyName: "swap_requests_requesting_user_id_fkey"
+            columns: ["requesting_user_id"]
             isOneToOne: false
-            referencedRelation: "organizations"
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_requests_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_requests_to_shift_id_fkey"
+            columns: ["to_shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          active_swap: boolean
+          auth_user_id: string | null
+          created_at: string | null
+          department: string
+          email: string | null
+          id: string
+          org_id: string
+          plan: string
+          role: Database["public"]["Enums"]["user_role"]
+          tracking_id: string
+          updated_at: string | null
+          username: string
+        }
+        Insert: {
+          active_swap?: boolean
+          auth_user_id?: string | null
+          created_at?: string | null
+          department: string
+          email?: string | null
+          id?: string
+          org_id: string
+          plan: string
+          role?: Database["public"]["Enums"]["user_role"]
+          tracking_id?: string
+          updated_at?: string | null
+          username: string
+        }
+        Update: {
+          active_swap?: boolean
+          auth_user_id?: string | null
+          created_at?: string | null
+          department?: string
+          email?: string | null
+          id?: string
+          org_id?: string
+          plan?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          tracking_id?: string
+          updated_at?: string | null
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "users_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
             referencedColumns: ["id"]
           },
         ]
@@ -450,51 +476,61 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      generate_org_number: {
+      ai_analyze_workload_balance: {
+        Args: { target_org_id: string; analysis_weeks?: number }
+        Returns: Json
+      }
+      ai_create_smart_shift: {
+        Args: {
+          target_user_id: string
+          target_date: string
+          duration_hours?: number
+          preferred_start_time?: string
+        }
+        Returns: Json
+      }
+      ai_detect_smart_conflicts: {
+        Args: { target_org_id: string; start_date: string; end_date: string }
+        Returns: Json
+      }
+      ai_generate_schedule_recommendations: {
+        Args: {
+          target_org_id: string
+          target_date: string
+          hours_needed?: number
+        }
+        Returns: Json
+      }
+      ensure_super_admin_access: {
         Args: Record<PropertyKey, never>
-        Returns: string
+        Returns: undefined
       }
-      get_user_department: {
-        Args: { user_id: string }
-        Returns: string
-      }
-      get_user_organization: {
-        Args: { user_id: string }
-        Returns: string
-      }
-      get_user_role: {
-        Args: { user_id: string }
-        Returns: string
-      }
-      log_audit_event: {
+      get_calendar_events: {
         Args: {
-          p_user_id: string
-          p_action_type: string
-          p_target_user_id?: string
-          p_target_organization_id?: string
-          p_ip_address?: string
-          p_user_agent?: string
-          p_location_data?: Json
-          p_metadata?: Json
+          target_org_id: string
+          start_date: string
+          end_date: string
+          user_filter?: string
         }
-        Returns: string
+        Returns: Json
       }
-      log_session_event: {
-        Args: {
-          p_user_id: string
-          p_session_id: string
-          p_action: string
-          p_ip_address?: string
-          p_user_agent?: string
-          p_location_data?: Json
-          p_success?: boolean
-          p_failure_reason?: string
-        }
+      get_org_optimization_summary: {
+        Args: { target_org_id: string; summary_days?: number }
+        Returns: Json
+      }
+      get_user_upcoming_shifts: {
+        Args: { target_user_id: string; days_ahead?: number }
+        Returns: Json
+      }
+      reset_super_admin_password: {
+        Args: Record<PropertyKey, never>
         Returns: string
       }
     }
     Enums: {
-      [_ in never]: never
+      shift_status: "draft" | "confirmed" | "sick" | "leave"
+      swap_state: "pending" | "approved" | "rejected" | "cancelled"
+      user_role: "super_admin" | "manager" | "employee"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -609,6 +645,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      shift_status: ["draft", "confirmed", "sick", "leave"],
+      swap_state: ["pending", "approved", "rejected", "cancelled"],
+      user_role: ["super_admin", "manager", "employee"],
+    },
   },
 } as const

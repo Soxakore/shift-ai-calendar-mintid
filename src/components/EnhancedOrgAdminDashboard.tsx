@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +28,8 @@ import { useToast } from '@/hooks/use-toast';
 import dataStore from '@/lib/dataStore';
 import SickNoticeModal from '@/components/SickNoticeModal';
 import QRCodeScanner from '@/components/QRCodeScanner';
+import { LiveReportsManager } from '@/components/LiveReportsManager';
+import { LiveScheduleAutomation } from '@/components/LiveScheduleAutomation';
 
 interface User {
   id: string;
@@ -648,6 +649,18 @@ const EnhancedOrgAdminDashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Live Reports Manager */}
+      <div className="mt-8">
+        <LiveReportsManager 
+          organizationId={user?.organizationId}
+        />
+      </div>
+
+      {/* Live Schedule Automation */}
+      <div className="mt-8">
+        <LiveScheduleAutomation />
+      </div>
     </div>
   );
 };

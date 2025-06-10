@@ -28,7 +28,7 @@ export const createWebApplicationSchema = () => ({
   ]
 });
 
-export const createOrganizationSchema = () => ({
+export const createOrganisationSchema = () => ({
   "@context": "https://schema.org",
   "@type": "Organization",
   "name": "MinTid",

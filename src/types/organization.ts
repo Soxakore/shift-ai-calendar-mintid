@@ -1,6 +1,6 @@
 
-// Enhanced data types for organizational hierarchy
-export interface Organization {
+// Enhanced data types for organisational hierarchy
+export interface Organisation {
   id: string;
   name: string; // "McDonald's", "Starbucks", etc.
   slug: string; // "mcdonalds", "starbucks"
@@ -17,7 +17,7 @@ export interface Organization {
 
 export interface Department {
   id: string;
-  organizationId: string;
+  organisationId: string;
   name: string; // "Kitchen", "Front Counter", "Management"
   description?: string;
   color?: string;
@@ -26,7 +26,7 @@ export interface Department {
 
 export interface Role {
   id: string;
-  organizationId: string;
+  organisationId: string;
   departmentId: string;
   name: string; // "Manager", "Supervisor", "Employee"
   permissions: Permission[];
@@ -43,7 +43,7 @@ export interface Permission {
 
 export interface EnhancedUser {
   id: string;
-  organizationId: string; // Tenant isolation key
+  organisationId: string; // Tenant isolation key
   departmentId: string;
   roleId: string;
   username: string;
@@ -67,8 +67,8 @@ export interface AuthContextEnhanced {
   isAuthenticated: boolean;
   userType: 'super_admin' | 'org_admin' | 'manager' | 'employee';
   
-  // Organization context
-  currentOrganization: Organization | null;
+  // Organisation context
+  currentOrganisation: Organisation | null;
   currentDepartment: Department | null;
   currentRole: Role | null;
   permissions: Permission[];
@@ -76,12 +76,12 @@ export interface AuthContextEnhanced {
   // Methods
   login: (username: string, password: string, orgSlug?: string) => Promise<boolean>;
   logout: () => void;
-  switchOrganization: (orgSlug: string) => Promise<boolean>;
+  switchOrganisation: (orgSlug: string) => Promise<boolean>;
   hasPermission: (permission: string, action: string) => boolean;
 }
 
 // Demo data for development
-export const demoOrganizations: Organization[] = [
+export const demoOrganisations: Organisation[] = [
   {
     id: '1',
     name: "McDonald's",
@@ -103,17 +103,17 @@ export const demoOrganizations: Organization[] = [
 ];
 
 export const demoDepartments: Department[] = [
-  { id: '1', organizationId: '1', name: 'Kitchen', description: 'Food preparation area', color: '#ff6b35', createdAt: new Date() },
-  { id: '2', organizationId: '1', name: 'Front Counter', description: 'Customer service', color: '#f7931e', createdAt: new Date() },
-  { id: '3', organizationId: '1', name: 'Management', description: 'Store management', color: '#27ae60', createdAt: new Date() },
-  { id: '4', organizationId: '2', name: 'Baristas', description: 'Coffee preparation', color: '#00704a', createdAt: new Date() },
-  { id: '5', organizationId: '2', name: 'Shift Supervisors', description: 'Floor supervision', color: '#d4af37', createdAt: new Date() },
+  { id: '1', organisationId: '1', name: 'Kitchen', description: 'Food preparation area', color: '#ff6b35', createdAt: new Date() },
+  { id: '2', organisationId: '1', name: 'Front Counter', description: 'Customer service', color: '#f7931e', createdAt: new Date() },
+  { id: '3', organisationId: '1', name: 'Management', description: 'Store management', color: '#27ae60', createdAt: new Date() },
+  { id: '4', organisationId: '2', name: 'Baristas', description: 'Coffee preparation', color: '#00704a', createdAt: new Date() },
+  { id: '5', organisationId: '2', name: 'Shift Supervisors', description: 'Floor supervision', color: '#d4af37', createdAt: new Date() },
 ];
 
 export const demoRoles: Role[] = [
   {
     id: '1',
-    organizationId: '1',
+    organisationId: '1',
     departmentId: '1',
     name: 'Kitchen Manager',
     permissions: [],
@@ -122,7 +122,7 @@ export const demoRoles: Role[] = [
   },
   {
     id: '2',
-    organizationId: '1', 
+    organisationId: '1', 
     departmentId: '1',
     name: 'Cook',
     permissions: [],
@@ -131,7 +131,7 @@ export const demoRoles: Role[] = [
   },
   {
     id: '3',
-    organizationId: '1',
+    organisationId: '1',
     departmentId: '2', 
     name: 'Cashier',
     permissions: [],
@@ -143,7 +143,7 @@ export const demoRoles: Role[] = [
 export const demoUsersEnhanced: EnhancedUser[] = [
   {
     id: '1',
-    organizationId: '1', // McDonald's
+    organisationId: '1', // McDonald's
     departmentId: '1',   // Kitchen
     roleId: '1',         // Kitchen Manager
     username: 'john.manager',
@@ -158,7 +158,7 @@ export const demoUsersEnhanced: EnhancedUser[] = [
   },
   {
     id: '2',
-    organizationId: '1', // McDonald's
+    organisationId: '1', // McDonald's
     departmentId: '1',   // Kitchen 
     roleId: '2',         // Cook
     username: 'mary.cook',
@@ -171,7 +171,7 @@ export const demoUsersEnhanced: EnhancedUser[] = [
   },
   {
     id: '3',
-    organizationId: '2', // Starbucks
+    organisationId: '2', // Starbucks
     departmentId: '4',   // Baristas
     roleId: '4',         // Barista
     username: 'sarah.barista',

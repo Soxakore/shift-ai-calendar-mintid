@@ -25,13 +25,14 @@ import { useToast } from '@/hooks/use-toast';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { LiveNotificationsPanel } from '@/components/LiveNotificationsPanel';
 
 const SchedulePage = () => {
   const navigate = useNavigate();
   interface DatabaseTimeLog {
   id: string;
   user_id: string;
-  organization_id: string;
+  organisation_id: string;
   department_id: string;
   date: string;
   clock_in?: string | null;
@@ -522,6 +523,14 @@ const { toast } = useToast();
             </div>
           </CardContent>
         </Card>
+
+        {/* Live Notifications Panel */}
+        <div className="mt-6">
+          <LiveNotificationsPanel 
+            schedules={schedules} 
+            currentUser={profile}
+          />
+        </div>
       </main>
 
       <Footer />

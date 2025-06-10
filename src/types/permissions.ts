@@ -1,15 +1,15 @@
 
 // Role-based permission definitions
-import { EnhancedUser } from './organization';
+import { EnhancedUser } from './organisation';
 
 export type PermissionAction = 'create' | 'read' | 'update' | 'delete' | 'manage_all';
 
 export interface Permission {
   id: string;
   name: string;
-  category: 'users' | 'departments' | 'reports' | 'settings' | 'organization';
+  category: 'users' | 'departments' | 'reports' | 'settings' | 'organisation';
   actions: PermissionAction[];
-  scope: 'own_department' | 'own_organization' | 'all_organizations';
+  scope: 'own_department' | 'own_organisation' | 'all_organisations';
 }
 
 // AuthUser interface for the authentication system
@@ -18,7 +18,7 @@ export interface AuthUser {
   name: string;
   username: string;
   role: 'super_admin' | 'org_admin' | 'manager' | 'employee';
-  organizationId?: string;
+  organisationId?: string;
   departmentId?: string;
 }
 
@@ -27,32 +27,32 @@ export const rolePermissions: Record<string, Permission[]> = {
   // Super Admin - You (access to everything)
   super_admin: [
     {
-      id: 'manage_organizations',
-      name: 'Manage Organizations',
-      category: 'organization',
+      id: 'manage_organisations',
+      name: 'Manage Organisations',
+      category: 'organisation',
       actions: ['create', 'read', 'update', 'delete', 'manage_all'],
-      scope: 'all_organizations'
+      scope: 'all_organisations'
     },
     {
       id: 'manage_all_users',
       name: 'Manage All Users',
       category: 'users',
       actions: ['create', 'read', 'update', 'delete', 'manage_all'],
-      scope: 'all_organizations'
+      scope: 'all_organisations'
     },
     {
       id: 'manage_all_departments',
       name: 'Manage All Departments',
       category: 'departments',
       actions: ['create', 'read', 'update', 'delete', 'manage_all'],
-      scope: 'all_organizations'
+      scope: 'all_organisations'
     },
     {
       id: 'view_all_reports',
       name: 'View All Reports',
       category: 'reports',
       actions: ['read', 'manage_all'],
-      scope: 'all_organizations'
+      scope: 'all_organisations'
     }
   ],
 
@@ -62,21 +62,21 @@ export const rolePermissions: Record<string, Permission[]> = {
       name: 'Manage Organization Users',
       category: 'users',
       actions: ['create', 'read', 'update', 'delete'],
-      scope: 'own_organization'
+      scope: 'own_organisation'
     },
     {
       id: 'manage_org_departments',
       name: 'Manage Organization Departments',
       category: 'departments',
       actions: ['create', 'read', 'update', 'delete'],
-      scope: 'own_organization'
+      scope: 'own_organisation'
     },
     {
       id: 'view_org_reports',
       name: 'View Organization Reports',
       category: 'reports',
       actions: ['read'],
-      scope: 'own_organization'
+      scope: 'own_organisation'
     }
   ],
 
@@ -113,7 +113,7 @@ export const demoUsersWithRoles: (EnhancedUser & { role: 'super_admin' | 'org_ad
   // Super Admin (You)
   {
     id: 'super_1',
-    organizationId: 'system',
+    organisationId: 'system',
     departmentId: 'admin',
     roleId: 'super_admin',
     role: 'super_admin',
@@ -129,7 +129,7 @@ export const demoUsersWithRoles: (EnhancedUser & { role: 'super_admin' | 'org_ad
 
   {
     id: 'mc_admin',
-    organizationId: '1',
+    organisationId: '1',
     departmentId: '3',
     roleId: 'org_admin',
     role: 'org_admin',
@@ -145,7 +145,7 @@ export const demoUsersWithRoles: (EnhancedUser & { role: 'super_admin' | 'org_ad
 
   {
     id: 'mc_kitchen_mgr',
-    organizationId: '1',
+    organisationId: '1',
     departmentId: '1',
     roleId: 'manager',
     role: 'manager',
@@ -161,7 +161,7 @@ export const demoUsersWithRoles: (EnhancedUser & { role: 'super_admin' | 'org_ad
 
   {
     id: 'mc_cook1',
-    organizationId: '1',
+    organisationId: '1',
     departmentId: '1',
     roleId: 'employee',
     role: 'employee',
@@ -176,7 +176,7 @@ export const demoUsersWithRoles: (EnhancedUser & { role: 'super_admin' | 'org_ad
 
   {
     id: 'sb_manager',
-    organizationId: '2',
+    organisationId: '2',
     departmentId: '4',
     roleId: 'manager',
     role: 'manager',
@@ -217,13 +217,13 @@ export const checkPermission = (
   for (const permission of userPermissions) {
     if (permission.id === requiredPermission && permission.actions.includes(action)) {
       switch (permission.scope) {
-        case 'all_organizations':
+        case 'all_organisations':
           return true;
-        case 'own_organization':
-          return !targetUser || user.organizationId === targetUser.organizationId;
+        case 'own_organisation':
+          return !targetUser || user.organisationId === targetUser.organisationId;
         case 'own_department':
           return !targetUser || (
-            user.organizationId === targetUser.organizationId &&
+            user.organisationId === targetUser.organisationId &&
             user.departmentId === targetUser.departmentId
           );
         default:
@@ -259,7 +259,7 @@ export const getUIPermissions = (user: AuthUser | EnhancedUser) => {
     
     // Data scope
     dataScope: userRole === 'super_admin' ? 'all' :
-               userRole === 'org_admin' ? 'organization' : 
+               userRole === 'org_admin' ? 'organisation' : 
                userRole === 'manager' ? 'department' : 'self'
   };
 };

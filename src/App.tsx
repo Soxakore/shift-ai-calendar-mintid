@@ -1,4 +1,3 @@
-
 import { Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -11,9 +10,12 @@ import { ThemeProvider } from "@/hooks/useTheme";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { AuthDebugInfo } from "@/components/AuthDebugInfo";
 
 // Pages
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
+import ProfileSetup from "./pages/ProfileSetup";
 import SuperAdminInitial from "./pages/SuperAdminInitial";
 import HistoryPage from "./pages/HistoryPage";
 import SchedulePage from "./pages/SchedulePage";
@@ -62,6 +64,7 @@ const App = () => {
           <ThemeProvider defaultTheme="system" storageKey="mintid-ui-theme">
             <SupabaseAuthProvider>
               <TooltipProvider>
+                <AuthDebugInfo />
                 <Toaster />
                 <Sonner />
                 <BrowserRouter>
@@ -69,6 +72,8 @@ const App = () => {
                   <Routes>
                     {/* Public routes */}
                     <Route path="/auth" element={<Auth />} />
+                    <Route path="/auth/callback" element={<AuthCallback />} />
+                    <Route path="/profile-setup" element={<ProfileSetup />} />
                     <Route path="/setup" element={<SuperAdminInitial />} />
                     
                     {/* Protected routes */}

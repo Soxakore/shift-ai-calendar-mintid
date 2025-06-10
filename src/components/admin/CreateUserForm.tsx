@@ -9,7 +9,7 @@ import { UserPlus, X } from 'lucide-react';
 
 interface CreateUserFormProps {
   isCreating: boolean;
-  organizations: Array<{
+  organisations: Array<{
     id: string;
     name: string;
   }>;
@@ -21,14 +21,14 @@ interface CreateUserFormProps {
     display_name: string;
     phone_number: string;
     user_type: string;
-    organization_id: string;
+    organisation_id: string;
     department_id: string;
   }) => void;
 }
 
 export default function CreateUserForm({
   isCreating,
-  organizations,
+  organisations,
   onCancel,
   onSubmit
 }: CreateUserFormProps) {
@@ -39,7 +39,7 @@ export default function CreateUserForm({
     display_name: '',
     phone_number: '',
     user_type: 'org_admin',
-    organization_id: '',
+    organisation_id: '',
     department_id: ''
   });
 
@@ -143,7 +143,7 @@ export default function CreateUserForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600">
-                  <SelectItem value="org_admin">Organization Admin</SelectItem>
+                  <SelectItem value="org_admin">Organisation Admin</SelectItem>
                   <SelectItem value="manager">Manager</SelectItem>
                   <SelectItem value="employee">Employee</SelectItem>
                 </SelectContent>
@@ -152,13 +152,13 @@ export default function CreateUserForm({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="user-organization" className="text-slate-700 dark:text-slate-300 font-medium">Organization *</Label>
-            <Select value={userData.organization_id} onValueChange={(value) => setUserData({ ...userData, organization_id: value })}>
+            <Label htmlFor="user-organization" className="text-slate-700 dark:text-slate-300 font-medium">Organisation *</Label>
+            <Select value={userData.organisation_id} onValueChange={(value) => setUserData({ ...userData, organisation_id: value })}>
               <SelectTrigger className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:border-emerald-500 dark:focus:border-emerald-400">
                 <SelectValue placeholder="Select organization" />
               </SelectTrigger>
               <SelectContent className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600">
-                {organizations.map((org) => (
+                {organisations.map((org) => (
                   <SelectItem key={org.id} value={org.id}>
                     {org.name}
                   </SelectItem>

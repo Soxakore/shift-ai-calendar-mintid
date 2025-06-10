@@ -3,9 +3,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Building, Users, UserPlus } from 'lucide-react';
-import CreateOrganizationForm from './CreateOrganizationForm';
+import CreateOrganisationForm from './CreateOrganisationForm';
 import CreateUserForm from './CreateUserForm';
-import OrganizationsList from './OrganizationsList';
+import OrganisationsList from './OrganisationsList';
 import UsersList from './UsersList';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,23 +13,30 @@ import { useToast } from '@/hooks/use-toast';
 import HistoryButton from './HistoryButton';
 import SuperAdminHeader from './SuperAdminHeader';
 import { useAuditLogger } from '@/hooks/useAuditLogger';
+import { getOrganizationAlias, getOrganizationDescription } from '@/lib/organizationHelpers';
+import { 
+  fetchOrganizationsAsAdmin, 
+  fetchProfilesAsAdmin, 
+  createOrganizationAsAdmin, 
+  createUserAsAdmin 
+} from '@/lib/superAdminDataAccess';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 
 interface Organization {
   id: string;
   name: string;
-  alias: string | null;
-  description: string | null;
-  organization_number: string | null;
+  settings_json?: unknown; // Use unknown to match Json type from database
+  tracking_id?: string;
   created_at: string;
   users?: { id: string }[];
 }
 
 interface User {
-  id: string;
+  id: number | string; // Support both number (from DB) and string (for UI compatibility)
   username: string;
   display_name: string;
   user_type: string;
-  organization_id: string;
+  organisation_id: string;
   department_id: string;
   is_active: boolean;
   tracking_id: string | null;
@@ -40,6 +47,7 @@ interface User {
 type ActiveTab = 'list' | 'create-org' | 'create-user';
 
 export default function RoleBasedUserManagement() {
+  const { profile } = useSupabaseAuth();
   const [activeTab, setActiveTab] = useState<ActiveTab>('list');
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -55,8 +63,19 @@ export default function RoleBasedUserManagement() {
   const fetchOrganizations = useCallback(async () => {
     setLoading(true);
     try {
+      console.log('🔍 Fetching organizations... User type:', profile?.user_type);
+      
+      // Use super admin data access for super admin users
+      if (profile?.user_type === 'super_admin') {
+        console.log('🚀 Using super admin data access for organizations');
+        const data = await fetchOrganizationsAsAdmin();
+        setOrganizations(data || []);
+        return;
+      }
+      
+      // Standard data access for other users
       const { data, error } = await supabase
-        .from('organizations')
+        .from('organisations')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -81,18 +100,30 @@ export default function RoleBasedUserManagement() {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, profile?.user_type]);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
+      console.log('🔍 Starting user fetch... User type:', profile?.user_type);
+      
+      // Use super admin data access for super admin users
+      if (profile?.user_type === 'super_admin') {
+        console.log('🚀 Using super admin data access for profiles');
+        const data = await fetchProfilesAsAdmin();
+        console.log('✅ Super admin users fetched:', data?.length || 0, 'users');
+        setAllUsers(data || []);
+        return;
+      }
+      
+      // Standard data access for other users
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching users:', error);
+        console.error('❌ Error fetching users:', error);
         toast({
           title: "❌ Error fetching users",
           description: error.message,
@@ -101,6 +132,8 @@ export default function RoleBasedUserManagement() {
         return;
       }
 
+      console.log('✅ Users fetched successfully:', data?.length || 0, 'users');
+      console.log('📊 User data preview:', data?.slice(0, 3));
       setAllUsers(data || []);
     } catch (error) {
       console.error('Unexpected error fetching users:', error);
@@ -112,7 +145,7 @@ export default function RoleBasedUserManagement() {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, profile?.user_type]);
 
   // Set up real-time subscriptions for immediate updates
   useEffect(() => {
@@ -125,7 +158,7 @@ export default function RoleBasedUserManagement() {
         {
           event: '*',
           schema: 'public',
-          table: 'organizations'
+          table: 'organisations'
         },
         (payload) => {
           console.log('Organization change:', payload);
@@ -171,12 +204,14 @@ export default function RoleBasedUserManagement() {
   const cleanSearchTerm = searchTerm.replace(/[^\w\s-]/g, '').trim();
 
   // Filter organizations based on search term
-  const filteredOrganizations = organizations.filter(org =>
-    org.name.toLowerCase().includes(cleanSearchTerm.toLowerCase()) ||
-    (org.alias && org.alias.toLowerCase().includes(cleanSearchTerm.toLowerCase())) ||
-    (org.organization_number && org.organization_number.toLowerCase().includes(cleanSearchTerm.toLowerCase())) ||
-    (org.description && org.description.toLowerCase().includes(cleanSearchTerm.toLowerCase()))
-  );
+  const filteredOrganizations = organizations.filter(org => {
+    const alias = getOrganizationAlias(org);
+    const description = getOrganizationDescription(org);
+    
+    return org.name.toLowerCase().includes(cleanSearchTerm.toLowerCase()) ||
+           (alias && alias.toLowerCase().includes(cleanSearchTerm.toLowerCase())) ||
+           (description && description.toLowerCase().includes(cleanSearchTerm.toLowerCase()));
+  });
 
   // Filter users based on search term
   const filteredUsers = allUsers.filter(user =>
@@ -186,23 +221,75 @@ export default function RoleBasedUserManagement() {
     (user.phone_number && user.phone_number.includes(cleanSearchTerm))
   );
 
-  const handleCreateOrg = async (orgData: { name: string; description: string; alias: string }) => {
+  // Add debugging for filtering
+  console.log('🔍 Filtering debug:', {
+    totalUsers: allUsers.length,
+    filteredUsers: filteredUsers.length,
+    searchTerm: cleanSearchTerm,
+    sampleUsers: allUsers.slice(0, 2).map(u => ({ username: u.username, display_name: u.display_name }))
+  });
+
+  const handleCreateOrg = async (orgData: { 
+    name: string; 
+    alias?: string; 
+    description?: string; 
+  }) => {
     setIsCreatingOrg(true);
     try {
+      console.log('🏢 Starting organization creation with data:', orgData);
+      console.log('👤 Current user type:', profile?.user_type);
+      
+      // Use super admin data access for super admin users
+      if (profile?.user_type === 'super_admin') {
+        console.log('🚀 Using super admin organization creation');
+        const { data, error } = await createOrganizationAsAdmin(orgData);
+        
+        if (error) {
+          console.error('❌ Super admin organization creation failed:', error);
+          toast({
+            title: "❌ Error creating organization",
+            description: error.message,
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        console.log('✅ Organization created via super admin access:', data);
+        
+        // Log organization creation
+        if (data) {
+          await logOrganizationCreation(data.id, data.name);
+        }
+
+        fetchOrganizations();
+        setActiveTab('list');
+        toast({
+          title: "✅ Organization Created",
+          description: `${orgData.name} has been successfully created.`,
+        });
+        return;
+      }
+      
+      // Standard organization creation for other users
+      const insertData = {
+        name: orgData.name,
+        settings_json: {
+          alias: orgData.alias?.trim() || null,
+          description: orgData.description?.trim() || null
+        }
+      };
+      
+      console.log('📝 Insert data prepared:', insertData);
+      
       const { data, error } = await supabase
-        .from('organizations')
-        .insert([
-          {
-            name: orgData.name,
-            description: orgData.description,
-            alias: orgData.alias
-          }
-        ])
+        .from('organisations')
+        .insert([insertData])
         .select()
         .single();
 
       if (error) {
-        console.error('Error creating organization:', error);
+        console.error('❌ Error creating organization:', error);
+        console.error('📋 Error details:', JSON.stringify(error, null, 2));
         toast({
           title: "❌ Error creating organization",
           description: error.message,
@@ -210,6 +297,8 @@ export default function RoleBasedUserManagement() {
         });
         return;
       }
+
+      console.log('✅ Organization created successfully:', data);
 
       // Log organization creation
       if (data) {
@@ -241,12 +330,39 @@ export default function RoleBasedUserManagement() {
     display_name: string;
     phone_number: string;
     user_type: string;
-    organization_id: string;
+    organisation_id: string;
     department_id: string;
   }) => {
     setIsCreatingUser(true);
     try {
-      // Call the Supabase function to create the user
+      console.log('👤 Creating user, current user type:', profile?.user_type);
+      
+      // Use super admin data access for super admin users
+      if (profile?.user_type === 'super_admin') {
+        console.log('🚀 Using super admin user creation');
+        const { data, error } = await createUserAsAdmin(userData);
+        
+        if (error) {
+          console.error('❌ Super admin user creation failed:', error);
+          toast({
+            title: "❌ Error creating user",
+            description: error.message,
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        console.log('✅ User created via super admin access:', data);
+        fetchUsers();
+        setActiveTab('list');
+        toast({
+          title: "✅ User Created",
+          description: `${userData.display_name} has been successfully created.`,
+        });
+        return;
+      }
+      
+      // Standard user creation using edge function
       const { data, error } = await supabase.functions.invoke('create-user', {
         body: {
           ...userData
@@ -303,7 +419,7 @@ export default function RoleBasedUserManagement() {
         const { error: profileError } = await supabase
           .from('profiles')
           .delete()
-          .eq('id', userId);
+          .eq('id', Number(userId));
 
         if (profileError) {
           console.error('❌ Profile deletion also failed:', profileError);
@@ -319,9 +435,9 @@ export default function RoleBasedUserManagement() {
       // Log user deletion with who performed it
       if (userToDelete) {
         await logUserDeletion(
-          userId, 
+          String(userId), 
           userName, 
-          userToDelete.organization_id
+          userToDelete.organisation_id
         );
       }
 
@@ -343,7 +459,7 @@ export default function RoleBasedUserManagement() {
     }
   };
 
-  const handleDeleteOrganization = async (orgId: string, orgName: string) => {
+  const handleDeleteOrganisation = async (orgId: string, orgName: string) => {
     if (!confirm(`Are you sure you want to delete "${orgName}"? This will remove all associated users. This action cannot be undone.`)) {
       return;
     }
@@ -353,22 +469,22 @@ export default function RoleBasedUserManagement() {
 
     try {
       // Get all users in this organization for logging
-      const orgUsers = allUsers.filter(user => user.organization_id === orgId);
+      const orgUsers = allUsers.filter(user => user.organisation_id === orgId);
       
       // Delete all users first
       for (const user of orgUsers) {
-        await logUserDeletion(user.id, user.display_name, orgId);
+        await logUserDeletion(String(user.id), user.display_name, orgId);
         
         // Try auth deletion first, then profile
-        const { error: authError } = await supabase.auth.admin.deleteUser(user.id);
+        const { error: authError } = await supabase.auth.admin.deleteUser(String(user.id));
         if (authError) {
-          await supabase.from('profiles').delete().eq('id', user.id);
+          await supabase.from('profiles').delete().eq('id', Number(user.id));
         }
       }
 
       // Delete the organization
       const { error: orgError } = await supabase
-        .from('organizations')
+        .from('organisations')
         .delete()
         .eq('id', orgId);
 
@@ -423,7 +539,7 @@ export default function RoleBasedUserManagement() {
 
       {/* Create Organization Form */}
       {activeTab === 'create-org' && (
-        <CreateOrganizationForm
+        <CreateOrganisationForm
           isCreating={isCreatingOrg}
           onCancel={() => setActiveTab('list')}
           onSubmit={handleCreateOrg}
@@ -434,7 +550,7 @@ export default function RoleBasedUserManagement() {
       {activeTab === 'create-user' && (
         <CreateUserForm
           isCreating={isCreatingUser}
-          organizations={organizations}
+          organisations={organizations}
           onCancel={() => setActiveTab('list')}
           onSubmit={handleCreateUser}
         />
@@ -464,12 +580,17 @@ export default function RoleBasedUserManagement() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <OrganizationsList
-                organizations={filteredOrganizations}
+              <OrganisationsList
+                organisations={filteredOrganizations.map(org => ({
+                  ...org,
+                  description: getOrganizationDescription(org),
+                  alias: getOrganizationAlias(org),
+                  organization_number: org.tracking_id
+                }))}
                 profiles={allUsers}
                 departments={[]}
                 deletingOrgId={deletingOrgId}
-                onDelete={handleDeleteOrganization}
+                onDelete={handleDeleteOrganisation}
               />
             </CardContent>
           </Card>
@@ -503,7 +624,11 @@ export default function RoleBasedUserManagement() {
             </CardHeader>
             <CardContent className="p-0">
               <UsersList
-                users={filteredUsers}
+                users={filteredUsers.map(user => ({
+                  ...user,
+                  id: String(user.id),
+                  organization_id: user.organisation_id // Map British to American spelling
+                }))}
                 organizations={organizations}
                 deletingUserId={deletingUserId}
                 onEdit={() => {}}

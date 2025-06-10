@@ -32,7 +32,7 @@ import {
 // Analytics imports
 import { trackFeatureUsage, trackScheduleAction, trackTaskAction, trackAuthAction } from '@/lib/analytics';
 // SEO imports
-import { createWebApplicationSchema, createOrganizationSchema, getPageMetadata } from '@/lib/seo';
+import { createWebApplicationSchema, createOrganisationSchema, getPageMetadata } from '@/lib/seo';
 
 const Index = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -137,7 +137,7 @@ const Index = () => {
         pageName="home"
         structuredData={[
           createWebApplicationSchema(),
-          createOrganizationSchema()
+          createOrganisationSchema()
         ]}
       />
       
@@ -160,13 +160,6 @@ const Index = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Link 
-                      to="/role-selector" 
-                      className="block w-full text-left p-3 rounded-lg hover:bg-gray-100 transition-colors"
-                      onClick={handleRoleSwitch}
-                    >
-                      🎭 Switch Role
-                    </Link>
                     {hasRole('admin') && (
                       <Link 
                         to="/admin" 

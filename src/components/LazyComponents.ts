@@ -8,7 +8,7 @@ export const LazySuperAdminDashboard = lazy(() => import('@/pages/SuperAdminDash
 
 // Lazy load admin components
 export const LazyAISettings = lazy(() => import('@/components/admin/AISettings'));
-export const LazyOrganizationManagement = lazy(() => import('@/components/admin/OrganizationManagement'));
+export const LazyOrganisationManagement = lazy(() => import('@/components/admin/OrganisationManagement'));
 export const LazySystemSettings = lazy(() => import('@/components/admin/SystemSettings'));
 export const LazyUsersManagement = lazy(() => import('@/components/admin/UsersManagement'));
 export const LazyAdminReportsManagement = lazy(() => import('@/components/admin/ReportsManagement'));

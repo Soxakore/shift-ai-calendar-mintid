@@ -56,7 +56,7 @@ export default function AnalyticsDashboard() {
         .select('user_type, is_active, created_at, organization_id');
 
       const { data: organizations } = await supabase
-        .from('organizations')
+        .from('organisations')
         .select('id, created_at');
 
       const { data: sessionLogs } = await supabase

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -26,10 +25,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { LiveReportsManager } from '@/components/LiveReportsManager';
+import { LiveScheduleAutomation } from '@/components/LiveScheduleAutomation';
 
 const ManagerDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
-  const { profile, signOut } = useSupabaseAuth();
+  const { profile, signOut, createUser } = useSupabaseAuth();
   const { profiles, schedules, timeLogs, departments, loading } = useSupabaseData();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -95,19 +96,38 @@ const ManagerDashboard = () => {
 
     setIsCreatingUser(true);
     try {
-      // This would integrate with your user creation logic
-      toast({
-        title: "✅ User Created",
-        description: `${newUserData.display_name} has been added to your team.`,
+      // Use the real createUser function from auth context
+      const result = await createUser({
+        username: newUserData.username,
+        password: newUserData.password,
+        display_name: newUserData.display_name,
+        user_type: newUserData.user_type as 'org_admin' | 'manager' | 'employee',
+        organization_id: profile?.organization_id,
+        department_id: profile?.department_id
       });
-      setIsCreateUserOpen(false);
-      setNewUserData({
-        username: '',
-        password: '',
-        display_name: '',
-        phone_number: '',
-        user_type: 'employee'
-      });
+
+      if (result.success) {
+        toast({
+          title: "✅ User Created",
+          description: `${newUserData.display_name} has been added to your team.`,
+        });
+        setIsCreateUserOpen(false);
+        setNewUserData({
+          username: '',
+          password: '',
+          display_name: '',
+          phone_number: '',
+          user_type: 'employee'
+        });
+        // Refresh the user list
+        window.location.reload();
+      } else {
+        toast({
+          title: "❌ Error Creating User",
+          description: result.error || "Failed to create user.",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
       console.error('Error creating user:', error);
       toast({
@@ -460,14 +480,14 @@ const ManagerDashboard = () => {
                       <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                         <div>
                           <p className="font-medium text-gray-900 dark:text-white">
-                            {user?.display_name || 'Unknown'} {log.clock_in && !log.clock_out ? 'clocked in' : log.clock_out ? 'completed shift' : 'updated time'}
+                            {user?.display_name || 'Unknown User'}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-300">
-                            {departmentName} Staff - {new Date(log.created_at).toLocaleDateString()}
+                            {log.clock_in && !log.clock_out ? 'Currently working' : 'Completed shift'}
                           </p>
                         </div>
-                        <Badge variant="outline">
-                          {log.clock_in && !log.clock_out ? 'Active' : 'Completed'}
+                        <Badge variant={log.clock_in && !log.clock_out ? 'default' : 'secondary'}>
+                          {log.clock_in && !log.clock_out ? 'Active' : 'Complete'}
                         </Badge>
                       </div>
                     );
@@ -480,6 +500,19 @@ const ManagerDashboard = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Live Reports Manager */}
+            <div className="mt-8">
+              <LiveReportsManager 
+                departmentId={profile?.department_id}
+                organizationId={profile?.organization_id}
+              />
+            </div>
+
+            {/* Live Schedule Automation */}
+            <div className="mt-8">
+              <LiveScheduleAutomation />
+            </div>
           </>
         )}
       </main>

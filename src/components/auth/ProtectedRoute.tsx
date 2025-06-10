@@ -21,8 +21,24 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
     );
   }
 
-  if (!user || !profile) {
+  if (!user) {
     // Redirect to auth page with return url
+    return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  // SUPER ADMIN BYPASS - Allow super admin access without profile
+  const isSuperAdmin = user?.email === 'tiktok518@gmail.com' || 
+                      user?.user_metadata?.login === 'soxakore' ||
+                      user?.user_metadata?.user_name === 'soxakore' ||
+                      user?.user_metadata?.preferred_username === 'soxakore';
+  
+  if (isSuperAdmin) {
+    console.log('🚀 SUPER ADMIN BYPASS - Granting unrestricted access');
+    return <>{children}</>;
+  }
+
+  if (!profile) {
+    // Redirect to auth page with return url for non-super admins
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Alert, AlertDescription } from '../ui/alert';
@@ -11,26 +10,27 @@ import { useToast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
 import QuickActions from './QuickActions';
 import CreateUserForm from './CreateUserForm';
-import CreateOrganizationForm from './CreateOrganizationForm';
+import CreateOrganisationForm from './CreateOrganisationForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Input } from '../ui/input';
 import EditUserDialog from './EditUserDialog';
-import OrganizationsList from './OrganizationsList';
+import OrganisationsList from './OrganisationsList';
 import UsersList from './UsersList';
 import OrganizationPauseManager from './OrganizationPauseManager';
 import HistoryButton from './HistoryButton';
 
 interface User {
-  id: string;
+  id: number;
   username: string;
   display_name: string;
   email?: string;
   user_type: string;
-  organization_id: string;
+  organisation_id?: string; // Changed to match database schema
   department_id?: string;
   is_active: boolean;
   created_at: string;
   tracking_id?: string;
+  phone_number?: string; // Added to match UsersList interface
 }
 
 interface Organization {
@@ -48,7 +48,7 @@ interface Organization {
 interface Department {
   id: string;
   name: string;
-  organization_id: string;
+  organisation_id: string; // Changed to match database schema
   created_at: string;
 }
 
@@ -83,7 +83,7 @@ export default function SuperAdminUserManagement() {
         .eq('is_active', true);
 
       const { count: totalOrganizations } = await supabase
-        .from('organizations')
+        .from('organisations')
         .select('*', { count: 'exact' });
 
       // Fetch recent session activity (last 24 hours)
@@ -131,7 +131,7 @@ export default function SuperAdminUserManagement() {
   const fetchOrganizations = async () => {
     try {
       const { data } = await supabase
-        .from('organizations')
+        .from('organisations')
         .select('*')
         .order('name');
       
@@ -162,7 +162,17 @@ export default function SuperAdminUserManagement() {
     fetchDepartments();
   }, [fetchStats]);
 
-  const handleEditUser = (user: User) => {
+  const handleEditUser = (user: {
+    id: string;
+    username: string;
+    display_name: string;
+    user_type: string;
+    organization_id?: string;
+    phone_number?: string;
+    tracking_id?: string;
+    created_at: string;
+    is_active: boolean;
+  }) => {
     // Handle edit user logic
     console.log('Edit user:', user);
   };
@@ -177,7 +187,7 @@ export default function SuperAdminUserManagement() {
       const { error } = await supabase
         .from('profiles')
         .delete()
-        .eq('id', userId);
+        .eq('id', Number(userId));
 
       if (error) {
         console.error('User deletion error:', error);
@@ -217,7 +227,7 @@ export default function SuperAdminUserManagement() {
     setDeletingOrgId(orgId);
     try {
       const { error } = await supabase
-        .from('organizations')
+        .from('organisations')
         .delete()
         .eq('id', orgId);
 
@@ -257,13 +267,14 @@ export default function SuperAdminUserManagement() {
   };
 
   const handleCreateUser = async (userData: {
-    username: string;
-    display_name: string;
     email: string;
+    username: string;
+    password: string;
+    display_name: string;
+    phone_number: string;
     user_type: string;
-    organization_id: string;
-    department_id?: string;
-    password?: string;
+    organisation_id: string;
+    department_id: string;
   }) => {
     setIsCreating(true);
     try {
@@ -277,7 +288,7 @@ export default function SuperAdminUserManagement() {
             username: userData.username,
             display_name: userData.display_name,
             user_type: userData.user_type,
-            organization_id: userData.organization_id,
+            organisation_id: userData.organisation_id,
             department_id: userData.department_id,
             created_by: profile?.id
           }
@@ -301,8 +312,11 @@ export default function SuperAdminUserManagement() {
         description: "New user has been successfully created",
       });
 
-      fetchUsers();
-      fetchStats();
+      // Wait a moment for the database trigger to execute
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Refresh data to show the new user
+      await Promise.all([fetchUsers(), fetchStats()]);
       setActiveView('users');
       
     } catch (error) {
@@ -327,11 +341,13 @@ export default function SuperAdminUserManagement() {
       console.log('Creating organization with data:', orgData);
       
       const { data, error } = await supabase
-        .from('organizations')
+        .from('organisations')
         .insert([{
           name: orgData.name.trim(),
-          description: orgData.description.trim() || null,
-          alias: orgData.alias.trim() || null
+          settings_json: {
+            alias: orgData.alias?.trim() || null,
+            description: orgData.description?.trim() || null
+          }
         }])
         .select()
         .single();
@@ -353,8 +369,11 @@ export default function SuperAdminUserManagement() {
         description: `Organization "${orgData.name}" created successfully`,
       });
 
-      fetchOrganizations();
-      fetchStats();
+      // Wait a moment for real-time updates to propagate
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Refresh data to show the new organization
+      await Promise.all([fetchOrganizations(), fetchStats()]);
       setActiveView('organizations');
       
     } catch (error) {
@@ -406,10 +425,11 @@ export default function SuperAdminUserManagement() {
               </div>
             </div>
             <UsersList 
-              users={users.filter(user => 
-                user.display_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                user.username?.toLowerCase().includes(searchTerm.toLowerCase())
-              )}
+              users={users.map(u => ({
+                ...u,
+                id: u.id.toString(),
+                organization_id: u.organisation_id // map British to American spelling
+              }))}
               organizations={organizations}
               deletingUserId={deletingUserId}
               onEdit={handleEditUser}
@@ -442,8 +462,8 @@ export default function SuperAdminUserManagement() {
                 </Button>
               </div>
             </div>
-            <OrganizationsList
-              organizations={organizations.filter(org => 
+            <OrganisationsList
+              organisations={organizations.filter(org => 
                 org.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 org.alias?.toLowerCase().includes(searchTerm.toLowerCase())
               )}
@@ -471,7 +491,7 @@ export default function SuperAdminUserManagement() {
             </div>
             <CreateUserForm 
               isCreating={isCreating}
-              organizations={organizations}
+              organisations={organizations}
               onCancel={() => setActiveView('overview')}
               onSubmit={handleCreateUser}
             />
@@ -492,7 +512,7 @@ export default function SuperAdminUserManagement() {
               </Button>
               <HistoryButton showBadge={true} />
             </div>
-            <CreateOrganizationForm 
+            <CreateOrganisationForm 
               isCreating={isCreating}
               onCancel={() => setActiveView('overview')}
               onSubmit={handleCreateOrganization}

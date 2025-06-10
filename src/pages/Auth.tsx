@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Calendar, Shield, Users, Building2, Loader2 } from 'lucide-react';
+import { Calendar, Shield, Users, Building2, Loader2, Github } from 'lucide-react';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useToast } from '@/hooks/use-toast';
 
@@ -14,38 +14,64 @@ const Auth = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGitHubLoading, setIsGitHubLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { user, profile, signIn } = useSupabaseAuth();
+  const { user, profile, signIn, signInWithGitHub } = useSupabaseAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
 
   // Redirect if already authenticated
   useEffect(() => {
+    console.log('🔍 Auth check - User:', !!user, 'Profile:', !!profile, 'Profile type:', profile?.user_type);
+    console.log('🔍 Full user object:', user);
+    console.log('🔍 Full profile object:', profile);
+    
+    // SUPER ADMIN BYPASS - Check for GitHub super admin users
+    const isSuperAdmin = user?.email === 'tiktok518@gmail.com' || 
+                        user?.user_metadata?.user_name === 'soxakore' ||
+                        user?.user_metadata?.preferred_username === 'soxakore';
+    
+    if (user && isSuperAdmin) {
+      console.log('🚀 SUPER ADMIN DETECTED - Immediate redirect to super-admin dashboard');
+      navigate('/super-admin');
+      return;
+    }
+    
     if (user && profile) {
       const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
       if (from) {
+        console.log('🔄 Redirecting to from path:', from);
         navigate(from);
       } else {
         // Redirect based on user role
+        console.log('🔄 Redirecting based on role:', profile.user_type);
         switch (profile.user_type) {
           case 'super_admin':
+            console.log('🚀 Redirecting super admin to dashboard');
             navigate('/super-admin');
             break;
           case 'org_admin':
+            console.log('🏢 Redirecting org admin to dashboard');
             navigate('/org-admin');
             break;
           case 'manager':
+            console.log('👥 Redirecting manager to dashboard');
             navigate('/manager');
             break;
           case 'employee':
             navigate('/employee');
             break;
           default:
+            console.warn('⚠️ Unknown user type:', profile.user_type);
             navigate('/');
         }
       }
+    } else if (user && !profile) {
+      console.log('⚠️ User exists but no profile found - this might be a loading state');
+    } else {
+      console.log('ℹ️ No user authentication detected');
     }
   }, [user, profile, navigate, location]);
 
@@ -78,7 +104,30 @@ const Auth = () => {
     }
   };
 
-  const demoUsers = [
+  const handleGitHubSignIn = async () => {
+    setIsGitHubLoading(true);
+    setError('');
+
+    try {
+      const result = await signInWithGitHub();
+      
+      if (result.success) {
+        toast({
+          title: "✅ GitHub Login Successful",
+          description: "Redirecting you to GitHub for authentication...",
+        });
+      } else {
+        setError(result.error || 'GitHub login failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('GitHub login error:', error);
+      setError('An unexpected error occurred during GitHub login.');
+    } finally {
+      setIsGitHubLoading(false);
+    }
+  };
+
+  const quickLoginUsers = [
     { username: 'tiktok', role: 'Super Admin', icon: Shield, color: 'text-red-500' },
     { username: 'orgadmin', role: 'Organization Admin', icon: Building2, color: 'text-blue-500' },
     { username: 'manager', role: 'Manager', icon: Users, color: 'text-green-500' },
@@ -103,6 +152,37 @@ const Auth = () => {
             <CardTitle className="text-center dark:text-white">Welcome Back</CardTitle>
           </CardHeader>
           <CardContent>
+            {/* GitHub Login - Primary Method */}
+            <div className="space-y-4 mb-6">
+              <Button
+                onClick={handleGitHubSignIn}
+                disabled={isGitHubLoading}
+                className="w-full bg-gray-900 hover:bg-gray-800 text-white flex items-center justify-center gap-3 py-3"
+              >
+                {isGitHubLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Github className="w-5 h-5" />
+                )}
+                {isGitHubLoading ? 'Connecting to GitHub...' : 'Sign in with GitHub'}
+              </Button>
+              
+              <div className="text-center text-sm text-gray-600 dark:text-gray-400">
+                Secure authentication with your GitHub account
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="relative mb-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-gray-300 dark:border-gray-600" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white dark:bg-gray-800 px-2 text-gray-500 dark:text-gray-400">Or continue with username</span>
+              </div>
+            </div>
+
+            {/* Legacy Username/Password Login */}
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
                 <Alert variant="destructive">
@@ -147,33 +227,33 @@ const Auth = () => {
                     Signing In...
                   </>
                 ) : (
-                  'Sign In'
+                  'Sign in with Username'
                 )}
               </Button>
             </form>
           </CardContent>
         </Card>
 
-        {/* Demo Accounts */}
+        {/* Quick Login */}
         <Card className="dark:bg-gray-800 dark:border-gray-700">
           <CardHeader>
-            <CardTitle className="text-center text-sm dark:text-white">Demo Accounts</CardTitle>
+            <CardTitle className="text-center text-sm dark:text-white">Quick Login</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {demoUsers.map((demo) => {
-                const IconComponent = demo.icon;
+              {quickLoginUsers.map((user) => {
+                const IconComponent = user.icon;
                 return (
                   <div
-                    key={demo.username}
+                    key={user.username}
                     className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                    onClick={() => setUsername(demo.username)}
+                    onClick={() => setUsername(user.username)}
                   >
                     <div className="flex items-center gap-2">
-                      <IconComponent className={`w-4 h-4 ${demo.color}`} />
-                      <span className="text-sm font-medium dark:text-white">{demo.role}</span>
+                      <IconComponent className={`w-4 h-4 ${user.color}`} />
+                      <span className="text-sm font-medium dark:text-white">{user.role}</span>
                     </div>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">@{demo.username}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">@{user.username}</span>
                   </div>
                 );
               })}

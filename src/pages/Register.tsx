@@ -57,7 +57,7 @@ const Register = () => {
           <AlertCircle className="h-4 w-4 text-red-600" />
           <AlertDescription className="text-red-700">
             <strong>Registration is disabled.</strong> All user accounts are created and managed by administrators only. 
-            Contact your organization's admin to get access credentials.
+            Contact your organisation's admin to get access credentials.
           </AlertDescription>
         </Alert>
 
@@ -180,7 +180,7 @@ const Register = () => {
               🔐 Need Access?
             </h4>
             <p className="text-xs sm:text-sm text-blue-700 mb-3">
-              Contact your organization administrator to receive your login credentials.
+              Contact your organisation administrator to receive your login credentials.
             </p>
             <Link to="/auth">
               <Button 
