@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import { logEffect } from '@/utils/renderLogger';
 
 export interface UserPresence {
   user_id: string;
@@ -17,18 +17,31 @@ export interface PresenceState {
   [key: string]: UserPresence[];
 }
 
-export const usePresence = (channelName: string, currentUser?: any) => {
+export const usePresence = (channelName: string, currentUser?: { id: string; username?: string; email?: string; display_name?: string }) => {
+  const renderCount = useRef(0);
+  renderCount.current += 1;
+  
+  console.log(`🔄 usePresence render #${renderCount.current} for channel: ${channelName}, user:`, currentUser?.id);
+  
   const [presenceState, setPresenceState] = useState<PresenceState>({});
   const [onlineUsers, setOnlineUsers] = useState<UserPresence[]>([]);
-  const [channel, setChannel] = useState<RealtimeChannel | null>(null);
+  const [channel, setChannel] = useState<ReturnType<typeof supabase.channel> | null>(null);
   const [isTracking, setIsTracking] = useState(false);
 
-  const updateOnlineUsers = useCallback((state: PresenceState) => {
+  // Memoize the user data to avoid unnecessary re-renders
+  const userMemo = useMemo(() => currentUser, [currentUser]);
+
+  // Use ref to avoid recreating callback
+  const updateOnlineUsersRef = useRef((state: PresenceState) => {
     const users: UserPresence[] = [];
     Object.keys(state).forEach(key => {
       users.push(...state[key]);
     });
     setOnlineUsers(users);
+  });
+
+  const updateOnlineUsers = useCallback((state: PresenceState) => {
+    updateOnlineUsersRef.current(state);
   }, []);
 
   const startTracking = useCallback(async (userPresence: Partial<UserPresence>) => {
@@ -90,8 +103,17 @@ export const usePresence = (channelName: string, currentUser?: any) => {
     }
   }, [channel, currentUser, isTracking]);
 
+  // Store currentUser in ref to avoid dependency issues
+  const currentUserRef = useRef(currentUser);
+  currentUserRef.current = currentUser;
+
+  // Store callbacks in refs to avoid recreation
+  const updateStatusRef = useRef<typeof updateStatus>();
+  const stopTrackingRef = useRef<typeof stopTracking>();
+
   useEffect(() => {
-    if (!currentUser) return;
+    logEffect('usePresence', 'main subscription setup', [channelName, currentUser]);
+    if (!currentUser?.id) return;
 
     const channelName_clean = channelName.replace(/[^a-zA-Z0-9_-]/g, '_');
     const presenceChannel = supabase.channel(channelName_clean, {
@@ -106,7 +128,7 @@ export const usePresence = (channelName: string, currentUser?: any) => {
       .on('presence', { event: 'sync' }, () => {
         const newState = presenceChannel.presenceState() as PresenceState;
         setPresenceState(newState);
-        updateOnlineUsers(newState);
+        updateOnlineUsersRef.current(newState); // Use ref directly
         console.log('Presence sync:', newState);
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
@@ -127,14 +149,14 @@ export const usePresence = (channelName: string, currentUser?: any) => {
       setChannel(null);
       setIsTracking(false);
     };
-  }, [channelName, currentUser, updateOnlineUsers]);
+  }, [channelName, currentUser]); // Include currentUser to satisfy ESLint
 
   // Auto-track user activity
   useEffect(() => {
     if (!currentUser || !channel) return;
 
     const handleActivity = () => {
-      updateStatus({ 
+      updateStatusRef.current?.({ 
         status: 'online', 
         last_seen: new Date().toISOString() 
       });
@@ -142,14 +164,14 @@ export const usePresence = (channelName: string, currentUser?: any) => {
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        updateStatus({ status: 'away' });
+        updateStatusRef.current?.({ status: 'away' });
       } else {
-        updateStatus({ status: 'online' });
+        updateStatusRef.current?.({ status: 'online' });
       }
     };
 
     const handleBeforeUnload = () => {
-      stopTracking();
+      stopTrackingRef.current?.();
     };
 
     // Track user activity
@@ -168,7 +190,11 @@ export const usePresence = (channelName: string, currentUser?: any) => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [channel, currentUser, updateStatus, stopTracking]);
+  }, [channel, currentUser]); // Include currentUser to satisfy ESLint
+
+  // Update refs when callbacks change
+  updateStatusRef.current = updateStatus;
+  stopTrackingRef.current = stopTracking;
 
   return {
     presenceState,

@@ -1,12 +1,13 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Building, Users, UserPlus } from 'lucide-react';
+import { Building, Users, UserPlus, KeyRound } from 'lucide-react';
 import CreateOrganisationForm from './CreateOrganisationForm';
 import CreateUserForm from './CreateUserForm';
 import OrganisationsList from './OrganisationsList';
 import UsersList from './UsersList';
+import UsernameBasedUserCreation from './UsernameBasedUserCreation';
+import UsernamePasswordChange from './UsernamePasswordChange';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -20,7 +21,9 @@ import {
   createOrganizationAsAdmin, 
   createUserAsAdmin 
 } from '@/lib/superAdminDataAccess';
+import { adminUserOperations, hasAdminAccess } from '@/lib/supabaseAdmin';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import EditUserDialog from './EditUserDialog';
 
 interface Organization {
   id: string;
@@ -44,10 +47,10 @@ interface User {
   created_at: string;
 }
 
-type ActiveTab = 'list' | 'create-org' | 'create-user';
+type ActiveTab = 'list' | 'create-org' | 'create-user' | 'username-create' | 'password-change';
 
 export default function RoleBasedUserManagement() {
-  const { profile } = useSupabaseAuth();
+  const { profile, createUser } = useSupabaseAuth();
   const [activeTab, setActiveTab] = useState<ActiveTab>('list');
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -57,17 +60,22 @@ export default function RoleBasedUserManagement() {
   const [deletingOrgId, setDeletingOrgId] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Edit user dialog state
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isUpdatingUser, setIsUpdatingUser] = useState(false);
+  
   const { toast } = useToast();
   const { logOrganizationCreation, logUserDeletion, logOrganizationDeletion } = useAuditLogger();
 
   const fetchOrganizations = useCallback(async () => {
     setLoading(true);
     try {
-      console.log('🔍 Fetching organizations... User type:', profile?.user_type);
+      console.log('🔍 Fetching organisations... User type:', profile?.user_type);
       
       // Use super admin data access for super admin users
       if (profile?.user_type === 'super_admin') {
-        console.log('🚀 Using super admin data access for organizations');
+        console.log('🚀 Using super admin data access for organisations');
         const data = await fetchOrganizationsAsAdmin();
         setOrganizations(data || []);
         return;
@@ -80,9 +88,9 @@ export default function RoleBasedUserManagement() {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching organizations:', error);
+        console.error('Error fetching organisations:', error);
         toast({
-          title: "❌ Error fetching organizations",
+          title: "❌ Error fetching organisations",
           description: error.message,
           variant: "destructive"
         });
@@ -91,7 +99,7 @@ export default function RoleBasedUserManagement() {
 
       setOrganizations(data || []);
     } catch (error) {
-      console.error('Unexpected error fetching organizations:', error);
+      console.error('Unexpected error fetching organisations:', error);
       toast({
         title: "💥 Unexpected error",
         description: 'Failed to load organizations.',
@@ -288,17 +296,17 @@ export default function RoleBasedUserManagement() {
         .single();
 
       if (error) {
-        console.error('❌ Error creating organization:', error);
+        console.error('❌ Error creating organisation:', error);
         console.error('📋 Error details:', JSON.stringify(error, null, 2));
         toast({
-          title: "❌ Error creating organization",
+          title: "❌ Error creating organisation",
           description: error.message,
           variant: "destructive"
         });
         return;
       }
 
-      console.log('✅ Organization created successfully:', data);
+      console.log('✅ Organisation created successfully:', data);
 
       // Log organization creation
       if (data) {
@@ -308,14 +316,14 @@ export default function RoleBasedUserManagement() {
       fetchOrganizations();
       setActiveTab('list');
       toast({
-        title: "✅ Organization Created",
+        title: "✅ Organisation Created",
         description: `${orgData.name} has been successfully created.`,
       });
     } catch (error) {
       console.error('Unexpected error creating organization:', error);
       toast({
         title: "💥 Unexpected error",
-        description: 'Failed to create organization.',
+        description: 'Failed to create organisation.',
         variant: "destructive"
       });
     } finally {
@@ -337,6 +345,9 @@ export default function RoleBasedUserManagement() {
     try {
       console.log('👤 Creating user, current user type:', profile?.user_type);
       
+      // Set flag to prevent auth state redirects during user creation
+      sessionStorage.setItem('preventAuthRedirect', 'true');
+      
       // Use super admin data access for super admin users
       if (profile?.user_type === 'super_admin') {
         console.log('🚀 Using super admin user creation');
@@ -349,42 +360,61 @@ export default function RoleBasedUserManagement() {
             description: error.message,
             variant: "destructive"
           });
+          sessionStorage.removeItem('preventAuthRedirect');
           return;
         }
         
         console.log('✅ User created via super admin access:', data);
-        fetchUsers();
-        setActiveTab('list');
+        
         toast({
           title: "✅ User Created",
           description: `${userData.display_name} has been successfully created.`,
         });
+
+        // Wait a moment for the database trigger to execute
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Refresh users to show the new user
+        await fetchUsers();
+        setActiveTab('list');
+        sessionStorage.removeItem('preventAuthRedirect');
         return;
       }
       
-      // Standard user creation using edge function
-      const { data, error } = await supabase.functions.invoke('create-user', {
-        body: {
-          ...userData
-        }
+      // Standard user creation using auth signup
+      console.log('🚀 Using standard user creation method');
+      const result = await createUser({
+        username: userData.username,
+        password: userData.password,
+        display_name: userData.display_name,
+        user_type: userData.user_type as 'org_admin' | 'manager' | 'employee',
+        organisation_id: userData.organisation_id,
+        department_id: userData.department_id || undefined
       });
 
-      if (error) {
-        console.error('Error creating user:', error);
+      if (!result.success) {
+        console.error('Standard user creation failed:', result.error);
         toast({
           title: "❌ Error creating user",
-          description: error.message,
+          description: result.error,
           variant: "destructive"
         });
         return;
       }
 
-      fetchUsers();
-      setActiveTab('list');
+      console.log('✅ User created via standard method');
+      
       toast({
         title: "✅ User Created",
         description: `${userData.display_name} has been successfully created.`,
       });
+
+      // Wait a moment for the database trigger to execute
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Refresh users to show the new user
+      await fetchUsers();
+      setActiveTab('list');
     } catch (error) {
       console.error('Unexpected error creating user:', error);
       toast({
@@ -393,6 +423,8 @@ export default function RoleBasedUserManagement() {
         variant: "destructive"
       });
     } finally {
+      // Always clear the prevent redirect flag
+      sessionStorage.removeItem('preventAuthRedirect');
       setIsCreatingUser(false);
     }
   };
@@ -409,27 +441,17 @@ export default function RoleBasedUserManagement() {
       // Get user details for logging
       const userToDelete = allUsers.find(user => user.id === userId);
       
-      // Try to delete using the admin API first
-      const { error: adminError } = await supabase.auth.admin.deleteUser(userId);
+      // Use the new admin operations with fallback strategy
+      const result = await adminUserOperations.deleteUser(userId);
 
-      if (adminError) {
-        console.log('⚠️ Admin API deletion failed, trying profile deletion:', adminError.message);
-        
-        // If admin API fails, delete profile manually
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .delete()
-          .eq('id', Number(userId));
-
-        if (profileError) {
-          console.error('❌ Profile deletion also failed:', profileError);
-          toast({
-            title: "❌ Deletion Failed",
-            description: `Failed to delete ${userName}`,
-            variant: "destructive"
-          });
-          return;
-        }
+      if (!result.success) {
+        console.error('❌ User deletion failed:', result.error);
+        toast({
+          title: "❌ Deletion Failed",
+          description: `Failed to delete ${userName}: ${result.error}`,
+          variant: "destructive"
+        });
+        return;
       }
 
       // Log user deletion with who performed it
@@ -441,12 +463,14 @@ export default function RoleBasedUserManagement() {
         );
       }
 
+      console.log('✅ User deleted successfully');
       toast({
         title: "🗑️ User Deleted",
         description: `${userName} has been successfully deleted`,
       });
       
-      fetchUsers();
+      // Refresh users list
+      await fetchUsers();
     } catch (error) {
       console.error('💥 Unexpected error during user deletion:', error);
       toast({
@@ -520,6 +544,125 @@ export default function RoleBasedUserManagement() {
     }
   };
 
+  // Handle edit user
+  const handleEditUser = (user: {
+    id: string;
+    username: string;
+    display_name: string;
+    user_type: string;
+    organization_id?: string;
+    phone_number?: string;
+    tracking_id?: string;
+    created_at: string;
+    is_active: boolean;
+  }) => {
+    // Transform the user data to match EditUserDialog interface
+    const transformedUser: User = {
+      id: user.id,
+      username: user.username,
+      display_name: user.display_name,
+      user_type: user.user_type,
+      organisation_id: user.organization_id || '',
+      phone_number: user.phone_number || '',
+      tracking_id: user.tracking_id || '',
+      department_id: '',
+      is_active: user.is_active,
+      created_at: user.created_at
+    };
+    
+    console.log('Opening edit dialog for user:', transformedUser);
+    setEditingUser(transformedUser);
+  };
+
+  const handleEditUserSubmit = async (userData: {
+    username: string;
+    display_name: string;
+    phone_number: string;
+    user_type: string;
+    organization_id: string;
+    new_password?: string;
+  }) => {
+    if (!editingUser) return;
+
+    setIsUpdatingUser(true);
+    try {
+      console.log('🔄 Updating user with data:', { ...userData, new_password: userData.new_password ? '[HIDDEN]' : 'Not provided' });
+
+      // Update profile data with proper error handling
+      const profileUpdateData = {
+        username: userData.username.trim(),
+        display_name: userData.display_name.trim(),
+        phone_number: userData.phone_number.trim() || null,
+        user_type: userData.user_type,
+        organisation_id: userData.organization_id // Note: British spelling for database
+      };
+
+      console.log('🔄 Updating profile with data:', profileUpdateData);
+      console.log('🔍 User ID being updated:', editingUser.id);
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update(profileUpdateData)
+        .eq('id', Number(editingUser.id));
+
+      if (profileError) {
+        console.error('❌ Profile update error:', profileError);
+        console.error('📋 Error details:', JSON.stringify(profileError, null, 2));
+        console.error('📊 Update data that failed:', profileUpdateData);
+        toast({
+          title: "❌ Error",
+          description: profileError.message || "Failed to update user profile",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('✅ Profile updated successfully');
+
+      // Update password if provided
+      if (userData.new_password && userData.new_password.trim()) {
+        console.log('🔑 Updating user password...');
+        
+        const passwordResult = await adminUserOperations.updateUserPassword(
+          String(editingUser.id),
+          userData.new_password.trim()
+        );
+
+        if (!passwordResult.success) {
+          console.error('❌ Password update error:', passwordResult.error);
+          toast({
+            title: "⚠️ Partial Update",
+            description: "Profile updated successfully, but password update failed: " + passwordResult.error,
+            variant: "destructive"
+          });
+        } else {
+          console.log('✅ Password updated successfully');
+        }
+      }
+
+      toast({
+        title: "✅ User Updated",
+        description: `User "${userData.display_name}" has been successfully updated`,
+      });
+
+      // Refresh users list
+      await fetchUsers();
+      
+      // Close dialog
+      setEditingUser(null);
+
+    } catch (error) {
+      console.error('💥 Unexpected error updating user:', error);
+      toast({
+        title: "❌ Error",
+        description: "An unexpected error occurred while updating the user",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdatingUser(false);
+    }
+  };
+
   return (
     <div className="space-y-6 p-6">
       {/* Header Section with Search */}
@@ -537,6 +680,50 @@ export default function RoleBasedUserManagement() {
         filteredUsersCount={filteredUsers.length}
       />
 
+      {/* Navigation Tabs */}
+      <div className="flex flex-wrap gap-2 p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+        <Button
+          variant={activeTab === 'list' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('list')}
+          className="flex items-center gap-2"
+        >
+          <Users className="w-4 h-4" />
+          View All
+        </Button>
+        <Button
+          variant={activeTab === 'create-org' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('create-org')}
+          className="flex items-center gap-2"
+        >
+          <Building className="w-4 h-4" />
+          Create Organization
+        </Button>
+        <Button
+          variant={activeTab === 'create-user' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('create-user')}
+          className="flex items-center gap-2"
+        >
+          <UserPlus className="w-4 h-4" />
+          Create User (Email)
+        </Button>
+        <Button
+          variant={activeTab === 'username-create' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('username-create')}
+          className="flex items-center gap-2"
+        >
+          <UserPlus className="w-4 h-4" />
+          Create User (Username)
+        </Button>
+        <Button
+          variant={activeTab === 'password-change' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('password-change')}
+          className="flex items-center gap-2"
+        >
+          <KeyRound className="w-4 h-4" />
+          Change Password
+        </Button>
+      </div>
+
       {/* Create Organization Form */}
       {activeTab === 'create-org' && (
         <CreateOrganisationForm
@@ -553,6 +740,52 @@ export default function RoleBasedUserManagement() {
           organisations={organizations}
           onCancel={() => setActiveTab('list')}
           onSubmit={handleCreateUser}
+        />
+      )}
+
+      {/* Username-Based User Creation */}
+      {activeTab === 'username-create' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">Create User with Username/Password</h2>
+            <Button 
+              variant="outline" 
+              onClick={() => setActiveTab('list')}
+            >
+              Back to List
+            </Button>
+          </div>
+          <UsernameBasedUserCreation />
+        </div>
+      )}
+
+      {/* Password Change */}
+      {activeTab === 'password-change' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">Change Password</h2>
+            <Button 
+              variant="outline" 
+              onClick={() => setActiveTab('list')}
+            >
+              Back to List
+            </Button>
+          </div>
+          <UsernamePasswordChange />
+        </div>
+      )}
+
+      {/* Edit User Dialog */}
+      {editingUser && (
+        <EditUserDialog
+          user={{
+            ...editingUser,
+            organization_id: editingUser.organisation_id
+          }}
+          isUpdating={isUpdatingUser}
+          organizations={organizations}
+          onClose={() => setEditingUser(null)}
+          onSubmit={handleEditUserSubmit}
         />
       )}
 
@@ -585,7 +818,8 @@ export default function RoleBasedUserManagement() {
                   ...org,
                   description: getOrganizationDescription(org),
                   alias: getOrganizationAlias(org),
-                  organization_number: org.tracking_id
+                  organization_number: org.tracking_id,
+                  settings_json: org.settings_json as Record<string, unknown> || {}
                 }))}
                 profiles={allUsers}
                 departments={[]}
@@ -631,7 +865,7 @@ export default function RoleBasedUserManagement() {
                 }))}
                 organizations={organizations}
                 deletingUserId={deletingUserId}
-                onEdit={() => {}}
+                onEdit={handleEditUser}
                 onDelete={handleDeleteUser}
                 getUserOrganization={(orgId: string) => {
                   const org = organizations.find(o => o.id === orgId);

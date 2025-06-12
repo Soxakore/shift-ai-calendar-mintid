@@ -19,7 +19,7 @@ const EmployeeHeader = ({ onUpdateProfile }: EmployeeHeaderProps) => {
           <div className="flex items-center gap-2 sm:gap-3">
             <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-gray-500 dark:text-gray-400" />
             <div>
-              <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Welcome to MinTid, Mary</h1>
+              <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Welcome to MinaTid, Mary</h1>
               <div className="flex items-center gap-2">
                 <Badge className="bg-gray-500 text-white text-xs">EMPLOYEE</Badge>
                 <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">

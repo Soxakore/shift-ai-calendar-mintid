@@ -31,7 +31,7 @@ import { LiveScheduleAutomation } from '@/components/LiveScheduleAutomation';
 const ManagerDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
   const { profile, signOut, createUser } = useSupabaseAuth();
-  const { profiles, schedules, timeLogs, departments, loading } = useSupabaseData();
+  const { profiles, schedules, timeLogs, departments, loading, refetchProfiles, forceRefresh } = useSupabaseData();
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -102,7 +102,7 @@ const ManagerDashboard = () => {
         password: newUserData.password,
         display_name: newUserData.display_name,
         user_type: newUserData.user_type as 'org_admin' | 'manager' | 'employee',
-        organization_id: profile?.organization_id,
+        organisation_id: profile?.organisation_id,
         department_id: profile?.department_id
       });
 
@@ -119,8 +119,14 @@ const ManagerDashboard = () => {
           phone_number: '',
           user_type: 'employee'
         });
-        // Refresh the user list
-        window.location.reload();
+        
+        // Force immediate refresh of profiles data with multiple approaches
+        setTimeout(() => {
+          refetchProfiles();
+        }, 300);
+        setTimeout(() => {
+          forceRefresh();
+        }, 800);
       } else {
         toast({
           title: "❌ Error Creating User",
@@ -175,7 +181,7 @@ const ManagerDashboard = () => {
             <div className="flex items-center gap-2 sm:gap-3">
               <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
               <div>
-                <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">MinTid Manager Dashboard</h1>
+                <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">MinaTid Manager Dashboard</h1>
                 <div className="flex items-center gap-2">
                   <Badge className="bg-green-500 text-white text-xs">MANAGER</Badge>
                   <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-300">

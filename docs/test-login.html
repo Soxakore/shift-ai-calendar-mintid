@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Org Admin Login</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Testing Org Admin Login</h1>
+    <div id="status">Attempting login...</div>
+    <div id="result"></div>
+
+    <script>
+        const supabaseUrl = 'http://127.0.0.1:54321';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+        async function testLogin() {
+            try {
+                document.getElementById('status').innerHTML = 'Attempting login...';
+                
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: 'org.admin.test@746f677f-e234-4e8f-9688-695d53129354.mintid.local',
+                    password: 'admin123'
+                });
+
+                if (error) {
+                    document.getElementById('status').innerHTML = 'Login failed: ' + error.message;
+                    document.getElementById('result').innerHTML = JSON.stringify(error, null, 2);
+                } else {
+                    document.getElementById('status').innerHTML = 'Login successful! Redirecting to org admin dashboard...';
+                    document.getElementById('result').innerHTML = 'User: ' + data.user.email + ' - Role: ' + data.user.user_metadata.user_type;
+                    
+                    // Redirect after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = '/org-admin';
+                    }, 2000);
+                }
+            } catch (err) {
+                document.getElementById('status').innerHTML = 'Error: ' + err.message;
+                document.getElementById('result').innerHTML = JSON.stringify(err, null, 2);
+            }
+        }
+
+        // Start the test
+        testLogin();
+    </script>
+</body>
+</html>

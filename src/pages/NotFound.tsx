@@ -1,14 +1,17 @@
+import React, { useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { useEffect } from "react";
 
 const NotFound = () => {
   const location = useLocation();
 
   useEffect(() => {
-    console.error(
-      "404 Error: User attempted to access non-existent route:",
-      location.pathname
-    );
+    // Only log actual user navigation errors, not programmatic ones
+    if (location.pathname !== '/auth') {
+      console.warn(
+        "404 Warning: Route not found:",
+        location.pathname
+      );
+    }
   }, [location.pathname]);
 
   return (

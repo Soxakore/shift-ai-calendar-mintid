@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -17,8 +17,15 @@ import {
 } from 'lucide-react';
 import { usePresence, UserPresence } from '@/hooks/usePresence';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { RenderTracker } from '@/components/debug/RenderTracker';
+import { logRender, logEffect } from '@/utils/renderLogger';
 
 const LiveEmployeeDashboard = () => {
+  const renderCount = useRef(0);
+  renderCount.current += 1;
+  
+  console.log(`📱 LiveEmployeeDashboard render #${renderCount.current}`);
+  
   const { user, profile } = useSupabaseAuth();
   const { 
     onlineUsers, 
@@ -29,6 +36,7 @@ const LiveEmployeeDashboard = () => {
   } = usePresence('employee_workspace', user);
 
   useEffect(() => {
+    console.log(`📱 LiveEmployeeDashboard useEffect - startTracking triggered`);
     if (user && !isTracking) {
       startTracking({
         status: 'online',
@@ -89,16 +97,17 @@ const LiveEmployeeDashboard = () => {
   }, {} as Record<string, UserPresence[]>);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Users className="h-6 w-6" />
-          <h2 className="text-2xl font-bold">Live Employee Status</h2>
-          <Badge variant="outline" className="ml-2">
-            {totalOnlineUsers} online
-          </Badge>
-        </div>
+    <RenderTracker componentName="LiveEmployeeDashboard">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Users className="h-6 w-6" />
+            <h2 className="text-2xl font-bold">Live Employee Status</h2>
+            <Badge variant="outline" className="ml-2">
+              {totalOnlineUsers} online
+            </Badge>
+          </div>
 
         {/* Personal Status Controls */}
         <div className="flex items-center space-x-2">
@@ -331,6 +340,7 @@ const LiveEmployeeDashboard = () => {
         </CardContent>
       </Card>
     </div>
+    </RenderTracker>
   );
 };
 

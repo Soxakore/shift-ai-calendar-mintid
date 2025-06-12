@@ -10,31 +10,38 @@ import { Copy, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface User {
-  id: string;
+  id: string | number;
   username: string;
-  displayName: string;
+  displayName?: string;
   display_name: string;
   email?: string;
-  userType: string;
+  userType?: string;
   user_type: string;
-  organizationId: string;
+  organizationId?: string;
   organization_id: string;
   departmentId?: string;
   department_id?: string;
-  isActive: boolean;
+  isActive?: boolean;
   phone_number?: string;
   tracking_id?: string;
 }
 
 interface EditUserDialogProps {
-  user: User;
+  user: User | null;
   isUpdating: boolean;
   organizations: Array<{
     id: string;
     name: string;
   }>;
   onClose: () => void;
-  onSubmit: () => void;
+  onSubmit: (userData: {
+    username: string;
+    display_name: string;
+    phone_number: string;
+    user_type: string;
+    organization_id: string;
+    new_password?: string;
+  }) => void;
 }
 
 export default function EditUserDialog({
@@ -75,7 +82,14 @@ export default function EditUserDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit();
+    onSubmit({
+      username: editUserData.username,
+      display_name: editUserData.display_name,
+      phone_number: editUserData.phone_number,
+      user_type: editUserData.user_type,
+      organization_id: editUserData.organization_id,
+      new_password: editUserData.new_password || undefined
+    });
   };
 
   const handleCopyTrackingId = async (trackingId: string) => {
@@ -176,6 +190,7 @@ export default function EditUserDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="super_admin">Super Admin</SelectItem>
                   <SelectItem value="org_admin">Organization Admin</SelectItem>
                   <SelectItem value="manager">Manager</SelectItem>
                   <SelectItem value="employee">Employee</SelectItem>

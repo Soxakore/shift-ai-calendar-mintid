@@ -11,12 +11,12 @@ const Footer = () => {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <span className="font-semibold text-gray-900 dark:text-slate-100">MinTid</span>
+            <span className="font-semibold text-gray-900 dark:text-slate-100">MinaTid</span>
             <span className="text-gray-600 dark:text-slate-300 text-sm">Work Schedule Calendar</span>
           </div>
           
           <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-slate-300">
-            <span>© {currentYear} MinTid. All rights reserved.</span>
+            <span>© {currentYear} MinaTid. All rights reserved.</span>
           </div>
         </div>
         

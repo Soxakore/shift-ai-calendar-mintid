@@ -20,47 +20,9 @@ interface UserAccount {
 }
 
 const UserAccountManager = () => {
-  const [accounts, setAccounts] = useState<UserAccount[]>([
-    // Demo accounts already created
-    {
-      id: 'super-admin-001',
-      username: 'super.admin',
-      password: 'admin123',
-      name: 'Super Administrator',
-      role: 'super_admin',
-      organizationId: 'all',
-      createdAt: '2025-05-29'
-    },
-    {
-      id: 'mc-admin-001', 
-      username: 'mc.admin',
-      password: 'mcadmin123',
-      name: 'McDonald\'s Administrator',
-      role: 'org_admin',
-      organizationId: 'mcdonalds',
-      createdAt: '2025-05-29'
-    },
-    {
-      id: 'kitchen-mgr-001',
-      username: 'kitchen.manager',
-      password: 'kitchen123',
-      name: 'Kitchen Manager',
-      role: 'manager',
-      organizationId: 'mcdonalds',
-      departmentId: 'kitchen',
-      createdAt: '2025-05-29'
-    },
-    {
-      id: 'employee-001',
-      username: 'mary.cook',
-      password: 'mary123',
-      name: 'Mary Cook',
-      role: 'employee',
-      organizationId: 'mcdonalds',
-      departmentId: 'kitchen',
-      createdAt: '2025-05-29'
-    }
-  ]);
+  // Production ready - no hardcoded demo accounts
+  // All accounts should be created through the proper admin interface
+  const [accounts, setAccounts] = useState<UserAccount[]>([]);
 
   const [newAccount, setNewAccount] = useState({
     username: '',

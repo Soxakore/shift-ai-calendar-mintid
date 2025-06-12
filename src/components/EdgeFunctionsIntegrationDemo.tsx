@@ -76,7 +76,7 @@ export function EdgeFunctionsIntegrationDemo() {
         body: {
           type: 'email',
           recipient: 'demo@example.com',
-          message: 'This is a test notification from MinTid',
+          message: 'This is a test notification from MinaTid',
           template: 'schedule_reminder',
           data: {
             employee_name: 'Demo User',
@@ -164,7 +164,7 @@ export function EdgeFunctionsIntegrationDemo() {
           🚀 Edge Functions Integration Demo
         </h1>
         <p className="text-gray-600 mb-4">
-          Test all deployed Supabase Edge Functions for MinTid Smart Work Schedule Calendar
+          Test all deployed Supabase Edge Functions for MinaTid Smart Work Schedule Calendar
         </p>
         
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">

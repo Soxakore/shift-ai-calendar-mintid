@@ -15,8 +15,8 @@ interface SEOHeadProps {
 }
 
 const SEOHead: React.FC<SEOHeadProps> = ({
-  title = 'MinTid - Smart Work Schedule Management',
-  description = 'Streamline your workforce management with MinTid\'s intelligent scheduling system. Real-time analytics, role-based access, and AI-powered optimization.',
+  title = 'MinaTid - Smart Work Schedule Management',
+  description = 'Streamline your workforce management with MinaTid\'s intelligent scheduling system. Real-time analytics, role-based access, and AI-powered optimization.',
   keywords = 'work schedule, employee management, shift planning, workforce analytics, team scheduling, time tracking',
   canonicalUrl,
   ogImage,
@@ -24,7 +24,7 @@ const SEOHead: React.FC<SEOHeadProps> = ({
   structuredData,
   pageName = 'home'
 }) => {
-  const fullTitle = title.includes('MinTid') ? title : `${title} | MinTid`;
+  const fullTitle = title.includes('MinaTid') ? title : `${title} | MinaTid`;
   const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
   const canonical = canonicalUrl || currentUrl;
   
@@ -37,7 +37,7 @@ const SEOHead: React.FC<SEOHeadProps> = ({
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
       <meta name="keywords" content={keywords} />
-      <meta name="author" content="MinTid" />
+      <meta name="author" content="MinaTid" />
       <meta name="robots" content="index, follow" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       
@@ -53,14 +53,14 @@ const SEOHead: React.FC<SEOHeadProps> = ({
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
       <meta property="og:image:type" content="image/svg+xml" />
-      <meta property="og:site_name" content="MinTid" />
+      <meta property="og:site_name" content="MinaTid" />
       
       {/* Twitter Card Tags */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={finalOgImage} />
-      <meta name="twitter:image:alt" content={`${title} - MinTid Workforce Management`} />
+      <meta name="twitter:image:alt" content={`${title} - MinaTid Workforce Management`} />
       
       {/* Structured Data */}
       {structuredData && (

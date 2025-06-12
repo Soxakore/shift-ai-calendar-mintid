@@ -41,8 +41,8 @@ export const generateSitemap = (
       images: [
         {
           url: `${baseUrl}/og-home.svg`,
-          caption: 'MinTid - Smart Workforce Management',
-          title: 'MinTid Homepage'
+          caption: 'MinaTid - Smart Workforce Management',
+          title: 'MinaTid Homepage'
         }
       ]
     },
@@ -55,7 +55,7 @@ export const generateSitemap = (
         {
           url: `${baseUrl}/og-roles.svg`,
           caption: 'Role-Based Access Control Demo',
-          title: 'MinTid Role Selector'
+          title: 'MinaTid Role Selector'
         }
       ]
     },
@@ -182,7 +182,7 @@ export const generateRobotsTxt = (
 
   const allRules = [...defaultRules, ...customRules];
   
-  let robotsTxt = `# MinTid Workforce Management - robots.txt
+  let robotsTxt = `# MinaTid Workforce Management - robots.txt
 # Generated automatically for optimal SEO
 # Last updated: ${new Date().toISOString()}
 
@@ -226,7 +226,7 @@ Sitemap: ${baseUrl}/sitemap.xml
  * Generate structured data for the organization
  */
 export const generateOrganizationSchema = (
-  organizationName: string = 'MinTid',
+  organizationName: string = 'MinaTid',
   description: string = 'Advanced workforce management and scheduling solution'
 ) => {
   return {
@@ -259,7 +259,7 @@ export const generateOrganizationSchema = (
       '@type': 'Offer',
       itemOffered: {
         '@type': 'SoftwareApplication',
-        name: 'MinTid Workforce Management',
+        name: 'MinaTid Workforce Management',
         applicationCategory: 'BusinessApplication',
         operatingSystem: 'Web Browser',
         offers: {
@@ -280,7 +280,7 @@ export const generateWebApplicationSchema = () => {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
-    name: 'MinTid Workforce Management',
+    name: 'MinaTid Workforce Management',
     description: 'Comprehensive workforce management solution with role-based access control, scheduling optimization, and performance analytics.',
     url: window.location.origin,
     applicationCategory: 'BusinessApplication',
@@ -291,7 +291,7 @@ export const generateWebApplicationSchema = () => {
     dateModified: new Date().toISOString().split('T')[0],
     author: {
       '@type': 'Organization',
-      name: 'MinTid Team'
+      name: 'MinaTid Team'
     },
     offers: {
       '@type': 'Offer',

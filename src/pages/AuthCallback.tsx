@@ -22,14 +22,17 @@ const AuthCallback = () => {
           
           toast({
             title: "✅ Authentication Successful",
-            description: "Welcome to MinTid!",
+            description: "Welcome to MinaTid!",
           });
 
-          // Check if user is super admin
-          const isSuperAdmin = user?.email === 'tiktok518@gmail.com' || 
-                              user?.user_metadata?.login === 'soxakore' ||
-                              user?.user_metadata?.user_name === 'soxakore' ||
-                              user?.user_metadata?.preferred_username === 'soxakore';
+          // Check if user is super admin using production configuration
+          const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL || 'admin@mintid.live';
+          const SUPER_ADMIN_GITHUB_USERNAME = import.meta.env.VITE_SUPER_ADMIN_GITHUB_USERNAME || 'mintid-admin';
+          
+          const isSuperAdmin = user?.email === SUPER_ADMIN_EMAIL || 
+                              user?.user_metadata?.login === SUPER_ADMIN_GITHUB_USERNAME ||
+                              user?.user_metadata?.user_name === SUPER_ADMIN_GITHUB_USERNAME ||
+                              user?.user_metadata?.preferred_username === SUPER_ADMIN_GITHUB_USERNAME;
 
           if (isSuperAdmin) {
             console.log('🚀 Super admin detected, redirecting to super-admin dashboard');
@@ -77,7 +80,7 @@ const AuthCallback = () => {
       <div className="text-center space-y-4">
         <LoadingSpinner text="Completing authentication..." />
         <div className="text-gray-600 dark:text-gray-300">
-          <p className="text-lg font-medium">Welcome to MinTid!</p>
+          <p className="text-lg font-medium">Welcome to MinaTid!</p>
           <p className="text-sm">Setting up your account...</p>
         </div>
       </div>

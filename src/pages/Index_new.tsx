@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, BarChart3, Clock, Settings, LogOut, User, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -55,7 +55,7 @@ const Index = () => {
                 <div className="flex flex-col gap-4 mt-6">
                   <div className="flex items-center gap-2 mb-4">
                     <Calendar className="w-6 h-6 text-blue-600" />
-                    <h2 className="text-xl font-bold text-gray-900">MinTid</h2>
+                    <h2 className="text-xl font-bold text-gray-900">MinaTid</h2>
                   </div>
                   
                   <div className="space-y-2">
@@ -89,7 +89,7 @@ const Index = () => {
           {/* Desktop Logo */}
           <div className="flex items-center gap-2">
             <Calendar className="w-8 h-8 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">MinTid</h1>
+            <h1 className="text-2xl font-bold text-gray-900">MinaTid</h1>
             <span className="hidden sm:block text-sm text-gray-600">Work Schedule Calendar</span>
           </div>
 

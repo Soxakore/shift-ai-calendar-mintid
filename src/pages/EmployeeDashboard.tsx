@@ -26,6 +26,7 @@ import { getPageMetadata } from '@/lib/seo';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useNavigate } from 'react-router-dom';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 import WorkHoursStats from '@/components/WorkHoursStats';
 import HoursWorkedChart from '@/components/HoursWorkedChart';
 import MonthlyPrecisionChart from '@/components/MonthlyPrecisionChart';
@@ -58,8 +59,83 @@ const EmployeeDashboard = () => {
     updated_at?: string;
   } | null>(null);
 
+  // Supabase hooks
   const { profile } = useSupabaseAuth();
-  const { schedules, timeLogs, refetch } = useSupabaseData();
+  const { refetch } = useSupabaseData();
+  
+  // Local state for schedules and time logs with proper types
+  const [schedules, setSchedules] = useState<Array<{
+    id: string;
+    user_id: string;
+    date: string;
+    start_time: string;
+    end_time: string;
+    created_at?: string;
+    updated_at?: string;
+  }>>([]);
+  const [timeLogs, setTimeLogs] = useState<Array<{
+    id: string;
+    user_id: string;
+    date: string;
+    clock_in?: string | null;
+    clock_out?: string | null;
+    created_at?: string;
+    updated_at?: string;
+  }>>([]);
+  
+  // Loading state
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Fetch schedules and time logs
+  const fetchSchedules = async () => {
+    if (!profile) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('schedules')
+        .select('*')
+        .eq('user_id', profile.id)
+        .order('date', { ascending: false });
+      
+      if (error) throw error;
+      setSchedules(data || []);
+    } catch (error) {
+      console.error('Error fetching schedules:', error);
+    }
+  };
+
+  const fetchTimeLogs = async () => {
+    if (!profile) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('time_logs')
+        .select('*')
+        .eq('user_id', profile.id)
+        .order('date', { ascending: false });
+      
+      if (error) throw error;
+      setTimeLogs(data || []);
+    } catch (error) {
+      console.error('Error fetching time logs:', error);
+    }
+  };
+
+  // Load data when profile is available
+  useEffect(() => {
+    const loadData = async () => {
+      if (profile) {
+        setIsLoading(true);
+        await Promise.all([fetchSchedules(), fetchTimeLogs()]);
+        setIsLoading(false);
+      }
+    };
+    
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
+  
+  console.log('✅ EmployeeDashboard hooks loaded successfully');
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -163,7 +239,7 @@ const EmployeeDashboard = () => {
           .from('time_logs')
           .insert({
             user_id: profile.id,
-            organization_id: profile.organization_id,
+            organization_id: profile.organisation_id,
             department_id: profile.department_id,
             date: today,
             clock_in: now,
@@ -277,6 +353,15 @@ const EmployeeDashboard = () => {
     });
   };
 
+  // Show loading spinner while data is being fetched
+  if (isLoading || !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner text="Loading dashboard..." />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex flex-col">
       <SEOHead
@@ -315,7 +400,7 @@ const EmployeeDashboard = () => {
             <div className="flex items-center gap-2 sm:gap-3">
               <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-gray-500 dark:text-gray-400" />
               <div>
-                <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Welcome to MinTid, {profile?.display_name || 'Employee'}</h1>
+                <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Welcome to MinaTid, {profile?.display_name || 'Employee'}</h1>
                 <div className="flex items-center gap-2">
                   <Badge className="bg-gray-500 text-white text-xs">EMPLOYEE</Badge>
                   <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">

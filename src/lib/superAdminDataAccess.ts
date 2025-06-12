@@ -1,3 +1,17 @@
+// UUID validation utility
+const isValidUUID = (value: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(value);
+};
+
+// Safely convert value to UUID or null
+const safeUUID = (value: unknown): string | null => {
+  if (!value || value === '' || value === '0') return null;
+  if (typeof value === 'string' && isValidUUID(value)) return value;
+  if (typeof value === 'number') return null; // Never convert numbers to UUIDs
+  return null;
+};
+
 // Special data access functions for super admin users
 // This handles RLS policy restrictions by implementing fallback strategies
 
@@ -75,20 +89,9 @@ export const createOrganizationAsAdmin = async (orgData: CreateOrgData) => {
       
       // If the standard approach fails due to RLS, try alternative approaches
       if (error.message?.includes('policy') || error.message?.includes('permission')) {
-        console.log('🔄 Trying alternative approach for organization creation...');
-        
-        // Try using the edge function approach
-        const functionResult = await supabase.functions.invoke('create-organization', {
-          body: insertData
-        });
-        
-        if (functionResult.error) {
-          console.error('❌ Edge function organization creation also failed:', functionResult.error);
-          return { data: null, error: functionResult.error };
-        }
-        
-        console.log('✅ Organization created via edge function:', functionResult.data);
-        return { data: functionResult.data, error: null };
+        console.log('🔄 Organization creation failed due to RLS policy restrictions');
+        console.error('❌ Cannot create organization - insufficient permissions:', error);
+        return { data: null, error };
       }
       
       return { data: null, error };
@@ -118,18 +121,9 @@ export const fetchOrganizationsAsAdmin = async () => {
       console.error('❌ Standard organization fetch failed:', error);
       
       if (error.message?.includes('policy') || error.message?.includes('permission')) {
-        console.log('🔄 Trying alternative approach for organization fetch...');
-        
-        // Try using edge function for data access
-        const functionResult = await supabase.functions.invoke('get-organizations');
-        
-        if (functionResult.error) {
-          console.error('❌ Edge function organization fetch also failed:', functionResult.error);
-          return [];
-        }
-        
-        console.log('✅ Organizations fetched via edge function:', functionResult.data?.length || 0);
-        return functionResult.data || [];
+        console.log('🔄 Organization fetch failed due to RLS policy restrictions');
+        console.error('❌ Cannot fetch organizations - insufficient permissions:', error);
+        return [];
       }
       
       console.error('❌ Could not fetch organizations:', error);
@@ -137,6 +131,14 @@ export const fetchOrganizationsAsAdmin = async () => {
     }
 
     console.log('✅ Organizations fetched successfully:', data?.length || 0);
+    console.log('🔍 Organization ID types debug:', data?.slice(0, 3).map(org => ({
+      id: org.id,
+      id_type: typeof org.id,
+      id_length: org.id?.length,
+      is_uuid: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(org.id)),
+      is_numeric: /^\d+$/.test(String(org.id)),
+      name: org.name
+    })));
     return data || [];
     
   } catch (exception) {
@@ -160,18 +162,9 @@ export const fetchProfilesAsAdmin = async () => {
       console.error('❌ Standard profiles fetch failed:', error);
       
       if (error.message?.includes('policy') || error.message?.includes('permission')) {
-        console.log('🔄 Trying alternative approach for profiles fetch...');
-        
-        // Try using edge function for data access
-        const functionResult = await supabase.functions.invoke('get-profiles');
-        
-        if (functionResult.error) {
-          console.error('❌ Edge function profiles fetch also failed:', functionResult.error);
-          return [];
-        }
-        
-        console.log('✅ Profiles fetched via edge function:', functionResult.data?.length || 0);
-        return functionResult.data || [];
+        console.log('🔄 Profiles fetch failed due to RLS policy restrictions');
+        console.error('❌ Cannot fetch profiles - insufficient permissions:', error);
+        return [];
       }
       
       console.error('❌ Could not fetch profiles:', error);
@@ -191,19 +184,51 @@ export const fetchProfilesAsAdmin = async () => {
 export const createUserAsAdmin = async (userData: CreateUserData) => {
   console.log('🚀 Super admin creating user:', userData);
   
+  // Validate and clean UUID fields before sending to edge function
+  const safeOrgId = safeUUID(userData.organisation_id);
+  const safeDeptId = safeUUID(userData.department_id);
+  
+  console.log('🔍 UUID validation:', {
+    original_org: userData.organisation_id,
+    safe_org: safeOrgId,
+    original_dept: userData.department_id,
+    safe_dept: safeDeptId
+  });
+  
+  // FIXED: Don't convert invalid UUIDs to empty strings - use null instead
+  const cleanUserData = {
+    ...userData,
+    organisation_id: safeOrgId,  // Let it be null if invalid UUID
+    department_id: safeDeptId     // Let it be null if invalid UUID
+  };
+  
   try {
-    // Use the existing edge function for user creation
-    const { data, error } = await supabase.functions.invoke('create-user', {
-      body: userData
+    // Use the RPC function instead of edge function
+    console.log('🔄 Using RPC function for user creation (fallback)');
+    
+    const { data, error } = await supabase.rpc('create_user_with_username', {
+      p_username: userData.username,
+      p_password: userData.password,
+      p_display_name: userData.display_name,
+      p_user_type: userData.user_type,
+      p_organisation_id: safeOrgId,
+      p_department_id: safeDeptId,
+      p_phone_number: userData.phone_number || null,
+      p_created_by: null // Set to null since CreateUserData doesn't have this field
     });
 
     if (error) {
-      console.error('❌ User creation failed:', error);
+      console.error('❌ RPC user creation failed:', error);
       return { data: null, error };
     }
 
-    console.log('✅ User created successfully:', data);
-    return { data, error: null };
+    if (!data?.success) {
+      console.error('❌ RPC returned failure:', data?.error);
+      return { data: null, error: { message: data?.error || 'User creation failed' } };
+    }
+
+    console.log('✅ User created successfully via RPC:', data);
+    return { data: data.data, error: null };
     
   } catch (exception) {
     console.error('💥 Exception during user creation:', exception);

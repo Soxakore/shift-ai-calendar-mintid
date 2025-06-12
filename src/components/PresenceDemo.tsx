@@ -15,6 +15,9 @@ import {
 } from 'lucide-react';
 import LiveEmployeeDashboard from '@/components/LiveEmployeeDashboard';
 import CollaborativeScheduleEditor from '@/components/CollaborativeScheduleEditor';
+import DoubleRenderTest from '@/components/debug/DoubleRenderTest';
+import FixValidation from '@/components/debug/FixValidation';
+import DoubleRenderFixSummary from '@/components/debug/DoubleRenderFixSummary';
 
 const PresenceDemo = () => {
   const [activeDemo, setActiveDemo] = useState('overview');
@@ -102,6 +105,16 @@ const sendNotification = async (message: string) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
+        
+        {/* Double Render Test - DEBUGGING */}
+        <DoubleRenderTest />
+        
+        {/* Fix Validation Test - DEBUGGING */}
+        <FixValidation />
+        
+        {/* Double Render Fix Summary - DEBUGGING */}
+        <DoubleRenderFixSummary />
+        
         {/* Header */}
         <div className="text-center space-y-4">
           <div className="flex items-center justify-center space-x-2">
@@ -110,7 +123,7 @@ const sendNotification = async (message: string) => {
             <Badge variant="secondary" className="text-sm">Real-time Collaboration</Badge>
           </div>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Transform your MinTid application with real-time presence, live collaboration, and smart notifications.
+            Transform your MinaTid application with real-time presence, live collaboration, and smart notifications.
             See who's online, what they're doing, and collaborate in real-time.
           </p>
         </div>
@@ -281,7 +294,7 @@ const sendNotification = async (message: string) => {
           <CardContent className="p-8 text-center">
             <h2 className="text-2xl font-bold mb-4">Ready to Add Real-time Collaboration?</h2>
             <p className="text-blue-100 mb-6 max-w-2xl mx-auto">
-              Transform your MinTid application with presence awareness, live collaboration, 
+              Transform your MinaTid application with presence awareness, live collaboration, 
               and smart notifications. Your team will love the enhanced coordination and real-time visibility.
             </p>
             <div className="flex items-center justify-center space-x-4">

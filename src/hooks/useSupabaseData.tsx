@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { Tables } from '@/integrations/supabase/types';
@@ -70,7 +70,10 @@ export const useSupabaseData = () => {
         },
         (payload) => {
           console.log('👤 Profile change detected:', payload);
-          fetchProfiles();
+          // Add a slight delay to ensure database consistency
+          setTimeout(() => {
+            fetchProfiles();
+          }, 250);
         }
       )
       .on(
@@ -205,6 +208,13 @@ export const useSupabaseData = () => {
     refetch: fetchData,
     refetchOrganisations: fetchOrganizations,
     refetchProfiles: fetchProfiles,
-    refetchDepartments: fetchDepartments
+    refetchDepartments: fetchDepartments,
+    // Force refresh all data - useful after user creation
+    forceRefresh: () => {
+      console.log('🔄 Force refreshing all data...');
+      setTimeout(() => {
+        fetchData();
+      }, 300);
+    }
   };
 };

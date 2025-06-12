@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,7 +47,7 @@ const Register = () => {
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-3 sm:mb-4">
             <Calendar className={`${isMobile ? 'w-8 h-8' : 'w-10 h-10'} text-green-600`} />
-            <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-gray-900`}>MinTid</h1>
+            <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-gray-900`}>MinaTid</h1>
           </div>
           <p className="text-gray-600 text-sm sm:text-base">Join Work Schedule Management</p>
         </div>

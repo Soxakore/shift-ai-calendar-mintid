@@ -52,7 +52,7 @@ export const generateOGImage = (
       
       <!-- Brand -->
       <text x="80" y="520" font-family="Arial, sans-serif" font-size="28" font-weight="600" fill="${textColor}" opacity="0.9">
-        MinTid Workforce Management
+        MinaTid Workforce Management
       </text>
       
       <!-- Decorative elements -->
@@ -116,7 +116,7 @@ export const OG_IMAGES = {
     '#1f2937'
   ),
   register: generateOGImage(
-    'Join MinTid',
+    'Join MinaTid',
     'Create your workforce management account',
     '#0891b2'
   )

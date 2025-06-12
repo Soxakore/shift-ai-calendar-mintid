@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,7 +59,7 @@ const SuperAdminInitial = () => {
         console.log('Login successful, showing success toast');
         toast({
           title: "✅ Login Successful",
-          description: "Welcome to MinTid Super Admin!",
+          description: "Welcome to MinaTid Super Admin!",
         });
         // Don't redirect here - let the auth state change handle it
       } else {
@@ -94,7 +94,7 @@ const SuperAdminInitial = () => {
             Super Administrator Access
           </CardTitle>
           <CardDescription className="text-yellow-700">
-            Enter your credentials to access the MinTid super admin dashboard
+            Enter your credentials to access the MinaTid super admin dashboard
           </CardDescription>
         </CardHeader>
         <CardContent>

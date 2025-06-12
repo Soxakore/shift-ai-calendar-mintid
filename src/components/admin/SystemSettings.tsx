@@ -18,7 +18,7 @@ const SystemSettings = () => {
   const { toast } = useToast();
   
   const [generalSettings, setGeneralSettings] = useState({
-    systemName: 'MinTid',
+    systemName: 'MinaTid',
     defaultLanguage: 'English',
     defaultTimezone: 'Europe/Stockholm',
     dateFormat: 'YYYY-MM-DD',
@@ -141,7 +141,7 @@ const SystemSettings = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">System Settings</h2>
-          <p className="text-slate-600 dark:text-slate-400">Configure your MinTid workforce management system</p>
+          <p className="text-slate-600 dark:text-slate-400">Configure your MinaTid workforce management system</p>
         </div>
         <Button onClick={saveAllSettings} className="bg-gradient-to-r from-blue-500 to-blue-600">
           Save All Settings
@@ -189,7 +189,7 @@ const SystemSettings = () => {
                     <Input 
                       value={generalSettings.systemName}
                       onChange={(e) => updateGeneralSetting('systemName', e.target.value)}
-                      placeholder="MinTid"
+                      placeholder="MinaTid"
                     />
                   </div>
 

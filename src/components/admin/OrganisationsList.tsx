@@ -58,12 +58,12 @@ export default function OrganisationsList({
       await navigator.clipboard.writeText(orgNumber);
       toast({
         title: "✅ Copied!",
-        description: `Organization number ${orgNumber} copied to clipboard`,
+        description: `Organisation number ${orgNumber} copied to clipboard`,
       });
     } catch (error) {
       toast({
         title: "❌ Copy failed",
-        description: "Could not copy organization number to clipboard",
+        description: "Could not copy organisation number to clipboard",
         variant: "destructive"
       });
     }
@@ -95,10 +95,10 @@ export default function OrganisationsList({
                     )}
                   </div>
                   
-                  {/* Organization Number Section - Always visible */}
+                  {/* Organisation Number Section - Always visible */}
                   <div className="mb-3">
                     <div className="flex items-center gap-2 p-2 bg-slate-100 dark:bg-slate-800 rounded-md w-fit">
-                      <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Organization ID:</span>
+                      <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Organisation ID:</span>
                       <Badge variant="outline" className="font-mono text-xs">
                         {org.tracking_id || 'Not assigned'}
                       </Badge>
@@ -108,7 +108,7 @@ export default function OrganisationsList({
                           size="sm"
                           className="h-6 w-6 p-0 hover:bg-slate-200 dark:hover:bg-slate-700"
                           onClick={() => handleCopyOrgNumber(org.tracking_id!)}
-                          title="Copy organization number"
+                          title="Copy organisation number"
                         >
                           <Copy className="h-4 w-4 text-blue-600" />
                         </Button>

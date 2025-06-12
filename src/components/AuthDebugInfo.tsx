@@ -7,7 +7,8 @@ export const AuthDebugInfo = () => {
   
   if (process.env.NODE_ENV !== 'development') return null;
 
-  const isSuperAdmin = user?.email === 'tiktok518@gmail.com';
+  const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL || 'admin@mintid.live';
+  const isSuperAdmin = user?.email === SUPER_ADMIN_EMAIL;
   
   return (
     <div style={{

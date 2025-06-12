@@ -1,5 +1,5 @@
 import { defineConfig, loadEnv } from "vite";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { visualizer } from 'rollup-plugin-visualizer';
@@ -13,7 +13,13 @@ export default defineConfig(({ mode }) => {
     // Netlify deployment configuration
     base: '/',
     plugins: [
-      react(),
+      react({
+        jsxRuntime: 'automatic',
+        jsxImportSource: 'react',
+        babel: {
+          plugins: []
+        }
+      }),
       mode === 'development' &&
       componentTagger(),
       mode === 'development' && 
@@ -31,6 +37,9 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       rollupOptions: {
+        input: {
+          main: path.resolve(__dirname, 'index.html')
+        },
         output: {
           manualChunks: {
             // Split vendor libraries
@@ -59,7 +68,7 @@ export default defineConfig(({ mode }) => {
     // Development and preview server configuration
     server: {
       host: "::",
-      port: 8080,
+      port: 5173,
       cors: true,
       headers: {
         'Cross-Origin-Embedder-Policy': 'credentialless',

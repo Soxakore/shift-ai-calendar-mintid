@@ -78,7 +78,7 @@ export function LiveNotificationsPanel({ schedules = [], currentUser }: LiveNoti
       await edgeFunctionsService.sendNotification({
         type: 'email',
         recipient: `${profile.username}@company.com`,
-        subject: 'Test Notification from MinTid',
+        subject: 'Test Notification from MinaTid',
         message: 'This is a test notification to verify the system is working correctly.',
         template: 'custom',
         data: {

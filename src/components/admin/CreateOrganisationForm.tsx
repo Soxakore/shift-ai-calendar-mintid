@@ -42,8 +42,8 @@ export default function CreateOrganisationForm({
               <Building className="h-6 w-6" />
             </div>
             <div>
-              <CardTitle className="text-xl font-semibold">Create New Organization</CardTitle>
-              <p className="text-blue-100 text-sm">Add a new organization to the system</p>
+              <CardTitle className="text-xl font-semibold">Create New Organisation</CardTitle>
+              <p className="text-blue-100 text-sm">Add a new organisation to the system</p>
             </div>
           </div>
           <Button
@@ -60,12 +60,12 @@ export default function CreateOrganisationForm({
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="org-name" className="text-slate-700 dark:text-slate-300 font-medium">Organization Name *</Label>
+              <Label htmlFor="org-name" className="text-slate-700 dark:text-slate-300 font-medium">Organisation Name *</Label>
               <Input
                 id="org-name"
                 value={orgData.name}
                 onChange={(e) => setOrgData({ ...orgData, name: e.target.value })}
-                placeholder="Enter organization name"
+                placeholder="Enter organisation name"
                 required
                 className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
               />
@@ -83,12 +83,11 @@ export default function CreateOrganisationForm({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="org-description" className="text-slate-700 dark:text-slate-300 font-medium">Description (Optional)</Label>
-            <Textarea
-              id="org-description"
-              value={orgData.description}
-              onChange={(e) => setOrgData({ ...orgData, description: e.target.value })}
-              placeholder="Describe the organization"
+            <Label htmlFor="org-description" className="text-slate-700 dark:text-slate-300 font-medium">Description (Optional)</Label>              <Textarea
+                id="org-description"
+                value={orgData.description}
+                onChange={(e) => setOrgData({ ...orgData, description: e.target.value })}
+                placeholder="Describe the organisation"
               rows={3}
               className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
             />
@@ -116,7 +115,7 @@ export default function CreateOrganisationForm({
               ) : (
                 <>
                   <Building className="h-4 w-4 mr-2" />
-                  Create Organization
+                  Create Organisation
                 </>
               )}
             </Button>

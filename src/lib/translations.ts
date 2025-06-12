@@ -149,7 +149,7 @@ const translations: Record<SupportedLanguage, Translations> = {
     noData: "No Data Available",
     
     // Branding
-    appName: "MinTid",
+    appName: "MinaTid",
     tagline: "Work Schedule Management"
   },
   
@@ -224,7 +224,7 @@ const translations: Record<SupportedLanguage, Translations> = {
     noData: "No Hay Datos Disponibles",
     
     // Branding
-    appName: "MinTid",
+    appName: "MinaTid",
     tagline: "Gestión de Horarios de Trabajo"
   },
   
@@ -299,7 +299,7 @@ const translations: Record<SupportedLanguage, Translations> = {
     noData: "Aucune Donnée Disponible",
     
     // Branding
-    appName: "MinTid",
+    appName: "MinaTid",
     tagline: "Gestion des Horaires de Travail"
   },
   
@@ -374,7 +374,7 @@ const translations: Record<SupportedLanguage, Translations> = {
     noData: "Keine Daten Verfügbar",
     
     // Branding
-    appName: "MinTid",
+    appName: "MinaTid",
     tagline: "Arbeitszeit-Management"
   },
   
@@ -449,7 +449,7 @@ const translations: Record<SupportedLanguage, Translations> = {
     noData: "Inga Data Tillgängliga",
     
     // Branding
-    appName: "MinTid",
+    appName: "MinaTid",
     tagline: "Schemahantering för Arbete"
   },
   
@@ -524,7 +524,7 @@ const translations: Record<SupportedLanguage, Translations> = {
     noData: "لا توجد بيانات متاحة",
     
     // Branding
-    appName: "MinTid",
+    appName: "MinaTid",
     tagline: "إدارة جداول العمل"
   }
 };
@@ -534,7 +534,7 @@ class TranslationManager {
   private listeners: ((language: SupportedLanguage) => void)[] = [];
 
   constructor() {
-    const savedLanguage = localStorage.getItem('mintid_language') as SupportedLanguage;
+    const savedLanguage = localStorage.getItem('minatid_language') as SupportedLanguage;
     if (savedLanguage && translations[savedLanguage]) {
       this.currentLanguage = savedLanguage;
     }
@@ -542,7 +542,7 @@ class TranslationManager {
 
   setLanguage(language: SupportedLanguage) {
     this.currentLanguage = language;
-    localStorage.setItem('mintid_language', language);
+    localStorage.setItem('minatid_language', language);
     this.notifyListeners();
   }
 

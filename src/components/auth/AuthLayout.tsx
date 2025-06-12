@@ -16,7 +16,7 @@ export const AuthLayout = ({ children, title, subtitle }: AuthLayoutProps) => {
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Calendar className="w-10 h-10 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">MinTid</h1>
+            <h1 className="text-3xl font-bold text-gray-900">MinaTid</h1>
           </div>
           <h2 className="text-xl font-semibold text-gray-800 mb-2">{title}</h2>
           <p className="text-gray-600">{subtitle}</p>

@@ -1,5 +1,5 @@
 
-import { ReactNode } from 'react';
+import React, { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -27,10 +27,13 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
   }
 
   // SUPER ADMIN BYPASS - Allow super admin access without profile
-  const isSuperAdmin = user?.email === 'tiktok518@gmail.com' || 
-                      user?.user_metadata?.login === 'soxakore' ||
-                      user?.user_metadata?.user_name === 'soxakore' ||
-                      user?.user_metadata?.preferred_username === 'soxakore';
+  const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL || 'admin@mintid.live';
+  const SUPER_ADMIN_GITHUB_USERNAME = import.meta.env.VITE_SUPER_ADMIN_GITHUB_USERNAME || 'mintid-admin';
+  
+  const isSuperAdmin = user?.email === SUPER_ADMIN_EMAIL || 
+                      user?.user_metadata?.login === SUPER_ADMIN_GITHUB_USERNAME ||
+                      user?.user_metadata?.user_name === SUPER_ADMIN_GITHUB_USERNAME ||
+                      user?.user_metadata?.preferred_username === SUPER_ADMIN_GITHUB_USERNAME;
   
   if (isSuperAdmin) {
     console.log('🚀 SUPER ADMIN BYPASS - Granting unrestricted access');

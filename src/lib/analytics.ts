@@ -44,7 +44,7 @@ export const initGA = () => {
     allow_ad_personalization_signals: false, // Privacy-focused
     cookie_expires: 63072000, // 2 years
     cookie_flags: 'SameSite=Strict;Secure', // Enhanced security
-    app_name: 'MinTid',
+    app_name: 'MinaTid',
     app_version: import.meta.env.VITE_APP_VERSION || '1.0.0',
     custom_map: {
       custom_parameter_1: 'user_role',
@@ -105,7 +105,7 @@ export const trackUserEngagement = (engagement_time_msec: number) => {
   });
 };
 
-// Custom events for MinTid features
+// Custom events for MinaTid features
 export const trackFeatureUsage = (feature_name: string, user_role?: string) => {
   trackEvent('feature_usage', 'engagement', feature_name, undefined, {
     user_role,

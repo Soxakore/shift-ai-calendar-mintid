@@ -18,7 +18,6 @@ import Footer from '@/components/Footer';
 import SEOHead from '@/components/SEOHead';
 import { getPageMetadata } from '@/lib/seo';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
-import EnhancedUserManagement from '@/components/admin/EnhancedUserManagement';
 import SecurityMonitoring from '@/components/admin/SecurityMonitoring';
 import SystemSettings from '@/components/admin/SystemSettings';
 import GlobalNavigation from '@/components/admin/GlobalNavigation';
@@ -34,6 +33,7 @@ import OrganisationManagement from '@/components/admin/OrganisationManagement';
 import RoleBasedUserManagement from '@/components/admin/RoleBasedUserManagement';
 import SuperAdminUserManagement from '@/components/admin/SuperAdminUserManagement';
 import { LiveReportsManager } from '@/components/LiveReportsManager';
+import UserManagement from '@/components/UserManagement';
 import { LiveScheduleAutomation } from '@/components/LiveScheduleAutomation';
 
 interface User {
@@ -212,60 +212,11 @@ const SuperAdminDashboard = () => {
     }
   };
 
-  const handleBulkUserAction = (action: string, userIds: string[]) => {
-    toast({
-      title: "🔄 Bulk Action",
-      description: `${action} applied to ${userIds.length} users`,
-    });
-    // Implementation would go here
-  };
-
-  // Mock data for users
-  const [allUsers, setAllUsers] = useState([
-    { 
-      id: '1', 
-      username: 'john.doe', 
-      display_name: 'John Doe',
-      user_type: 'employee', 
-      organization_id: 'org1', 
-      is_active: true,
-      created_at: new Date().toISOString()
-    },
-    { 
-      id: '2', 
-      username: 'jane.smith', 
-      display_name: 'Jane Smith',
-      user_type: 'manager', 
-      organization_id: 'org2', 
-      is_active: false,
-      created_at: new Date().toISOString()
-    },
-    { 
-      id: '3', 
-      username: 'super.admin', 
-      display_name: 'Super Admin',
-      user_type: 'super_admin', 
-      organization_id: 'org1', 
-      is_active: true,
-      created_at: new Date().toISOString()
-    },
-  ]);
-
-  const handleEditUser = (user: User) => {
-    toast({
-      title: "✏️ Edit User",
-      description: `Editing user ${user.display_name}`,
-    });
-    // Implementation would go here
-  };
-
-  const handleDeleteUser = (userId: string, userName: string) => {
-    toast({
-      title: "🗑️ Delete User",
-      description: `Deleting user ${userName}`,
-    });
-    // Implementation would go here
-  };
+  // Note: Mock data and placeholder functions have been removed for production
+  // All user management is now handled by the proper components:
+  // - SuperAdminUserManagement for user management
+  // - RoleBasedUserManagement for role-based operations
+  // These components fetch real data from the Supabase database
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
@@ -288,7 +239,7 @@ const SuperAdminDashboard = () => {
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
-                    MinTid Super Admin
+                    MinaTid Super Admin
                   </h1>
                   <div className="flex items-center space-x-2">
                     <Badge className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 shadow-sm">
@@ -338,7 +289,7 @@ const SuperAdminDashboard = () => {
       {/* Main Content with Enhanced Tabs */}
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 lg:w-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+          <TabsList className="grid w-full grid-cols-8 lg:w-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
             <TabsTrigger value="overview" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
               <BarChart3 className="h-4 w-4" />
               Overview
@@ -346,6 +297,11 @@ const SuperAdminDashboard = () => {
             <TabsTrigger value="users" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
               <Users className="h-4 w-4" />
               Users
+            </TabsTrigger>
+            <TabsTrigger value="user-roles" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
+              <UserPlus className="h-4 w-4" />
+              Role Mgmt
+              <Badge className="bg-green-500 text-white text-xs">OAuth</Badge>
             </TabsTrigger>
             <TabsTrigger value="organisations" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
               <Building2 className="h-4 w-4" />
@@ -448,6 +404,10 @@ const SuperAdminDashboard = () => {
 
           <TabsContent value="users" className="space-y-6">
             <SuperAdminUserManagement />
+          </TabsContent>
+
+          <TabsContent value="user-roles" className="space-y-6">
+            <UserManagement />
           </TabsContent>
 
           <TabsContent value="organisations" className="space-y-6">

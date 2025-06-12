@@ -91,7 +91,8 @@ const TwoFactorManagement = () => {
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [isGeneratingCodes, setIsGeneratingCodes] = useState(false);
   const [testEmail, setTestEmail] = useState('');
-  const [adminEmail, setAdminEmail] = useState('tiktok518@gmail.com'); // Default to working email
+  const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL || 'admin@mintid.live';
+  const [adminEmail, setAdminEmail] = useState(SUPER_ADMIN_EMAIL); // Use production email
   const [twoFactorStats, setTwoFactorStats] = useState<TwoFactorStats>({
     enabled: 0,
     pending: 0,

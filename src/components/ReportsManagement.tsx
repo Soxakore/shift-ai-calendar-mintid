@@ -57,7 +57,7 @@ const ReportsManagement = () => {
     const element = document.createElement('a');
     const file = new Blob(['Sample report data...'], { type: 'text/csv' });
     element.href = URL.createObjectURL(file);
-    element.download = `mintid-${type}-report-${new Date().toISOString().split('T')[0]}.csv`;
+    element.download = `minatid-${type}-report-${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);

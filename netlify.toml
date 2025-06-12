@@ -1,7 +1,18 @@
 [build]
   publish = "dist"
   command = "npm run build"
+  functions = "netlify/functions"
 
+[dev]
+  targetPort = 8080
+
+# API routes redirect to functions
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# SPA routing
 [[redirects]]
   from = "/*"
   to = "/index.html"
@@ -9,8 +20,8 @@
 
 [build.environment]
   NODE_VERSION = "18"
-  VITE_SUPABASE_URL = "https://kyiwpwlxmysyuqjdxvyq.supabase.co"
-  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt5aXdwd2x4bXlzeXVxamR4dnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ0NDI1NjYsImV4cCI6MjA1MDAxODU2Nn0.kzjHOkkBPOUjpNfBHqDHPGGD7rQ7rVZDI3QKBmn7VzE"
+  VITE_SUPABASE_URL = "https://vcjmwgbjbllkkivrkvqx.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjam13Z2JqYmxsa2tpdnJrdnF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwOTA0NjIsImV4cCI6MjA2NDY2NjQ2Mn0.-Z3F5KeBUbQYt_-HvvkSefBW1KcKx93kfwOEjjR2Uw4"
 
 [[headers]]
   for = "/*"
