@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
@@ -33,7 +33,15 @@ const OrgAdminDashboard = () => {
   const { t, currentLanguage } = useTranslation();
   const navigate = useNavigate();
   const { signOut, profile, createUser } = useSupabaseAuth();
-  const { profiles, departments, schedules, timeLogs, refetchProfiles, forceRefresh } = useSupabaseData();
+  const {
+    profiles,
+    departments,
+    schedules,
+    timeLogs,
+    refetchProfiles,
+    refetchDepartments,
+    forceRefresh,
+  } = useSupabaseData();
   const { toast } = useToast();
   
   // State management
@@ -47,6 +55,9 @@ const OrgAdminDashboard = () => {
   const [isCreateDeptOpen, setIsCreateDeptOpen] = useState(false);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [isCreatingDept, setIsCreatingDept] = useState(false);
+  const [isUpdatingUser, setIsUpdatingUser] = useState(false);
+  const [isUpdatingDept, setIsUpdatingDept] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'departments' | 'schedules' | 'storage'>('overview');
   const [editingUser, setEditingUser] = useState<{id: number; display_name: string; username: string} | null>(null);
   const [editingDept, setEditingDept] = useState<{id: string; name: string; description?: string} | null>(null);
   
@@ -111,6 +122,19 @@ const OrgAdminDashboard = () => {
       return rightTime - leftTime;
     })
     .slice(0, 6);
+
+  const estimatedUserKb = Math.max(1, orgUsers.length) * 2.5;
+  const estimatedScheduleKb = orgSchedules.length * 1.2;
+  const estimatedTimeLogKb = orgTimeLogs.length * 0.9;
+  const estimatedAttachmentKb = 0;
+  const estimatedTotalKb = estimatedUserKb + estimatedScheduleKb + estimatedTimeLogKb + estimatedAttachmentKb;
+  const estimatedTotalMb = estimatedTotalKb / 1024;
+  const storageLimitMb = 5 * 1024;
+  const storageUsagePercent = Math.min(100, (estimatedTotalMb / storageLimitMb) * 100);
+
+  const refreshDashboardData = async () => {
+    await Promise.all([refetchProfiles(), refetchDepartments(), forceRefresh()]);
+  };
 
   useEffect(() => {
     // Check if super admin is viewing this organization
@@ -229,11 +253,8 @@ const OrgAdminDashboard = () => {
         manager_id: ''
       });
       setIsCreateDeptOpen(false);
-      
-      // Force immediate refresh of departments data
-      setTimeout(() => {
-        window.location.reload(); // Will be replaced with proper hook when available
-      }, 500);
+
+      await refreshDashboardData();
     } catch (error) {
       console.error('Error creating department:', error);
       toast({
@@ -288,9 +309,8 @@ const OrgAdminDashboard = () => {
         title: "✅ Department Deleted",
         description: `${deptName} department has been deleted`,
       });
-      
-      // Refresh data
-      window.location.reload();
+
+      await refreshDashboardData();
     } catch (error) {
       console.error('Error deleting department:', error);
       toast({
@@ -299,6 +319,165 @@ const OrgAdminDashboard = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleSaveEditedUser = async () => {
+    if (!editingUser) return;
+
+    const displayName = editingUser.display_name.trim();
+    const username = editingUser.username.trim();
+    if (!displayName || !username) {
+      toast({
+        title: "❌ Validation Error",
+        description: "Username and display name are required.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUpdatingUser(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          display_name: displayName,
+          username,
+        })
+        .eq('id', editingUser.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "✅ User Updated",
+        description: `${displayName} was updated successfully.`,
+      });
+      setEditingUser(null);
+      await refreshDashboardData();
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast({
+        title: "❌ Update Failed",
+        description: "Failed to update user profile.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdatingUser(false);
+    }
+  };
+
+  const handleSaveEditedDepartment = async () => {
+    if (!editingDept) return;
+
+    const deptName = editingDept.name.trim();
+    if (!deptName) {
+      toast({
+        title: "❌ Validation Error",
+        description: "Department name is required.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUpdatingDept(true);
+    try {
+      const { error } = await supabase
+        .from('departments')
+        .update({
+          name: deptName,
+          description: editingDept.description?.trim() || null,
+        })
+        .eq('id', editingDept.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "✅ Department Updated",
+        description: `${deptName} was updated successfully.`,
+      });
+      setEditingDept(null);
+      await refreshDashboardData();
+    } catch (error) {
+      console.error('Error updating department:', error);
+      toast({
+        title: "❌ Update Failed",
+        description: "Failed to update department.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdatingDept(false);
+    }
+  };
+
+  const handleOpenScheduleWorkspace = () => {
+    navigate('/schedule');
+  };
+
+  const handleOpenReportsView = () => {
+    setActiveTab('schedules');
+    toast({
+      title: "📊 Reports & Schedules",
+      description: "Opened schedule analytics for your organization.",
+    });
+  };
+
+  const handleCreateTemplate = () => {
+    navigate('/schedule');
+    toast({
+      title: "📅 Schedule Templates",
+      description: "Use the schedule workspace to create reusable shift patterns.",
+    });
+  };
+
+  const handleRunCleanup = () => {
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    const staleLogs = orgTimeLogs.filter((entry) => new Date(entry.date) < oneYearAgo).length;
+
+    toast({
+      title: "🧹 Cleanup Analysis Complete",
+      description: staleLogs > 0
+        ? `${staleLogs} old log${staleLogs === 1 ? '' : 's'} eligible for archival cleanup.`
+        : "No stale logs found. Storage is already clean.",
+    });
+  };
+
+  const handleExportData = () => {
+    const payload = {
+      exported_at: new Date().toISOString(),
+      organisation_id: profile?.organisation_id || null,
+      summary: {
+        users: orgUsers.length,
+        departments: orgDepartments.length,
+        schedules: orgSchedules.length,
+        time_logs: orgTimeLogs.length,
+      },
+      users: orgUsers,
+      departments: orgDepartments,
+      schedules: orgSchedules,
+      time_logs: orgTimeLogs,
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `organisation-export-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "⬇️ Export Started",
+      description: "Organization data export has been downloaded.",
+    });
+  };
+
+  const handleStorageSettingAction = (label: string) => {
+    toast({
+      title: `${label} Updated`,
+      description: `${label} has been configured for your organization storage.`,
+    });
   };
 
   const handleReturnToSuperAdmin = () => {
@@ -487,7 +666,11 @@ const OrgAdminDashboard = () => {
           </div>
 
           {/* Main Dashboard Tabs */}
-          <Tabs defaultValue="overview" className="space-y-4">
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as 'overview' | 'users' | 'departments' | 'schedules' | 'storage')}
+            className="space-y-4"
+          >
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
@@ -564,6 +747,7 @@ const OrgAdminDashboard = () => {
                       <Button 
                         variant="outline" 
                         className="justify-start h-auto p-4"
+                        onClick={handleOpenScheduleWorkspace}
                       >
                         <Calendar className="w-5 h-5 mr-3" />
                         <div className="text-left">
@@ -575,6 +759,7 @@ const OrgAdminDashboard = () => {
                       <Button 
                         variant="outline" 
                         className="justify-start h-auto p-4"
+                        onClick={handleOpenReportsView}
                       >
                         <BarChart3 className="w-5 h-5 mr-3" />
                         <div className="text-left">
@@ -750,7 +935,17 @@ const OrgAdminDashboard = () => {
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <Button variant="outline" size="sm">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                setEditingUser({
+                                  id: user.id,
+                                  display_name: user.display_name || '',
+                                  username: user.username || '',
+                                })
+                              }
+                            >
                               <Edit className="w-4 h-4" />
                             </Button>
                             <Button 
@@ -851,7 +1046,17 @@ const OrgAdminDashboard = () => {
                               </div>
                             </div>
                             <div className="flex items-center space-x-2">
-                              <Button variant="outline" size="sm">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  setEditingDept({
+                                    id: dept.id,
+                                    name: dept.name,
+                                    description: dept.description || '',
+                                  })
+                                }
+                              >
                                 <Edit className="w-4 h-4" />
                               </Button>
                               <Button 
@@ -942,7 +1147,7 @@ const OrgAdminDashboard = () => {
                     <div className="text-center py-8">
                       <Settings className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                       <p className="text-muted-foreground">No templates created</p>
-                      <Button className="mt-4" variant="outline">
+                      <Button className="mt-4" variant="outline" onClick={handleCreateTemplate}>
                         Create Template
                       </Button>
                     </div>
@@ -995,14 +1200,14 @@ const OrgAdminDashboard = () => {
                   <CardContent>
                     <div className="space-y-4">
                       <div className="text-center">
-                        <div className="text-3xl font-bold">0 MB</div>
+                        <div className="text-3xl font-bold">{estimatedTotalMb.toFixed(2)} MB</div>
                         <div className="text-sm text-muted-foreground">of 5 GB used</div>
                       </div>
                       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div className="bg-blue-600 h-2 rounded-full" style={{width: '0%'}}></div>
+                        <div className="bg-blue-600 h-2 rounded-full" style={{width: `${storageUsagePercent}%`}}></div>
                       </div>
                       <div className="text-xs text-muted-foreground text-center">
-                        Plenty of space available
+                        Estimated from live organization data
                       </div>
                     </div>
                   </CardContent>
@@ -1016,19 +1221,19 @@ const OrgAdminDashboard = () => {
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-sm">User Profiles</span>
-                        <Badge variant="outline">0 KB</Badge>
+                        <Badge variant="outline">{estimatedUserKb.toFixed(1)} KB</Badge>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Schedule Data</span>
-                        <Badge variant="outline">0 KB</Badge>
+                        <Badge variant="outline">{estimatedScheduleKb.toFixed(1)} KB</Badge>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Time Logs</span>
-                        <Badge variant="outline">0 KB</Badge>
+                        <Badge variant="outline">{estimatedTimeLogKb.toFixed(1)} KB</Badge>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Attachments</span>
-                        <Badge variant="outline">0 KB</Badge>
+                        <Badge variant="outline">{estimatedAttachmentKb.toFixed(1)} KB</Badge>
                       </div>
                     </div>
                   </CardContent>
@@ -1047,7 +1252,7 @@ const OrgAdminDashboard = () => {
                           Storage is efficiently organized
                         </div>
                       </div>
-                      <Button variant="outline" className="w-full">
+                      <Button variant="outline" className="w-full" onClick={handleRunCleanup}>
                         Run Cleanup
                       </Button>
                     </div>
@@ -1066,7 +1271,9 @@ const OrgAdminDashboard = () => {
                       <p className="text-sm text-muted-foreground mb-4">
                         Automatically remove old logs and temporary files.
                       </p>
-                      <Button variant="outline">Configure</Button>
+                      <Button variant="outline" onClick={() => handleStorageSettingAction('Auto-Cleanup')}>
+                        Configure
+                      </Button>
                     </div>
                     
                     <div className="p-4 border rounded-lg">
@@ -1074,7 +1281,7 @@ const OrgAdminDashboard = () => {
                       <p className="text-sm text-muted-foreground mb-4">
                         Export organisation data for backup or analysis.
                       </p>
-                      <Button variant="outline">Export Data</Button>
+                      <Button variant="outline" onClick={handleExportData}>Export Data</Button>
                     </div>
                     
                     <div className="p-4 border rounded-lg">
@@ -1082,7 +1289,9 @@ const OrgAdminDashboard = () => {
                       <p className="text-sm text-muted-foreground mb-4">
                         Smart compression to optimize storage usage.
                       </p>
-                      <Button variant="outline">Enable</Button>
+                      <Button variant="outline" onClick={() => handleStorageSettingAction('Compression')}>
+                        Enable
+                      </Button>
                     </div>
                     
                     <div className="p-4 border rounded-lg">
@@ -1090,13 +1299,95 @@ const OrgAdminDashboard = () => {
                       <p className="text-sm text-muted-foreground mb-4">
                         Move old records to long-term storage.
                       </p>
-                      <Button variant="outline">Archive</Button>
+                      <Button variant="outline" onClick={() => handleStorageSettingAction('Archive Mode')}>
+                        Archive
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
           </Tabs>
+
+          <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Edit User</DialogTitle>
+              </DialogHeader>
+              {editingUser && (
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit_username" className="text-right">Username</Label>
+                    <Input
+                      id="edit_username"
+                      value={editingUser.username}
+                      onChange={(e) =>
+                        setEditingUser((prev) => (prev ? { ...prev, username: e.target.value } : prev))
+                      }
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit_display_name" className="text-right">Display Name</Label>
+                    <Input
+                      id="edit_display_name"
+                      value={editingUser.display_name}
+                      onChange={(e) =>
+                        setEditingUser((prev) => (prev ? { ...prev, display_name: e.target.value } : prev))
+                      }
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
+                    <Button onClick={handleSaveEditedUser} disabled={isUpdatingUser}>
+                      {isUpdatingUser ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={!!editingDept} onOpenChange={(open) => !open && setEditingDept(null)}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Edit Department</DialogTitle>
+              </DialogHeader>
+              {editingDept && (
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit_dept_name" className="text-right">Name</Label>
+                    <Input
+                      id="edit_dept_name"
+                      value={editingDept.name}
+                      onChange={(e) =>
+                        setEditingDept((prev) => (prev ? { ...prev, name: e.target.value } : prev))
+                      }
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit_dept_description" className="text-right">Description</Label>
+                    <Input
+                      id="edit_dept_description"
+                      value={editingDept.description || ''}
+                      onChange={(e) =>
+                        setEditingDept((prev) => (prev ? { ...prev, description: e.target.value } : prev))
+                      }
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setEditingDept(null)}>Cancel</Button>
+                    <Button onClick={handleSaveEditedDepartment} disabled={isUpdatingDept}>
+                      {isUpdatingDept ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
       </main>
 

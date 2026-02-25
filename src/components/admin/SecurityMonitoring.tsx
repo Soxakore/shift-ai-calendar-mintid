@@ -31,6 +31,17 @@ interface SessionInfo {
   blocked_ips: string[];
 }
 
+interface SessionLogRecord {
+  id: string;
+  action: string;
+  success: boolean | null;
+  user_id: string | null;
+  ip_address: unknown | null;
+  created_at: string | null;
+  session_id?: string | null;
+  failure_reason?: string | null;
+}
+
 // Global emergency state - persists across component instances
 const globalEmergencyState = {
   isEmergencyMode: false,
@@ -75,56 +86,106 @@ export default function SecurityMonitoring() {
 
   const fetchSecurityData = useCallback(async () => {
     try {
-      // Fetch recent failed login attempts
-      const { data: sessionLogs } = await supabase
-        .from('session_logs')
-        .select('*')
-        .eq('success', false)
-        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-        .order('created_at', { ascending: false })
-        .limit(20);
+      const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-      // Convert session logs to security events with proper type handling
-      const sessionEvents: SecurityEvent[] = sessionLogs?.map(log => ({
+      // Fetch recent session activity
+      const { data: sessionLogsRaw } = await supabase
+        .from('session_logs')
+        .select('id, action, success, user_id, ip_address, created_at, session_id, failure_reason')
+        .gte('created_at', sinceIso)
+        .order('created_at', { ascending: false })
+        .limit(300);
+
+      const sessionLogs = (sessionLogsRaw || []) as SessionLogRecord[];
+
+      const failedLoginLogs = sessionLogs.filter(
+        (log) => log.action === 'login' && log.success === false && !!log.created_at
+      );
+      const successfulLoginLogs = sessionLogs.filter(
+        (log) => log.action === 'login' && log.success === true
+      );
+
+      // Base events from real failed logins
+      const sessionEvents: SecurityEvent[] = failedLoginLogs.map((log) => ({
         id: log.id,
         type: 'failed_login' as const,
         severity: 'medium' as const,
-        description: `Failed login attempt for user ${log.user_id}`,
+        description: `Failed login attempt${log.user_id ? ` for user ${log.user_id}` : ''}`,
         ip_address: log.ip_address ? String(log.ip_address) : undefined,
-        user_id: log.user_id,
-        timestamp: log.created_at
-      })) || [];
+        user_id: log.user_id || undefined,
+        timestamp: log.created_at || new Date().toISOString(),
+      }));
 
-      // Add some mock security events for demonstration
-      const mockEvents: SecurityEvent[] = [
-        {
-          id: 'mock-1',
-          type: 'suspicious_activity',
-          severity: 'high',
-          description: 'Multiple login attempts from different locations',
-          ip_address: '192.168.1.100',
-          timestamp: new Date().toISOString()
-        },
-        {
-          id: 'mock-2',
-          type: 'blocked_ip',
-          severity: 'medium',
-          description: 'IP address blocked due to repeated failed attempts',
-          ip_address: '10.0.0.50',
-          timestamp: new Date().toISOString()
+      const failedByIp = new Map<string, number>();
+      for (const log of failedLoginLogs) {
+        const ip = log.ip_address ? String(log.ip_address) : null;
+        if (!ip) continue;
+        failedByIp.set(ip, (failedByIp.get(ip) || 0) + 1);
+      }
+
+      const suspiciousEvents: SecurityEvent[] = [];
+      const blockedEvents: SecurityEvent[] = [];
+      for (const [ip, count] of failedByIp.entries()) {
+        if (count >= 3) {
+          suspiciousEvents.push({
+            id: `suspicious-${ip}-${count}`,
+            type: 'suspicious_activity',
+            severity: count >= 6 ? 'critical' : 'high',
+            description: `${count} failed login attempts detected from the same IP`,
+            ip_address: ip,
+            timestamp: new Date().toISOString(),
+          });
         }
-      ];
+        if (count >= 5) {
+          blockedEvents.push({
+            id: `blocked-${ip}-${count}`,
+            type: 'blocked_ip',
+            severity: 'high',
+            description: `IP flagged for block after ${count} failed attempts`,
+            ip_address: ip,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      }
 
-      // Combine both arrays
-      const allEvents = [...sessionEvents, ...mockEvents];
+      const allEvents = [...sessionEvents, ...suspiciousEvents, ...blockedEvents].sort(
+        (left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime()
+      );
       setSecurityEvents(allEvents);
 
-      // Mock session information
+      const uniqueActiveSessionIds = new Set(
+        successfulLoginLogs
+          .map((log) => log.session_id)
+          .filter((sessionId): sessionId is string => typeof sessionId === 'string' && sessionId.length > 0)
+      );
+      const uniqueActiveUsers = new Set(
+        successfulLoginLogs
+          .map((log) => log.user_id)
+          .filter((userId): userId is string => typeof userId === 'string' && userId.length > 0)
+      );
+
+      const { data: superAdminProfiles } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('user_type', 'super_admin')
+        .eq('is_active', true);
+      const superAdminUserIdSet = new Set(
+        (superAdminProfiles || [])
+          .map((entry) => entry.user_id)
+          .filter((userId): userId is string => typeof userId === 'string' && userId.length > 0)
+      );
+
+      const superAdminSessions = successfulLoginLogs.filter(
+        (log) => log.user_id && superAdminUserIdSet.has(log.user_id)
+      ).length;
+
       setSessionInfo({
-        active_sessions: 12,
-        super_admin_sessions: 2,
-        suspicious_sessions: 1,
-        blocked_ips: ['192.168.1.100', '10.0.0.50']
+        active_sessions: Math.max(uniqueActiveSessionIds.size, uniqueActiveUsers.size),
+        super_admin_sessions: superAdminSessions,
+        suspicious_sessions: suspiciousEvents.length,
+        blocked_ips: blockedEvents
+          .map((entry) => entry.ip_address)
+          .filter((ip): ip is string => typeof ip === 'string' && ip.length > 0),
       });
 
     } catch (error) {
@@ -168,9 +229,14 @@ export default function SecurityMonitoring() {
   };
 
   const blockIP = (ip: string) => {
+    setSessionInfo((prev) => ({
+      ...prev,
+      blocked_ips: prev.blocked_ips.includes(ip) ? prev.blocked_ips : [...prev.blocked_ips, ip],
+    }));
+
     toast({
       title: "🚫 IP Blocked",
-      description: `IP address ${ip} has been blocked`,
+      description: `IP address ${ip} has been added to local block list`,
     });
   };
 
@@ -406,4 +472,3 @@ export default function SecurityMonitoring() {
     </div>
   );
 }
-

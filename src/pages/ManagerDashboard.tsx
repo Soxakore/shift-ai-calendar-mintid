@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,7 @@ const ManagerDashboard = () => {
   // State for create user dialog
   const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [isTeamSettingsOpen, setIsTeamSettingsOpen] = useState(false);
   const [newUserData, setNewUserData] = useState({
     username: '',
     password: '',
@@ -45,6 +46,8 @@ const ManagerDashboard = () => {
     phone_number: '',
     user_type: 'employee'
   });
+  const reportsSectionRef = useRef<HTMLDivElement | null>(null);
+  const automationSectionRef = useRef<HTMLDivElement | null>(null);
 
   // Get current department info
   const currentDepartment = departments.find(dept => dept.id === profile?.department_id);
@@ -152,17 +155,20 @@ const ManagerDashboard = () => {
   };
 
   const handleViewReports = () => {
-    toast({
-      title: "📊 Reports",
-      description: "Department reports feature coming soon.",
-    });
+    if (reportsSectionRef.current) {
+      reportsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      toast({
+        title: "📊 Reports",
+        description: "Jumped to live department reports.",
+      });
+      return;
+    }
+
+    navigate('/schedule');
   };
 
   const handleTeamSettings = () => {
-    toast({
-      title: "⚙️ Team Settings",
-      description: "Team settings panel coming soon.",
-    });
+    setIsTeamSettingsOpen(true);
   };
 
   return (
@@ -509,7 +515,7 @@ const ManagerDashboard = () => {
             </Card>
 
             {/* Live Reports Manager */}
-            <div className="mt-8">
+            <div className="mt-8" ref={reportsSectionRef}>
               <LiveReportsManager 
                 departmentId={profile?.department_id}
                 organisationId={profile?.organisation_id}
@@ -517,12 +523,70 @@ const ManagerDashboard = () => {
             </div>
 
             {/* Live Schedule Automation */}
-            <div className="mt-8">
+            <div className="mt-8" ref={automationSectionRef}>
               <LiveScheduleAutomation />
             </div>
           </>
         )}
       </main>
+
+      <Dialog open={isTeamSettingsOpen} onOpenChange={setIsTeamSettingsOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Team Settings</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-lg border p-3">
+                <div className="text-gray-500">Department</div>
+                <div className="font-medium">{departmentName}</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="text-gray-500">Team Members</div>
+                <div className="font-medium">{totalTeamMembers}</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="text-gray-500">Attendance Today</div>
+                <div className="font-medium">{attendanceRate}%</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="text-gray-500">Working Now</div>
+                <div className="font-medium">{workingToday}</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsTeamSettingsOpen(false);
+                  navigate('/schedule');
+                }}
+              >
+                Schedule
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsTeamSettingsOpen(false);
+                  reportsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+              >
+                Reports
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsTeamSettingsOpen(false);
+                  automationSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+              >
+                Automation
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Footer */}
       <Footer />

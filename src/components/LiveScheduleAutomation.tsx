@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { 
-  Calendar, 
-  Clock, 
-  Bell, 
-  Users, 
+import {
+  Calendar,
+  Clock,
+  Users,
   Zap,
   Settings,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { edgeFunctionsService } from '@/services/edgeFunctionsService';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ScheduleAutomationSettings {
   daily_reminders: boolean;
@@ -28,6 +28,7 @@ interface ScheduleAutomationSettings {
 export function LiveScheduleAutomation() {
   const { toast } = useToast();
   const { profile } = useSupabaseAuth();
+  const { profiles, schedules, timeLogs } = useSupabaseData();
   const [isLoading, setIsLoading] = useState(false);
   const [settings, setSettings] = useState<ScheduleAutomationSettings>({
     daily_reminders: true,
@@ -38,6 +39,66 @@ export function LiveScheduleAutomation() {
   });
   const [automationStatus, setAutomationStatus] = useState<'active' | 'inactive'>('active');
   const [lastTriggered, setLastTriggered] = useState<Date | null>(null);
+
+  const scopedProfiles = useMemo(() => {
+    if (!profile) return [];
+
+    let result = profiles.filter((entry) => entry.is_active !== false);
+
+    if (profile.user_type === 'employee') {
+      result = result.filter((entry) => entry.user_id === profile.user_id);
+    } else if (profile.user_type === 'manager' && profile.department_id) {
+      result = result.filter((entry) => entry.department_id === profile.department_id);
+    } else if (profile.user_type === 'org_admin' && profile.organisation_id) {
+      result = result.filter((entry) => entry.organisation_id === profile.organisation_id);
+    }
+
+    return result;
+  }, [profiles, profile]);
+
+  const scopedUserIds = useMemo(
+    () =>
+      scopedProfiles
+        .map((entry) => entry.user_id)
+        .filter((userId): userId is string => typeof userId === 'string' && userId.length > 0),
+    [scopedProfiles]
+  );
+
+  const scopedUserIdSet = useMemo(() => new Set(scopedUserIds), [scopedUserIds]);
+
+  const activeUsers = scopedProfiles.length;
+
+  const getTomorrowShifts = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowKey = tomorrow.toDateString();
+    return schedules.filter(
+      (entry) =>
+        scopedUserIdSet.has(entry.user_id) && new Date(entry.date).toDateString() === tomorrowKey
+    );
+  };
+
+  const getCurrentWeekLogs = () => {
+    const weekStart = new Date();
+    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+
+    return timeLogs.filter((entry) => {
+      if (!scopedUserIdSet.has(entry.user_id)) return false;
+      const logDate = new Date(entry.date);
+      return logDate >= weekStart && logDate <= weekEnd;
+    });
+  };
+
+  const calculateWorkedHours = (clockIn?: string | null, clockOut?: string | null) => {
+    if (!clockIn || !clockOut) return 0;
+    const diffMs = new Date(clockOut).getTime() - new Date(clockIn).getTime();
+    if (diffMs <= 0) return 0;
+    return diffMs / (1000 * 60 * 60);
+  };
 
   const updateSetting = (key: keyof ScheduleAutomationSettings, value: boolean) => {
     setSettings(prev => ({ ...prev, [key]: value }));
@@ -51,12 +112,38 @@ export function LiveScheduleAutomation() {
   const triggerDailyReminders = async () => {
     setIsLoading(true);
     try {
-      const result = await edgeFunctionsService.sendTomorrowReminders();
+      const tomorrowShifts = getTomorrowShifts();
+      if (tomorrowShifts.length === 0) {
+        toast({
+          title: "No Reminders Sent",
+          description: "No shifts found for tomorrow in your scope.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const rows = tomorrowShifts.map((entry) => ({
+        user_id: entry.user_id,
+        type: 'schedule_reminder',
+        title: 'Shift Reminder',
+        message: `Reminder: You are scheduled tomorrow from ${entry.start_time?.slice(0, 5) || '--'} to ${entry.end_time?.slice(0, 5) || '--'}.`,
+        data: {
+          shift_id: entry.id,
+          shift_date: entry.date,
+          triggered_by: profile?.user_id || null,
+          triggered_role: profile?.user_type || null,
+        },
+        read: false,
+        sent_via: ['in_app'],
+      }));
+
+      const { error } = await supabase.from('notifications').insert(rows);
+      if (error) throw error;
+
       setLastTriggered(new Date());
-      
       toast({
         title: "📅 Daily Reminders Sent",
-        description: `Sent ${result.reminders?.length || 0} shift reminders`,
+        description: `Sent ${rows.length} shift reminder${rows.length === 1 ? '' : 's'}.`,
       });
     } catch (error) {
       toast({
@@ -72,12 +159,67 @@ export function LiveScheduleAutomation() {
   const triggerWeeklyReport = async () => {
     setIsLoading(true);
     try {
-      await edgeFunctionsService.generateWeeklyReport();
+      const logs = getCurrentWeekLogs().filter((entry) => !!entry.clock_in && !!entry.clock_out);
+      const totalHours = logs.reduce(
+        (total, entry) => total + calculateWorkedHours(entry.clock_in, entry.clock_out),
+        0
+      );
+      const totalSessions = logs.length;
+      const totalEmployees = new Set(logs.map((entry) => entry.user_id)).size;
+
+      const weekStart = new Date();
+      weekStart.setHours(0, 0, 0, 0);
+      weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
+
+      const { error: reportError } = await supabase.from('reports').insert({
+        report_type: 'weekly',
+        generated_by: profile?.user_id || null,
+        organisation_id: profile?.organisation_id || null,
+        department_id: profile?.department_id || null,
+        start_date: weekStart.toISOString().split('T')[0],
+        end_date: weekEnd.toISOString().split('T')[0],
+        data: {
+          summary: {
+            total_hours_worked: Math.round(totalHours * 100) / 100,
+            total_work_sessions: totalSessions,
+            total_employees: totalEmployees,
+          },
+        },
+      });
+      if (reportError) throw reportError;
+
+      const recipients = scopedProfiles
+        .filter((entry) => ['manager', 'org_admin', 'super_admin'].includes(entry.user_type))
+        .map((entry) => entry.user_id)
+        .filter((userId): userId is string => typeof userId === 'string' && userId.length > 0);
+      const uniqueRecipients = [...new Set(recipients)];
+
+      if (uniqueRecipients.length > 0) {
+        const rows = uniqueRecipients.map((userId) => ({
+          user_id: userId,
+          type: 'weekly_report',
+          title: 'Weekly Report Generated',
+          message: `Weekly report ready: ${Math.round(totalHours * 10) / 10}h across ${totalEmployees} employee${totalEmployees === 1 ? '' : 's'}.`,
+          data: {
+            generated_by: profile?.user_id || null,
+            total_hours_worked: Math.round(totalHours * 100) / 100,
+            total_work_sessions: totalSessions,
+            total_employees: totalEmployees,
+          },
+          read: false,
+          sent_via: ['in_app'],
+        }));
+        const { error: notificationError } = await supabase.from('notifications').insert(rows);
+        if (notificationError) throw notificationError;
+      }
+
       setLastTriggered(new Date());
-      
       toast({
         title: "📊 Weekly Report Generated",
-        description: "Report generated and emailed to managers",
+        description: `Report created with ${Math.round(totalHours * 10) / 10}h of logged work.`,
       });
     } catch (error) {
       toast({
@@ -92,17 +234,30 @@ export function LiveScheduleAutomation() {
 
   const sendTestEmergencyAlert = async () => {
     if (!profile?.user_id) return;
-    
+
     setIsLoading(true);
     try {
-      await edgeFunctionsService.sendEmergencyAlert(
-        '🧪 Test Alert: This is a test of the emergency notification system. Please disregard.',
-        profile.user_id
-      );
-      
+      const recipientIds = scopedUserIds.length > 0 ? scopedUserIds : [profile.user_id];
+      const rows = recipientIds.map((userId) => ({
+        user_id: userId,
+        type: 'emergency_alert',
+        title: 'Emergency Test Alert',
+        message: 'Test Alert: This is a system test. No action is required.',
+        data: {
+          test_mode: true,
+          triggered_by: profile.user_id,
+          triggered_role: profile.user_type,
+        },
+        read: false,
+        sent_via: ['in_app'],
+      }));
+
+      const { error } = await supabase.from('notifications').insert(rows);
+      if (error) throw error;
+
       toast({
         title: "🚨 Test Alert Sent",
-        description: "Emergency alert test completed successfully",
+        description: `Emergency test sent to ${rows.length} user${rows.length === 1 ? '' : 's'}.`,
       });
     } catch (error) {
       toast({
@@ -118,40 +273,70 @@ export function LiveScheduleAutomation() {
   const scheduleAutomatedTasks = async () => {
     setIsLoading(true);
     try {
-      // Simulate scheduling automation tasks
       const tasks = [];
-      
+
       if (settings.daily_reminders) {
         tasks.push('Daily shift reminders at 6:00 PM');
       }
-      
+
       if (settings.weekly_reports) {
         tasks.push('Weekly reports every Monday at 9:00 AM');
       }
-      
+
       if (settings.auto_clock_reminders) {
         tasks.push('Clock-in reminders 15 minutes before shifts');
       }
 
-      // Send confirmation notification
-      await edgeFunctionsService.sendNotification({
-        type: 'email',
-        recipient: 'admin@company.com',
-        subject: 'Schedule Automation Configured',
-        message: `Automation tasks scheduled: ${tasks.join(', ')}`,
-        template: 'custom',
+      if (tasks.length === 0) {
+        toast({
+          title: "⚠️ No Tasks Enabled",
+          description: "Enable at least one automation setting before scheduling.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const recipients = scopedProfiles
+        .map((entry) => entry.user_id)
+        .filter((userId): userId is string => typeof userId === 'string' && userId.length > 0);
+      const uniqueRecipients = [...new Set(recipients)];
+
+      const targetRecipients = uniqueRecipients.length > 0
+        ? uniqueRecipients
+        : profile?.user_id
+          ? [profile.user_id]
+          : [];
+
+      if (targetRecipients.length === 0) {
+        toast({
+          title: "⚠️ No Recipients",
+          description: "No users in scope for automation notifications.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const rows = targetRecipients.map((userId) => ({
+        user_id: userId,
+        type: 'automation_update',
+        title: 'Schedule Automation Updated',
+        message: `Automation tasks configured: ${tasks.join(', ')}`,
         data: {
           tasks,
-          configured_by: profile?.display_name || 'Admin',
-          timestamp: new Date().toISOString()
-        }
-      });
+          configured_by: profile?.user_id || null,
+        },
+        read: false,
+        sent_via: ['in_app'],
+      }));
+      const { error } = await supabase.from('notifications').insert(rows);
+      if (error) throw error;
 
       setAutomationStatus('active');
+      setLastTriggered(new Date());
       
       toast({
         title: "⚡ Automation Scheduled",
-        description: `${tasks.length} automation tasks have been scheduled`,
+        description: `${tasks.length} automation task${tasks.length === 1 ? '' : 's'} scheduled.`,
       });
     } catch (error) {
       toast({
@@ -164,10 +349,9 @@ export function LiveScheduleAutomation() {
     }
   };
 
-  // Simulate real-time status updates
+  // Keep heartbeat fresh while automation is active.
   useEffect(() => {
     const interval = setInterval(() => {
-      // Simulate automation running in background
       if (automationStatus === 'active' && Math.random() > 0.9) {
         setLastTriggered(new Date());
       }
@@ -218,7 +402,9 @@ export function LiveScheduleAutomation() {
               <Users className="w-5 h-5 text-purple-500" />
               <div>
                 <p className="font-medium">Active Users</p>
-                <p className="text-sm text-gray-600">12 employees online</p>
+                <p className="text-sm text-gray-600">
+                  {activeUsers} user{activeUsers === 1 ? '' : 's'} in scope
+                </p>
               </div>
             </div>
           </div>

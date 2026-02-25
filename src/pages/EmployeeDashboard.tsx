@@ -59,7 +59,7 @@ const EmployeeDashboard = () => {
 
   // Supabase hooks
   const { profile } = useSupabaseAuth();
-  const { departments } = useSupabaseData();
+  const { departments, notifications } = useSupabaseData();
 
   const currentDepartment = departments.find((entry) => entry.id === profile?.department_id);
   const displayName = profile?.display_name || profile?.username || 'Employee';
@@ -232,6 +232,13 @@ const EmployeeDashboard = () => {
     return Math.round((end - start) * 10) / 10;
   };
 
+  const calculateLoggedHours = (clockIn?: string | null, clockOut?: string | null): number => {
+    if (!clockIn || !clockOut) return 0;
+    const diffMs = new Date(clockOut).getTime() - new Date(clockIn).getTime();
+    if (diffMs <= 0) return 0;
+    return Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10;
+  };
+
   const handleClockInOut = async () => {
     if (!profile || isClockingIn) return;
 
@@ -298,37 +305,46 @@ const EmployeeDashboard = () => {
   };
 
   const handleViewReports = () => {
+    navigate('/schedule');
     toast({
       title: "Reports Opened",
-      description: "Loading your performance reports...",
+      description: "Opening detailed dashboard analytics.",
     });
   };
 
   const handleViewNotifications = () => {
+    navigate('/schedule');
+    const unreadNotifications = notifications.filter((entry) => entry.read === false).length;
     toast({
       title: "Notifications",
-      description: "You have 2 new notifications",
+      description: unreadNotifications > 0
+        ? `You have ${unreadNotifications} unread notification${unreadNotifications === 1 ? '' : 's'}.`
+        : "No unread notifications.",
     });
   };
 
   const handleUpdateProfile = () => {
+    navigate('/profile-setup');
     toast({
       title: "Profile Settings",
-      description: "Opening profile settings...",
+      description: "Opening your profile setup page.",
     });
   };
 
   const handleViewDirectory = () => {
     toast({
-      title: "Store Directory",
-      description: "Loading store directory...",
+      title: "Department Details",
+      description: currentDepartment
+        ? `${currentDepartment.name} department is assigned to your account.`
+        : "No department is assigned to your account yet.",
     });
   };
 
   const handleUploadImage = () => {
+    navigate('/schedule');
     toast({
-      title: "Upload Schedule",
-      description: "Opening image upload for schedule...",
+      title: "Schedule Tools",
+      description: "Opening the detailed schedule dashboard.",
     });
   };
 
@@ -346,9 +362,34 @@ const EmployeeDashboard = () => {
 
   const monthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-  const urloardData = [
-    { label: 'Total', hours: '32 h' },
-    { label: 'Hours', hours: '148 h' }
+  const weekStart = new Date();
+  weekStart.setHours(0, 0, 0, 0);
+  weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999);
+
+  const weeklySchedules = schedules.filter((schedule) => {
+    const scheduleDate = new Date(schedule.date);
+    return scheduleDate >= weekStart && scheduleDate <= weekEnd;
+  });
+  const weeklyTimeLogs = timeLogs.filter((log) => {
+    const logDate = new Date(log.date);
+    return logDate >= weekStart && logDate <= weekEnd;
+  });
+
+  const weeklyScheduledHours = weeklySchedules.reduce(
+    (total, schedule) => total + calculateHours(schedule.start_time, schedule.end_time),
+    0
+  );
+  const weeklyWorkedHours = weeklyTimeLogs.reduce(
+    (total, log) => total + calculateLoggedHours(log.clock_in, log.clock_out),
+    0
+  );
+
+  const workloadData = [
+    { label: 'Worked (This Week)', hours: `${weeklyWorkedHours.toFixed(1)} h` },
+    { label: 'Scheduled (This Week)', hours: `${weeklyScheduledHours.toFixed(1)} h` }
   ];
 
   const toggleChartView = () => {
@@ -576,14 +617,14 @@ const EmployeeDashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Urloard across */}
+            {/* Workload overview */}
             <Card className="bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
               <CardHeader>
-                <CardTitle className="text-gray-900 dark:text-gray-100">Urloard across</CardTitle>
+                <CardTitle className="text-gray-900 dark:text-gray-100">Workload Overview</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {urloardData.map((item, index) => (
+                  {workloadData.map((item, index) => (
                     <div key={index} className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">{item.label}</span>
                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.hours}</span>

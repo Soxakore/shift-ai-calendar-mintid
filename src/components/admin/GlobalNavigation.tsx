@@ -64,8 +64,9 @@ const GlobalNavigation = ({ currentPath, onNavigate, searchTerm, onSearchChange 
     { id: 'new-org', label: 'Create New Organization', action: () => {
       toast({
         title: "🏢 New Organization",
-        description: "Feature coming soon!",
+        description: "Opening organization management.",
       });
+      onNavigate('/super-admin/organisations');
       setOpen(false);
     }},
     { id: 'view-analytics', label: 'View System Analytics', action: () => {

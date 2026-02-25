@@ -929,28 +929,28 @@ const TwoFactorManagement = () => {
             </CardHeader>
             <CardContent className="p-4 space-y-3">
               <Button 
-                onClick={() => {}} // handleForce2FAReset
+                onClick={handleForce2FAReset}
                 className="w-full justify-start bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <UserCheck className="w-4 h-4 mr-2" />
                 Force 2FA Reset
               </Button>
               <Button 
-                onClick={() => {}} // handleBulkEnable2FA
+                onClick={handleBulkEnable2FA}
                 className="w-full justify-start bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Bulk Enable 2FA
               </Button>
               <Button 
-                onClick={() => {}} // handleSecurityAudit
+                onClick={handleSecurityAudit}
                 className="w-full justify-start bg-orange-600 hover:bg-orange-700 text-white"
               >
                 <AlertTriangle className="w-4 h-4 mr-2" />
                 Security Audit
               </Button>
               <Button 
-                onClick={() => {}} // handleEmergencyLockdown
+                onClick={handleEmergencyLockdown}
                 className="w-full justify-start bg-red-600 hover:bg-red-700 text-white"
               >
                 <Lock className="w-4 h-4 mr-2" />

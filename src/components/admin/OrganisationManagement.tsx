@@ -28,7 +28,7 @@ import OrganisationsList from './OrganisationsList';
 import { getOrganizationAlias, getOrganizationDescription } from '@/lib/organizationHelpers';
 
 const OrganisationManagement = () => {
-  const { organisations, profiles, departments, refetchOrganisations } = useSupabaseData();
+  const { organisations, profiles, departments, refetchOrganisations, refetchDepartments } = useSupabaseData();
   const { toast } = useToast();
   const [selectedOrg, setSelectedOrg] = useState<string>('');
   const [showCreateOrg, setShowCreateOrg] = useState(false);
@@ -190,8 +190,8 @@ const OrganisationManagement = () => {
       setNewDeptData({ name: '', description: '' });
       setIsCreateDeptOpen(false);
       
-      // Refresh data
-      window.location.reload();
+      await refetchDepartments();
+      await refetchOrganisations();
       
     } catch (error) {
       console.error('Unexpected error creating department:', error);
