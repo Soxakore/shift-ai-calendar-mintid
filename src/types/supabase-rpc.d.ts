@@ -54,6 +54,16 @@ declare module '@supabase/supabase-js' {
       p_description?: string | null;
       p_created_by?: string | null;
     }): Promise<{ data: any; error: any }>;
+
+    rpc(name: 'ensure_authenticated_profile', params?: Record<string, never>): Promise<{ data: any; error: any }>;
+
+    rpc(name: 'get_pending_users', params?: Record<string, never>): Promise<{ data: any; error: any }>;
+
+    rpc(name: 'assign_user_role', params: {
+      target_user_id: string;
+      new_role: string;
+      organisation_id?: string | null;
+    }): Promise<{ data: any; error: any }>;
     
     rpc(name: 'change_user_password', params: {
       p_username: string;

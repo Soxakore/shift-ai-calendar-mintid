@@ -10,7 +10,12 @@ import type {
 // Define User and Session types for compatibility
 interface UserMetadata {
   username?: string;
+  login?: string;
+  user_name?: string;
+  preferred_username?: string;
   display_name?: string;
+  full_name?: string;
+  name?: string;
   user_type?: string;
   organisation_id?: string;
   department_id?: string;
@@ -372,81 +377,67 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
           setProfile(profileData);
           setLoading(false);
         } else {
-        console.log('⚠️ No profile found for user:', userId);
-        
-        // Auto-create profile for production super admin if missing
-        const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL || 'admin@mintid.live';
-        
-        if (user?.email === SUPER_ADMIN_EMAIL) {
-          console.log('🔧 Auto-creating missing profile for production super admin...');
-          console.log('🔧 Current user data:', { id: userId, email: user.email });
-          try {
-            // First, get the first available organisation or create without one
-            console.log('🔍 Looking for available organisations...');
-            const { data: orgs, error: orgError } = await supabase
-              .from('organisations')
-              .select('id, name')
-              .limit(1);
-            
-            if (orgError) {
-              console.error('❌ Error fetching organisations:', orgError);
-            }
-            
-            const orgId = orgs && orgs.length > 0 ? orgs[0].id : null;
-            console.log('🏢 Using organisation:', orgId ? `${orgs[0].name} (${orgId})` : 'None');
-            
-            // Generate tracking ID for the super admin user
-            const trackingId = crypto.randomUUID();
-            console.log('🔧 Generated tracking ID:', trackingId);
-            
-            const { data: newProfile, error: createError } = await supabase
+          console.log('⚠️ No profile found for user:', userId);
+
+          // Self-heal for OAuth users: provision profile through RPC, then fallback to direct insert.
+          const { error: ensureError } = await supabase.rpc('ensure_authenticated_profile');
+          if (ensureError) {
+            console.warn('⚠️ ensure_authenticated_profile RPC failed, using direct fallback:', ensureError);
+
+            const email = session?.user?.email || user?.email || '';
+            const metadata = (session?.user?.user_metadata || user?.user_metadata || {}) as UserMetadata;
+            const username =
+              metadata.username ||
+              metadata.login ||
+              metadata.user_name ||
+              metadata.preferred_username ||
+              (email ? email.split('@')[0] : '') ||
+              `user_${userId.slice(0, 8)}`;
+            const displayName =
+              metadata.display_name ||
+              metadata.full_name ||
+              metadata.name ||
+              username;
+
+            const { error: insertError } = await supabase
               .from('profiles')
               .insert({
-                user_id: userId, // Changed from 'id' to 'user_id'
-                username: 'admin',
-                display_name: 'System Administrator',
-                user_type: 'super_admin',
-                organisation_id: orgId,
-                tracking_id: trackingId,
-                is_active: true
-              })
-              .select()
-              .single();
-
-            if (createError) {
-              console.error('❌ Error creating profile:', createError);
-              console.error('❌ Error details:', JSON.stringify(createError, null, 2));
-              clearTimeout(profileTimeoutId);
-              setProfile(null);
-              setLoading(false);
-            } else {
-              console.log('✅ Profile created successfully:', newProfile);
-              const profileData: Profile = {
-                ...newProfile,
-                user_type: newProfile.user_type as 'super_admin' | 'org_admin' | 'manager' | 'employee'
-              };
-              clearTimeout(profileTimeoutId);
-              setProfile(profileData);
-              setLoading(false);
-              
-              // Show success toast
-              toast({
-                title: "✅ Profile Created",
-                description: "Super admin profile has been automatically created",
+                user_id: userId,
+                username,
+                display_name: displayName,
+                user_type: 'employee',
+                is_active: true,
+                created_by: 'oauth_fallback_bootstrap',
+                tracking_id: crypto.randomUUID(),
               });
+
+            if (insertError) {
+              console.error('❌ Fallback profile insert failed:', insertError);
             }
-          } catch (createException) {
-            console.error('💥 Exception creating profile:', createException);
+          }
+
+          const { data: provisionedProfile, error: provisionedProfileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+          if (provisionedProfileError || !provisionedProfile) {
+            console.error('❌ Failed to load provisioned profile:', provisionedProfileError);
             clearTimeout(profileTimeoutId);
             setProfile(null);
             setLoading(false);
+          } else {
+            console.log('✅ OAuth profile provisioned successfully:', provisionedProfile);
+            const profileData: Profile = {
+              ...provisionedProfile,
+              user_type: provisionedProfile.user_type as 'super_admin' | 'org_admin' | 'manager' | 'employee'
+            };
+            clearTimeout(profileTimeoutId);
+            setProfile(profileData);
+            setLoading(false);
           }
-        } else {
-          clearTimeout(profileTimeoutId);
-          setProfile(null);
-          setLoading(false);
         }
-      }
     } catch (queryError) {
       console.error('💥 Database query timeout or error:', queryError);
       clearTimeout(profileTimeoutId);

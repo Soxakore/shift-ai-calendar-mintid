@@ -32,8 +32,9 @@ const UnifiedLogin = () => {
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
   const isLocalSupabase = SUPABASE_URL.includes('127.0.0.1') || SUPABASE_URL.includes('localhost');
 
-  const isSuperAdmin = useCallback((userData: { email?: string; user_metadata?: { user_name?: string; preferred_username?: string } }) => {
+  const isSuperAdmin = useCallback((userData: { email?: string; user_metadata?: { login?: string; user_name?: string; preferred_username?: string } }) => {
     return SUPER_ADMIN_IDENTIFIERS.emails.includes(userData?.email) ||
+           SUPER_ADMIN_IDENTIFIERS.usernames.includes(userData?.user_metadata?.login) ||
            SUPER_ADMIN_IDENTIFIERS.usernames.includes(userData?.user_metadata?.user_name) ||
            SUPER_ADMIN_IDENTIFIERS.usernames.includes(userData?.user_metadata?.preferred_username);
   }, []);
