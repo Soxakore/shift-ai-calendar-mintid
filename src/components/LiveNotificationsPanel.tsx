@@ -27,11 +27,11 @@ export function LiveNotificationsPanel({ schedules = [], currentUser }: LiveNoti
   const [lastAction, setLastAction] = useState<string | null>(null);
 
   const handleSendTomorrowReminder = async () => {
-    if (!profile) return;
+    if (!profile?.user_id) return;
     
     setIsLoading(true);
     try {
-      const result = await edgeFunctionsService.sendTomorrowReminders(profile.id);
+      const result = await edgeFunctionsService.sendTomorrowReminders(profile.user_id);
       setLastAction('Tomorrow\'s shift reminders sent');
       toast({
         title: "✅ Reminders Sent",
@@ -49,11 +49,11 @@ export function LiveNotificationsPanel({ schedules = [], currentUser }: LiveNoti
   };
 
   const handleGenerateWeeklyReport = async () => {
-    if (!profile) return;
+    if (!profile?.user_id) return;
     
     setIsLoading(true);
     try {
-      const result = await edgeFunctionsService.generateWeeklyReport(profile.id);
+      const result = await edgeFunctionsService.generateWeeklyReport(profile.user_id);
       setLastAction('Weekly report generated and emailed');
       toast({
         title: "📊 Report Generated",
@@ -71,7 +71,7 @@ export function LiveNotificationsPanel({ schedules = [], currentUser }: LiveNoti
   };
 
   const handleTestNotification = async () => {
-    if (!profile) return;
+    if (!profile?.user_id) return;
     
     setIsLoading(true);
     try {
@@ -104,13 +104,13 @@ export function LiveNotificationsPanel({ schedules = [], currentUser }: LiveNoti
   };
 
   const handleEmergencyAlert = async () => {
-    if (!profile) return;
+    if (!profile?.user_id) return;
     
     setIsLoading(true);
     try {
       await edgeFunctionsService.sendEmergencyAlert(
         '🚨 Emergency Alert: Please check your assigned station immediately',
-        profile.id
+        profile.user_id
       );
       
       setLastAction('Emergency alert sent to all team members');

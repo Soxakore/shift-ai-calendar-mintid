@@ -55,9 +55,10 @@ const ManagerDashboard = () => {
     profile?.department_id && p.department_id === profile.department_id
   );
   
-  const today = new Date().toISOString().split('T')[0];
-  const todaySchedules = schedules.filter(s => s.date === today);
-  const todayTimeLogs = timeLogs.filter(log => log.date === today);
+  const today = new Date();
+  const isSameDay = (value: string) => new Date(value).toDateString() === today.toDateString();
+  const todaySchedules = schedules.filter(s => isSameDay(s.date));
+  const todayTimeLogs = timeLogs.filter(log => isSameDay(log.date));
   
   // Calculate real stats
   const totalTeamMembers = departmentProfiles.length;
@@ -426,7 +427,7 @@ const ManagerDashboard = () => {
                     </h4>
                     <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
                       {departmentProfiles
-                        .filter(p => todayTimeLogs.some(log => log.user_id === p.id && log.clock_in && !log.clock_out))
+                        .filter(p => todayTimeLogs.some(log => log.user_id === p.user_id && log.clock_in && !log.clock_out))
                         .slice(0, 6)
                         .map((profile) => (
                           <li key={profile.id}>• {profile.display_name}</li>
@@ -443,7 +444,7 @@ const ManagerDashboard = () => {
                     </h4>
                     <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
                       {todaySchedules.slice(0, 6).map((schedule) => {
-                        const user = departmentProfiles.find(p => p.id === schedule.user_id);
+                        const user = departmentProfiles.find(p => p.user_id === schedule.user_id);
                         return (
                           <li key={schedule.id}>
                             • {user?.display_name || 'Unknown'} - {schedule.start_time}
@@ -481,7 +482,7 @@ const ManagerDashboard = () => {
               <CardContent>
                 <div className="space-y-3">
                   {timeLogs.slice(0, 3).map((log, idx) => {
-                    const user = departmentProfiles.find(p => p.id === log.user_id);
+                    const user = departmentProfiles.find(p => p.user_id === log.user_id);
                     return (
                       <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                         <div>
@@ -511,7 +512,7 @@ const ManagerDashboard = () => {
             <div className="mt-8">
               <LiveReportsManager 
                 departmentId={profile?.department_id}
-                organizationId={profile?.organization_id}
+                organisationId={profile?.organisation_id}
               />
             </div>
 

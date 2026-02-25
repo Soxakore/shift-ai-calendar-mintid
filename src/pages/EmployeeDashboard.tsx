@@ -31,7 +31,6 @@ import WorkHoursStats from '@/components/WorkHoursStats';
 import HoursWorkedChart from '@/components/HoursWorkedChart';
 import MonthlyPrecisionChart from '@/components/MonthlyPrecisionChart';
 import EnhancedScheduleCalendar from '@/components/EnhancedScheduleCalendar';
-import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -48,8 +47,6 @@ const EmployeeDashboard = () => {
   const [todayTimeLog, setTodayTimeLog] = useState<{
     id: string;
     user_id: string;
-    organization_id: string;
-    department_id: string;
     date: string;
     clock_in?: string | null;
     clock_out?: string | null;
@@ -61,7 +58,6 @@ const EmployeeDashboard = () => {
 
   // Supabase hooks
   const { profile } = useSupabaseAuth();
-  const { refetch } = useSupabaseData();
   
   // Local state for schedules and time logs with proper types
   const [schedules, setSchedules] = useState<Array<{
@@ -94,7 +90,7 @@ const EmployeeDashboard = () => {
       const { data, error } = await supabase
         .from('schedules')
         .select('*')
-        .eq('user_id', profile.id)
+        .eq('user_id', profile.user_id)
         .order('date', { ascending: false });
       
       if (error) throw error;
@@ -111,7 +107,7 @@ const EmployeeDashboard = () => {
       const { data, error } = await supabase
         .from('time_logs')
         .select('*')
-        .eq('user_id', profile.id)
+        .eq('user_id', profile.user_id)
         .order('date', { ascending: false });
       
       if (error) throw error;
@@ -156,10 +152,10 @@ const EmployeeDashboard = () => {
           event: '*',
           schema: 'public',
           table: 'schedules',
-          filter: `user_id=eq.${profile.id}`
+          filter: `user_id=eq.${profile.user_id}`
         },
         () => {
-          refetch();
+          fetchSchedules();
         }
       )
       .on(
@@ -168,10 +164,10 @@ const EmployeeDashboard = () => {
           event: '*',
           schema: 'public',
           table: 'time_logs',
-          filter: `user_id=eq.${profile.id}`
+          filter: `user_id=eq.${profile.user_id}`
         },
         () => {
-          refetch();
+          fetchTimeLogs();
           loadTodayTimeLog();
         }
       )
@@ -181,21 +177,26 @@ const EmployeeDashboard = () => {
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile, refetch]);
+  }, [profile]);
 
   // Load today's time log
   const loadTodayTimeLog = async () => {
     if (!profile) return;
 
     const today = new Date().toISOString().split('T')[0];
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('time_logs')
       .select('*')
-      .eq('user_id', profile.id)
+      .eq('user_id', profile.user_id)
       .eq('date', today)
-      .single();
+      .maybeSingle();
 
-    setTodayTimeLog(data);
+    if (error) {
+      console.error('Error loading today time log:', error);
+      return;
+    }
+
+    setTodayTimeLog(data || null);
   };
 
   useEffect(() => {
@@ -238,9 +239,7 @@ const EmployeeDashboard = () => {
         const { error } = await supabase
           .from('time_logs')
           .insert({
-            user_id: profile.id,
-            organization_id: profile.organisation_id,
-            department_id: profile.department_id,
+            user_id: profile.user_id,
             date: today,
             clock_in: now,
             method: 'manual'
@@ -266,6 +265,9 @@ const EmployeeDashboard = () => {
           description: `You clocked out at ${currentTime.toLocaleTimeString()}`,
         });
       }
+
+      await Promise.all([fetchSchedules(), fetchTimeLogs()]);
+      await loadTodayTimeLog();
     } catch (error) {
       console.error('Clock in/out error:', error);
       toast({

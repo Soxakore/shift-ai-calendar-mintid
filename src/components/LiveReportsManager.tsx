@@ -34,7 +34,7 @@ export function LiveReportsManager({ organisationId, departmentId }: LiveReports
     try {
       const result = await edgeFunctionsService.generateReport({
         report_type: type,
-        organization_id: organisationId,
+        organisation_id: organisationId,
         department_id: departmentId
       });
 

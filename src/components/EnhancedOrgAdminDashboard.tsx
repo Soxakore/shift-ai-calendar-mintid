@@ -33,7 +33,7 @@ const OrgAdminDashboard = () => {
   const { t, currentLanguage } = useTranslation();
   const navigate = useNavigate();
   const { signOut, profile, createUser } = useSupabaseAuth();
-  const { profiles, departments, refetchProfiles, forceRefresh } = useSupabaseData();
+  const { profiles, departments, schedules, timeLogs, refetchProfiles, forceRefresh } = useSupabaseData();
   const { toast } = useToast();
   
   // State management
@@ -77,6 +77,40 @@ const OrgAdminDashboard = () => {
     totalDepartments: orgDepartments.length,
     recentLogins: orgUsers.filter(u => u.created_at && new Date(u.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000)).length
   };
+
+  const orgUserIds = orgUsers
+    .map((entry) => entry.user_id)
+    .filter((value): value is string => typeof value === 'string' && value.length > 0);
+  const orgSchedules = schedules.filter((entry) => orgUserIds.includes(entry.user_id));
+  const orgTimeLogs = timeLogs.filter((entry) => orgUserIds.includes(entry.user_id));
+
+  const weekStart = new Date();
+  weekStart.setHours(0, 0, 0, 0);
+  weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999);
+
+  const weeklySchedules = orgSchedules.filter((entry) => {
+    const scheduleDate = new Date(entry.date);
+    return scheduleDate >= weekStart && scheduleDate <= weekEnd;
+  });
+  const assignedUsersThisWeek = new Set(weeklySchedules.map((entry) => entry.user_id)).size;
+  const scheduleCoverage = stats.activeUsers > 0 ? Math.round((assignedUsersThisWeek / stats.activeUsers) * 100) : 0;
+
+  const upcomingShifts = orgSchedules
+    .filter((entry) => new Date(entry.date).getTime() >= new Date().setHours(0, 0, 0, 0))
+    .sort((left, right) => new Date(left.date).getTime() - new Date(right.date).getTime())
+    .slice(0, 4);
+
+  const recentScheduleActivity = orgTimeLogs
+    .slice()
+    .sort((left, right) => {
+      const leftTime = left.updated_at ? new Date(left.updated_at).getTime() : new Date(left.date).getTime();
+      const rightTime = right.updated_at ? new Date(right.updated_at).getTime() : new Date(right.date).getTime();
+      return rightTime - leftTime;
+    })
+    .slice(0, 6);
 
   useEffect(() => {
     // Check if super admin is viewing this organization
@@ -840,7 +874,7 @@ const OrgAdminDashboard = () => {
             <TabsContent value="schedules" className="space-y-4">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold">Schedule Management</h2>
-                <Button>
+                <Button onClick={() => navigate('/schedule')}>
                   <Plus className="w-4 h-4 mr-2" />
                   Create Schedule
                 </Button>
@@ -855,15 +889,15 @@ const OrgAdminDashboard = () => {
                     <div className="space-y-3">
                       <div className="flex justify-between">
                         <span className="text-sm">Total Shifts</span>
-                        <Badge variant="outline">0</Badge>
+                        <Badge variant="outline">{weeklySchedules.length}</Badge>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">Assigned Users</span>
-                        <Badge variant="outline">0</Badge>
+                        <Badge variant="outline">{assignedUsersThisWeek}</Badge>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">Coverage</span>
-                        <Badge variant="outline">0%</Badge>
+                        <Badge variant="outline">{scheduleCoverage}%</Badge>
                       </div>
                     </div>
                   </CardContent>
@@ -874,13 +908,29 @@ const OrgAdminDashboard = () => {
                     <CardTitle className="text-lg">Upcoming Shifts</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-center py-8">
-                      <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                      <p className="text-muted-foreground">No upcoming shifts scheduled</p>
-                      <Button className="mt-4" variant="outline">
-                        Schedule Shift
-                      </Button>
-                    </div>
+                    {upcomingShifts.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                        <p className="text-muted-foreground">No upcoming shifts scheduled</p>
+                        <Button className="mt-4" variant="outline" onClick={() => navigate('/schedule')}>
+                          Schedule Shift
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {upcomingShifts.map((entry) => {
+                          const assignee = orgUsers.find((user) => user.user_id === entry.user_id);
+                          return (
+                            <div key={entry.id} className="p-3 border rounded-lg">
+                              <p className="font-medium">{assignee?.display_name || assignee?.username || 'Unassigned user'}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {new Date(entry.date).toLocaleDateString()} • {entry.start_time?.slice(0, 5) || '--'} - {entry.end_time?.slice(0, 5) || '--'}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -905,11 +955,33 @@ const OrgAdminDashboard = () => {
                   <CardTitle>Recent Schedule Activity</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">
-                      No recent schedule activity. Start by creating schedules for your team members.
-                    </p>
-                  </div>
+                  {recentScheduleActivity.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">
+                        No recent schedule activity. Start by creating schedules for your team members.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {recentScheduleActivity.map((entry) => {
+                        const assignee = orgUsers.find((user) => user.user_id === entry.user_id);
+                        return (
+                          <div key={entry.id} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div>
+                              <p className="font-medium">{assignee?.display_name || assignee?.username || 'Unknown user'}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {new Date(entry.date).toLocaleDateString()} • {entry.clock_in ? 'Clocked in' : 'Scheduled'}
+                                {entry.clock_out ? ' / Clocked out' : ''}
+                              </p>
+                            </div>
+                            <Badge variant={entry.clock_in && !entry.clock_out ? 'default' : 'outline'}>
+                              {entry.clock_in && !entry.clock_out ? 'Active' : 'Logged'}
+                            </Badge>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { Tables } from '@/integrations/supabase/types';
@@ -7,14 +7,55 @@ type Organisation = Tables<'organisations'>;
 type Department = Tables<'departments'>;
 type Profile = Tables<'profiles'>;
 
+export interface ScheduleRecord {
+  id: string;
+  user_id: string;
+  date: string;
+  start_time: string | null;
+  end_time: string | null;
+  shift?: string | null;
+  status?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface TimeLogRecord {
+  id: string;
+  user_id: string;
+  date: string;
+  clock_in?: string | null;
+  clock_out?: string | null;
+  method?: string | null;
+  location?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface NotificationRecord {
+  id: string;
+  user_id: string | null;
+  type: string;
+  title: string;
+  message: string;
+  data?: Record<string, unknown> | null;
+  read?: boolean | null;
+  sent_via?: string[] | null;
+  created_at?: string | null;
+}
+
+const isSameDay = (left: Date, right: Date) => left.toDateString() === right.toDateString();
+
 export const useSupabaseData = () => {
   const { profile } = useSupabaseAuth();
+
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [schedules, setSchedules] = useState<ScheduleRecord[]>([]);
+  const [timeLogs, setTimeLogs] = useState<TimeLogRecord[]>([]);
+  const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Check if super admin is viewing a specific organization
   const getSuperAdminViewingOrg = () => {
     try {
       const storedContext = sessionStorage.getItem('superAdminViewingOrg');
@@ -25,196 +66,321 @@ export const useSupabaseData = () => {
     }
   };
 
-  useEffect(() => {
-    if (profile) {
-      console.log('🔄 Profile available, fetching data for:', profile.user_type);
-      fetchData();
-      const cleanup = setupRealtimeSubscriptions();
-      return cleanup;
-    } else {
-      console.log('⏳ Waiting for profile...');
-      // Set a timeout to prevent infinite loading if profile never loads
-      const timeoutId = setTimeout(() => {
-        console.warn('⚠️ Profile timeout, setting loading to false');
-        setLoading(false);
-      }, 15000);
-      
-      return () => clearTimeout(timeoutId);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile]);
-
-  const setupRealtimeSubscriptions = () => {
-    console.log('🔔 Setting up real-time subscriptions...');
-    
-    const channel = supabase
-      .channel('data-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'organisations'
-        },
-        (payload) => {
-          console.log('🏢 Organization change detected:', payload);
-          fetchOrganizations();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'profiles'
-        },
-        (payload) => {
-          console.log('👤 Profile change detected:', payload);
-          // Add a slight delay to ensure database consistency
-          setTimeout(() => {
-            fetchProfiles();
-          }, 250);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'departments'
-        },
-        (payload) => {
-          console.log('🏬 Department change detected:', payload);
-          fetchDepartments();
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Real-time subscription status:', status);
-      });
-
-    return () => {
-      console.log('🧹 Cleaning up real-time subscriptions...');
-      supabase.removeChannel(channel);
-    };
-  };
-
-  const fetchData = async () => {
-    if (!profile) {
-      console.log('❌ No profile available for data fetching');
-      return;
-    }
-
-    console.log('📊 Starting data fetch for profile:', profile.user_type);
-    setLoading(true);
-    
-    try {
-      await Promise.all([
-        fetchOrganizations(),
-        fetchDepartments(),
-        fetchProfiles()
-      ]);
-      console.log('✅ All data fetched successfully');
-    } catch (error) {
-      console.error('💥 Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const toScopedUserIds = (scopeProfiles?: Profile[]) =>
+    (scopeProfiles || profiles)
+      .map((entry) => entry.user_id)
+      .filter((userId): userId is string => typeof userId === 'string' && userId.length > 0);
 
   const fetchOrganizations = async () => {
     try {
-      console.log('🏢 Fetching organizations...');
       const { data, error } = await supabase
         .from('organisations')
         .select('*')
         .order('name');
-      
+
       if (error) {
-        console.error('❌ Error fetching organizations:', error);
+        console.error('Error fetching organizations:', error);
         return;
       }
-      
-      console.log(`✅ Organizations fetched: ${data?.length || 0} items`);
-      setOrganisations(data || []);
+
+      setOrganisations((data || []) as Organisation[]);
     } catch (error) {
-      console.error('💥 Exception fetching organizations:', error);
+      console.error('Exception fetching organizations:', error);
     }
   };
 
   const fetchDepartments = async () => {
+    if (!profile) return;
+
     try {
       let query = supabase.from('departments').select('*');
-      
-      // Check if super admin is viewing a specific org
       const superAdminContext = getSuperAdminViewingOrg();
-      
-      if (profile?.user_type === 'super_admin' && superAdminContext) {
-        // Super admin viewing specific organization
+
+      if (profile.user_type === 'super_admin' && superAdminContext) {
         query = query.eq('organisation_id', superAdminContext.id);
-      } else if (profile?.user_type !== 'super_admin' && profile?.organisation_id) {
-        // Regular user - filter by their organization
+      } else if (profile.user_type !== 'super_admin' && profile.organisation_id) {
         query = query.eq('organisation_id', profile.organisation_id);
       }
-      
+
       const { data, error } = await query.order('name');
-      
+
       if (error) {
         console.error('Error fetching departments:', error);
-      } else {
-        console.log('Departments fetched:', data);
-        setDepartments(data || []);
+        return;
       }
+
+      setDepartments((data || []) as Department[]);
     } catch (error) {
       console.error('Exception fetching departments:', error);
     }
   };
 
-  const fetchProfiles = async () => {
+  const fetchProfiles = async (): Promise<Profile[]> => {
+    if (!profile) return [];
+
     try {
       let query = supabase.from('profiles').select('*');
-      
-      // Check if super admin is viewing a specific org
       const superAdminContext = getSuperAdminViewingOrg();
-      
-      if (profile?.user_type === 'super_admin' && superAdminContext) {
-        // Super admin viewing specific organization
+
+      if (profile.user_type === 'super_admin' && superAdminContext) {
         query = query.eq('organisation_id', superAdminContext.id);
-      } else if (profile?.user_type === 'org_admin' && profile?.organisation_id) {
+      } else if (profile.user_type === 'org_admin' && profile.organisation_id) {
         query = query.eq('organisation_id', profile.organisation_id);
-      } else if (profile?.user_type === 'manager' && profile?.department_id) {
+      } else if (profile.user_type === 'manager' && profile.department_id) {
         query = query.eq('department_id', profile.department_id);
-      } else if (profile?.user_type === 'employee') {
+      } else if (profile.user_type === 'employee') {
         query = query.eq('id', profile.id);
       }
-      
+
       const { data, error } = await query.order('display_name');
-      
+
       if (error) {
         console.error('Error fetching profiles:', error);
-      } else {
-        console.log('Profiles fetched:', data);
-        setProfiles(data || []);
+        setProfiles([]);
+        return [];
       }
+
+      const scopedProfiles = (data || []) as Profile[];
+      setProfiles(scopedProfiles);
+      return scopedProfiles;
     } catch (error) {
       console.error('Exception fetching profiles:', error);
+      setProfiles([]);
+      return [];
     }
   };
+
+  const fetchSchedules = async (scopeProfiles?: Profile[]) => {
+    if (!profile) return;
+
+    try {
+      let query = supabase.from('schedules').select('*');
+      const scopedUserIds = toScopedUserIds(scopeProfiles);
+      const superAdminContext = getSuperAdminViewingOrg();
+
+      if (profile.user_type === 'employee') {
+        if (!profile.user_id) {
+          setSchedules([]);
+          return;
+        }
+        query = query.eq('user_id', profile.user_id);
+      } else if (profile.user_type === 'manager' || profile.user_type === 'org_admin') {
+        if (scopedUserIds.length === 0) {
+          setSchedules([]);
+          return;
+        }
+        query = query.in('user_id', scopedUserIds);
+      } else if (profile.user_type === 'super_admin' && superAdminContext) {
+        if (scopedUserIds.length === 0) {
+          setSchedules([]);
+          return;
+        }
+        query = query.in('user_id', scopedUserIds);
+      }
+
+      const { data, error } = await query.order('date', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching schedules:', error);
+        setSchedules([]);
+        return;
+      }
+
+      setSchedules((data || []) as ScheduleRecord[]);
+    } catch (error) {
+      console.error('Exception fetching schedules:', error);
+      setSchedules([]);
+    }
+  };
+
+  const fetchTimeLogs = async (scopeProfiles?: Profile[]) => {
+    if (!profile) return;
+
+    try {
+      let query = supabase.from('time_logs').select('*');
+      const scopedUserIds = toScopedUserIds(scopeProfiles);
+      const superAdminContext = getSuperAdminViewingOrg();
+
+      if (profile.user_type === 'employee') {
+        if (!profile.user_id) {
+          setTimeLogs([]);
+          return;
+        }
+        query = query.eq('user_id', profile.user_id);
+      } else if (profile.user_type === 'manager' || profile.user_type === 'org_admin') {
+        if (scopedUserIds.length === 0) {
+          setTimeLogs([]);
+          return;
+        }
+        query = query.in('user_id', scopedUserIds);
+      } else if (profile.user_type === 'super_admin' && superAdminContext) {
+        if (scopedUserIds.length === 0) {
+          setTimeLogs([]);
+          return;
+        }
+        query = query.in('user_id', scopedUserIds);
+      }
+
+      const { data, error } = await query.order('date', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching time logs:', error);
+        setTimeLogs([]);
+        return;
+      }
+
+      setTimeLogs((data || []) as TimeLogRecord[]);
+    } catch (error) {
+      console.error('Exception fetching time logs:', error);
+      setTimeLogs([]);
+    }
+  };
+
+  const fetchNotifications = async (scopeProfiles?: Profile[]) => {
+    if (!profile) return;
+
+    try {
+      let query = supabase.from('notifications').select('*');
+      const scopedUserIds = toScopedUserIds(scopeProfiles);
+      const superAdminContext = getSuperAdminViewingOrg();
+
+      if (profile.user_type === 'employee') {
+        if (!profile.user_id) {
+          setNotifications([]);
+          return;
+        }
+        query = query.eq('user_id', profile.user_id);
+      } else if (profile.user_type === 'manager' || profile.user_type === 'org_admin') {
+        if (scopedUserIds.length === 0) {
+          setNotifications([]);
+          return;
+        }
+        query = query.in('user_id', scopedUserIds);
+      } else if (profile.user_type === 'super_admin' && superAdminContext) {
+        if (scopedUserIds.length === 0) {
+          setNotifications([]);
+          return;
+        }
+        query = query.in('user_id', scopedUserIds);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false }).limit(50);
+
+      if (error) {
+        console.error('Error fetching notifications:', error);
+        setNotifications([]);
+        return;
+      }
+
+      setNotifications((data || []) as NotificationRecord[]);
+    } catch (error) {
+      console.error('Exception fetching notifications:', error);
+      setNotifications([]);
+    }
+  };
+
+  const fetchData = async () => {
+    if (!profile) return;
+
+    setLoading(true);
+
+    try {
+      await Promise.all([fetchOrganizations(), fetchDepartments()]);
+      const scopedProfiles = await fetchProfiles();
+      await Promise.all([
+        fetchSchedules(scopedProfiles),
+        fetchTimeLogs(scopedProfiles),
+        fetchNotifications(scopedProfiles),
+      ]);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const setupRealtimeSubscriptions = () => {
+    if (!profile) return () => undefined;
+
+    const channel = supabase
+      .channel(`data-changes-${profile.user_id || profile.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'organisations' },
+        () => fetchOrganizations()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'departments' },
+        () => fetchDepartments()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        () => {
+          setTimeout(() => {
+            fetchData();
+          }, 250);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'schedules' },
+        () => fetchSchedules()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'time_logs' },
+        () => fetchTimeLogs()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications' },
+        () => fetchNotifications()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  };
+
+  useEffect(() => {
+    if (profile) {
+      fetchData();
+      const cleanup = setupRealtimeSubscriptions();
+      return cleanup;
+    }
+
+    const timeoutId = setTimeout(() => {
+      setLoading(false);
+    }, 8000);
+
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
 
   return {
     organisations,
     departments,
     profiles,
+    schedules,
+    timeLogs,
+    notifications,
     loading,
     refetch: fetchData,
     refetchOrganisations: fetchOrganizations,
     refetchProfiles: fetchProfiles,
     refetchDepartments: fetchDepartments,
-    // Force refresh all data - useful after user creation
+    refetchSchedules: fetchSchedules,
+    refetchTimeLogs: fetchTimeLogs,
+    refetchNotifications: fetchNotifications,
     forceRefresh: () => {
-      console.log('🔄 Force refreshing all data...');
       setTimeout(() => {
         fetchData();
       }, 300);
-    }
+    },
+    getTodayScheduleForUser: (userId: string) =>
+      schedules.find((entry) => entry.user_id === userId && isSameDay(new Date(entry.date), new Date())),
   };
 };

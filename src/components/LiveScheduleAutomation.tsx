@@ -91,13 +91,13 @@ export function LiveScheduleAutomation() {
   };
 
   const sendTestEmergencyAlert = async () => {
-    if (!profile) return;
+    if (!profile?.user_id) return;
     
     setIsLoading(true);
     try {
       await edgeFunctionsService.sendEmergencyAlert(
         '🧪 Test Alert: This is a test of the emergency notification system. Please disregard.',
-        profile.id
+        profile.user_id
       );
       
       toast({
