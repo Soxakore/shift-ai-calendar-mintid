@@ -41,13 +41,18 @@ const UserManagement = () => {
 
   const fetchPendingUsers = async () => {
     try {
+      const { error: ensureError } = await supabase.rpc('ensure_authenticated_profile');
+      if (ensureError) {
+        console.warn('ensure_authenticated_profile failed before pending-user fetch:', ensureError);
+      }
+
       const { data, error } = await supabase.rpc('get_pending_users');
       
       if (error) {
         console.error('Error fetching pending users:', error);
         toast({
           title: "Error",
-          description: "Failed to load pending users",
+          description: error.message || "Failed to load pending users",
           variant: "destructive",
         });
         return;
@@ -83,6 +88,11 @@ const UserManagement = () => {
     setAssigningRole(userId);
     
     try {
+      const { error: ensureError } = await supabase.rpc('ensure_authenticated_profile');
+      if (ensureError) {
+        console.warn('ensure_authenticated_profile failed before role assignment:', ensureError);
+      }
+
       const { data, error } = await supabase.rpc('assign_user_role', {
         target_user_id: userId,
         new_role: role,
