@@ -682,7 +682,14 @@ const SchedulePage = () => {
         </Card>
 
         <div className="mt-6">
-          <LiveNotificationsPanel schedules={employeeSchedules} currentUser={profile} />
+          <LiveNotificationsPanel
+            schedules={employeeSchedules}
+            scopedSchedules={schedules}
+            scopedTimeLogs={timeLogs}
+            scopedProfiles={profiles}
+            scopedNotifications={notifications}
+            onRefresh={refetch}
+          />
         </div>
       </main>
 
