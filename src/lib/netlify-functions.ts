@@ -54,6 +54,20 @@ export interface WebhookResponse {
   timestamp: string;
 }
 
+export interface StitchHealthResponse {
+  connected: boolean;
+  configured: boolean;
+  statusCode?: number;
+  protocolVersion?: string | null;
+  serverInfo?: {
+    name?: string;
+    version?: string;
+  } | null;
+  capabilities?: Record<string, unknown> | null;
+  message: string;
+  checkedAt: string;
+}
+
 class NetlifyFunctionsAPI {
   private baseURL: string;
 
@@ -141,6 +155,11 @@ class NetlifyFunctionsAPI {
       },
       body: JSON.stringify(payload),
     });
+  }
+
+  // Google Stitch MCP health
+  async stitchHealth(): Promise<StitchHealthResponse> {
+    return this.request<StitchHealthResponse>('stitch-health');
   }
 
   // Helper method to download exported files
@@ -236,6 +255,34 @@ export function useEmailValidation() {
   };
 
   return { validateEmail, isValidating };
+}
+
+export function useStitchHealth() {
+  const [health, setHealth] = useState<StitchHealthResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchHealth = async () => {
+    try {
+      setLoading(true);
+      const data = await netlifyAPI.stitchHealth();
+      setHealth(data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Stitch health check failed');
+      setHealth(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHealth();
+    const interval = setInterval(fetchHealth, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return { health, loading, error, refetch: fetchHealth };
 }
 
 export function useScheduleExport() {

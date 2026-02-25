@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,10 @@ import {
   BarChart3,
   Shield,
   Settings,
-  UserPlus
+  UserPlus,
+  Sparkles,
+  Activity,
+  Workflow
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Footer from '@/components/Footer';
@@ -35,6 +39,7 @@ import SuperAdminUserManagement from '@/components/admin/SuperAdminUserManagemen
 import { LiveReportsManager } from '@/components/LiveReportsManager';
 import UserManagement from '@/components/UserManagement';
 import { LiveScheduleAutomation } from '@/components/LiveScheduleAutomation';
+import { netlifyAPI, type StitchHealthResponse } from '@/lib/netlify-functions';
 
 interface User {
   id: string;
@@ -62,6 +67,26 @@ const SuperAdminDashboard = () => {
     recentLogins: 0,
     failedLogins: 0
   });
+
+  const [stitchHealth, setStitchHealth] = useState<StitchHealthResponse | null>(null);
+  const [stitchLoading, setStitchLoading] = useState(false);
+
+  const fetchStitchHealth = async () => {
+    try {
+      setStitchLoading(true);
+      const health = await netlifyAPI.stitchHealth();
+      setStitchHealth(health);
+    } catch (error) {
+      setStitchHealth({
+        connected: false,
+        configured: false,
+        message: error instanceof Error ? error.message : 'Unable to reach Stitch connector',
+        checkedAt: new Date().toISOString(),
+      });
+    } finally {
+      setStitchLoading(false);
+    }
+  };
 
   // Fetch live dashboard data
   const fetchLiveStats = async () => {
@@ -118,6 +143,7 @@ const SuperAdminDashboard = () => {
   useEffect(() => {
     // Initial fetch
     fetchLiveStats();
+    fetchStitchHealth();
 
     // Set up real-time subscriptions
     const channel = supabase
@@ -164,11 +190,13 @@ const SuperAdminDashboard = () => {
 
     // Refresh stats every 30 seconds
     const interval = setInterval(fetchLiveStats, 30000);
+    const stitchInterval = setInterval(fetchStitchHealth, 3 * 60 * 1000);
 
     return () => {
       console.log('Cleaning up dashboard subscriptions...');
       supabase.removeChannel(channel);
       clearInterval(interval);
+      clearInterval(stitchInterval);
     };
   }, []);
 
@@ -219,7 +247,7 @@ const SuperAdminDashboard = () => {
   // These components fetch real data from the Supabase database
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+    <div className="relative min-h-screen overflow-x-clip bg-[radial-gradient(circle_at_20%_20%,#dbeafe_0%,#eef2ff_38%,#f8fafc_100%)] dark:bg-[radial-gradient(circle_at_20%_20%,#0f172a_0%,#111827_38%,#020617_100%)]">
       <SEOHead
         title={pageMetadata.title}
         description={pageMetadata.description}
@@ -227,226 +255,295 @@ const SuperAdminDashboard = () => {
         canonicalUrl={pageMetadata.canonical}
         pageName="dashboard"
       />
-      
-      {/* Enhanced Header with Global Navigation */}
-      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-gradient-to-br from-red-500 to-red-600 rounded-xl shadow-lg">
-                  <Calendar className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
-                    MinaTid Super Admin
-                  </h1>
-                  <div className="flex items-center space-x-2">
-                    <Badge className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 shadow-sm">
-                      ENHANCED ADMIN CONSOLE
-                    </Badge>
-                    <span className="text-sm text-slate-600 dark:text-slate-400">Complete System Management</span>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span className="text-xs text-green-600 dark:text-green-400">LIVE</span>
-                    </div>
-                    {profile?.tracking_id && (
-                      <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs px-2 py-1 rounded">
-                        ID: {profile.tracking_id}
-                      </span>
-                    )}
-                  </div>
+
+      <div className="pointer-events-none absolute inset-0 -z-0 overflow-hidden">
+        <svg className="absolute inset-0 h-full w-full opacity-40 dark:opacity-20" viewBox="0 0 1600 900" fill="none">
+          <defs>
+            <linearGradient id="super-admin-wave" x1="0" y1="0" x2="1600" y2="900">
+              <stop offset="0%" stopColor="#3b82f6" />
+              <stop offset="50%" stopColor="#14b8a6" />
+              <stop offset="100%" stopColor="#6366f1" />
+            </linearGradient>
+          </defs>
+          <path d="M0 190C230 270 460 80 700 160C930 230 1160 430 1600 270V0H0V190Z" fill="url(#super-admin-wave)" fillOpacity="0.13" />
+          <path d="M0 760C260 680 430 810 690 770C980 720 1260 530 1600 610V900H0V760Z" fill="url(#super-admin-wave)" fillOpacity="0.1" />
+        </svg>
+        <motion.div
+          className="absolute -top-28 -left-16 h-72 w-72 rounded-full bg-blue-400/25 blur-3xl"
+          animate={{ x: [0, 35, 0], y: [0, 25, 0] }}
+          transition={{ duration: 16, repeat: Infinity, repeatType: 'mirror' }}
+        />
+        <motion.div
+          className="absolute -bottom-20 right-10 h-80 w-80 rounded-full bg-teal-400/20 blur-3xl"
+          animate={{ x: [0, -30, 0], y: [0, -20, 0] }}
+          transition={{ duration: 14, repeat: Infinity, repeatType: 'mirror' }}
+        />
+      </div>
+
+      <div className="relative z-10">
+        <header className="sticky top-0 z-50 border-b border-white/40 bg-white/50 shadow-[0_12px_40px_-24px_rgba(15,23,42,0.6)] backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/60">
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-4">
+              <div className="rounded-2xl border border-white/60 bg-gradient-to-br from-rose-500 to-red-600 p-2.5 shadow-lg">
+                <Calendar className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">MinaTid Super Admin</h1>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                  <Badge className="border-0 bg-gradient-to-r from-rose-500 to-red-600 text-white">Executive Control Center</Badge>
+                  <span className="text-slate-600 dark:text-slate-400">Live operations, security and governance</span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    LIVE
+                  </span>
+                  {profile?.tracking_id && (
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                      ID: {profile.tracking_id}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
-            
-            <div className="flex items-center space-x-3">
+
+            <div className="flex items-center gap-3">
               <HistoryButton variant="outline" size="sm" showBadge={true} />
               <NotificationDropdown />
               <ThemeToggle />
-              <Button 
-                variant="destructive" 
-                size="sm" 
+              <Button
+                variant="destructive"
+                size="sm"
                 onClick={handleLogout}
-                className="shadow-sm hover:shadow-md transition-shadow text-white"
+                className="text-white shadow-sm transition-shadow hover:shadow-md"
               >
-                <LogOut className="w-4 h-4 mr-2" />
+                <LogOut className="mr-2 h-4 w-4" />
                 Logout
               </Button>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Global Navigation */}
-      <GlobalNavigation
-        currentPath={currentPath}
-        onNavigate={handleNavigate}
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-      />
+        <GlobalNavigation
+          currentPath={currentPath}
+          onNavigate={handleNavigate}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+        />
 
-      {/* Main Content with Enhanced Tabs */}
-      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8 lg:w-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-            <TabsTrigger value="overview" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
-              <BarChart3 className="h-4 w-4" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
-              <Users className="h-4 w-4" />
-              Users
-            </TabsTrigger>
-            <TabsTrigger value="user-roles" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
-              <UserPlus className="h-4 w-4" />
-              Role Mgmt
-              <Badge className="bg-green-500 text-white text-xs">OAuth</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="organisations" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
-              <Building2 className="h-4 w-4" />
-              Organisations
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
-              <BarChart3 className="h-4 w-4" />
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger value="debug" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
-              <Settings className="h-4 w-4" />
-              Debug
-              <Badge className="bg-red-500 text-white text-xs">Test</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
-              <Shield className="h-4 w-4" />
-              Security
-              <Badge variant="destructive" className="text-xs text-white">New</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="2fa" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
-              <Shield className="h-4 w-4" />
-              2FA
-              <Badge className="bg-blue-500 text-white text-xs">New</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="system" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100">
-              <Settings className="h-4 w-4" />
-              System
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">System Status</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${liveStats.systemStatus === 'Optimal' ? 'bg-green-500 animate-pulse' : 'bg-yellow-500 animate-pulse'}`}></div>
-                    <Shield className="h-4 w-4 text-blue-600" />
+        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <motion.section
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="relative mb-6 overflow-hidden rounded-3xl border border-white/50 bg-white/55 p-6 shadow-[0_20px_60px_-36px_rgba(15,23,42,0.6)] backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/55"
+          >
+            <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-70 dark:opacity-40" viewBox="0 0 1200 260" fill="none">
+              <path d="M0 70C220 130 470 10 700 80C870 130 1020 210 1200 170" stroke="rgba(59,130,246,0.2)" strokeWidth="2" />
+              <path d="M0 210C220 150 430 260 660 220C890 190 1020 80 1200 100" stroke="rgba(20,184,166,0.18)" strokeWidth="2" />
+            </svg>
+            <div className="relative grid gap-6 lg:grid-cols-[1.8fr_1fr]">
+              <div>
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-sky-300/60 bg-sky-100/70 px-3 py-1 text-xs font-medium text-sky-700 dark:border-sky-600/50 dark:bg-sky-900/40 dark:text-sky-200">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Glass Control Surface
+                </div>
+                <h2 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+                  System command with live visibility and cleaner operations flow
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-300">
+                  Every panel and tab below keeps existing functionality while adding a structured, production-grade workspace.
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+                <div className="rounded-2xl border border-white/60 bg-white/70 p-3 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/70">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">System Health</div>
+                  <div className="mt-1 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    <Activity className="h-4 w-4 text-emerald-500" />
+                    {liveStats.systemStatus}
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">{liveStats.systemStatus}</div>
-                  <p className="text-xs text-blue-700 dark:text-blue-300">
-                    {liveStats.failedLogins > 0 ? `${liveStats.failedLogins} failed logins today` : 'All systems operational'}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-xl bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900 dark:to-green-800">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <Users className="h-4 w-4 text-green-600" />
+                </div>
+                <div className="rounded-2xl border border-white/60 bg-white/70 p-3 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/70">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">Google Stitch MCP</div>
+                  <div className="mt-1 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    <Workflow className={`h-4 w-4 ${stitchHealth?.connected ? 'text-emerald-500' : 'text-amber-500'}`} />
+                    {stitchLoading ? 'Checking...' : stitchHealth?.connected ? 'Connected' : stitchHealth?.configured ? 'Unavailable' : 'Not configured'}
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-900 dark:text-green-100">{liveStats.activeUsers}</div>
-                  <p className="text-xs text-green-700 dark:text-green-300">
-                    {liveStats.recentLogins > 0 ? `${liveStats.recentLogins} logins today` : 'No recent activity'}
-                  </p>
-                </CardContent>
-              </Card>
+                </div>
+                <div className="rounded-2xl border border-white/60 bg-white/70 p-3 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/70">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">Security Score</div>
+                  <div className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{liveStats.securityScore}%</div>
+                </div>
+              </div>
+            </div>
+          </motion.section>
 
-              <Card className="border-0 shadow-xl bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Organisations</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-                    <Building2 className="h-4 w-4 text-purple-600" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">{liveStats.totalOrganisations}</div>
-                  <p className="text-xs text-purple-700 dark:text-purple-300">
-                    {liveStats.totalOrganisations > 0 ? `${Math.round(liveStats.activeUsers / Math.max(liveStats.totalOrganisations, 1))} avg users/org` : 'No organisations yet'}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-xl bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900 dark:to-orange-800">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Security Score</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${liveStats.securityScore >= 90 ? 'bg-green-500' : liveStats.securityScore >= 70 ? 'bg-yellow-500' : 'bg-red-500'} animate-pulse`}></div>
-                    <Shield className="h-4 w-4 text-orange-600" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">{liveStats.securityScore}%</div>
-                  <p className="text-xs text-orange-700 dark:text-orange-300">
-                    {liveStats.securityScore >= 90 ? 'Excellent security' : liveStats.securityScore >= 70 ? 'Good security' : 'Needs attention'}
-                  </p>
-                </CardContent>
-              </Card>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <div className="rounded-2xl border border-white/40 bg-white/60 p-2 shadow-sm backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/60">
+              <TabsList className="grid w-full grid-cols-2 gap-2 bg-transparent md:grid-cols-3 xl:grid-cols-9">
+                <TabsTrigger value="overview" className="flex items-center gap-2 rounded-xl text-slate-700 data-[state=active]:bg-slate-900 data-[state=active]:text-white dark:text-slate-300 dark:data-[state=active]:bg-slate-100 dark:data-[state=active]:text-slate-900">
+                  <BarChart3 className="h-4 w-4" />
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger value="users" className="flex items-center gap-2 rounded-xl text-slate-700 data-[state=active]:bg-slate-900 data-[state=active]:text-white dark:text-slate-300 dark:data-[state=active]:bg-slate-100 dark:data-[state=active]:text-slate-900">
+                  <Users className="h-4 w-4" />
+                  Users
+                </TabsTrigger>
+                <TabsTrigger value="user-roles" className="flex items-center gap-2 rounded-xl text-slate-700 data-[state=active]:bg-slate-900 data-[state=active]:text-white dark:text-slate-300 dark:data-[state=active]:bg-slate-100 dark:data-[state=active]:text-slate-900">
+                  <UserPlus className="h-4 w-4" />
+                  Role Mgmt
+                  <Badge className="bg-emerald-600 text-white text-xs">OAuth</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="organisations" className="flex items-center gap-2 rounded-xl text-slate-700 data-[state=active]:bg-slate-900 data-[state=active]:text-white dark:text-slate-300 dark:data-[state=active]:bg-slate-100 dark:data-[state=active]:text-slate-900">
+                  <Building2 className="h-4 w-4" />
+                  Organisations
+                </TabsTrigger>
+                <TabsTrigger value="analytics" className="flex items-center gap-2 rounded-xl text-slate-700 data-[state=active]:bg-slate-900 data-[state=active]:text-white dark:text-slate-300 dark:data-[state=active]:bg-slate-100 dark:data-[state=active]:text-slate-900">
+                  <BarChart3 className="h-4 w-4" />
+                  Analytics
+                </TabsTrigger>
+                <TabsTrigger value="debug" className="flex items-center gap-2 rounded-xl text-slate-700 data-[state=active]:bg-slate-900 data-[state=active]:text-white dark:text-slate-300 dark:data-[state=active]:bg-slate-100 dark:data-[state=active]:text-slate-900">
+                  <Settings className="h-4 w-4" />
+                  Debug
+                  <Badge className="bg-red-500 text-white text-xs">Test</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="security" className="flex items-center gap-2 rounded-xl text-slate-700 data-[state=active]:bg-slate-900 data-[state=active]:text-white dark:text-slate-300 dark:data-[state=active]:bg-slate-100 dark:data-[state=active]:text-slate-900">
+                  <Shield className="h-4 w-4" />
+                  Security
+                  <Badge variant="destructive" className="text-xs text-white">New</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="2fa" className="flex items-center gap-2 rounded-xl text-slate-700 data-[state=active]:bg-slate-900 data-[state=active]:text-white dark:text-slate-300 dark:data-[state=active]:bg-slate-100 dark:data-[state=active]:text-slate-900">
+                  <Shield className="h-4 w-4" />
+                  2FA
+                  <Badge className="bg-blue-500 text-white text-xs">New</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="system" className="flex items-center gap-2 rounded-xl text-slate-700 data-[state=active]:bg-slate-900 data-[state=active]:text-white dark:text-slate-300 dark:data-[state=active]:bg-slate-100 dark:data-[state=active]:text-slate-900">
+                  <Settings className="h-4 w-4" />
+                  System
+                </TabsTrigger>
+              </TabsList>
             </div>
 
-            <RoleBasedUserManagement />
-          </TabsContent>
+            <TabsContent value="overview" className="space-y-6">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.02 }}>
+                  <Card className="border border-white/50 bg-white/65 shadow-lg backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/60">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">System Status</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <div className={`h-2 w-2 rounded-full ${liveStats.systemStatus === 'Optimal' ? 'bg-green-500 animate-pulse' : 'bg-yellow-500 animate-pulse'}`} />
+                        <Shield className="h-4 w-4 text-blue-600" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{liveStats.systemStatus}</div>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">
+                        {liveStats.failedLogins > 0 ? `${liveStats.failedLogins} failed logins today` : 'All systems operational'}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-          <TabsContent value="users" className="space-y-6">
-            <SuperAdminUserManagement />
-          </TabsContent>
+                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.06 }}>
+                  <Card className="border border-white/50 bg-white/65 shadow-lg backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/60">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                        <Users className="h-4 w-4 text-green-600" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{liveStats.activeUsers}</div>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">
+                        {liveStats.recentLogins > 0 ? `${liveStats.recentLogins} logins today` : 'No recent activity'}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-          <TabsContent value="user-roles" className="space-y-6">
-            <UserManagement />
-          </TabsContent>
+                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.1 }}>
+                  <Card className="border border-white/50 bg-white/65 shadow-lg backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/60">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Organisations</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-violet-500 animate-pulse" />
+                        <Building2 className="h-4 w-4 text-violet-600" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{liveStats.totalOrganisations}</div>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">
+                        {liveStats.totalOrganisations > 0 ? `${Math.round(liveStats.activeUsers / Math.max(liveStats.totalOrganisations, 1))} avg users/org` : 'No organisations yet'}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-          <TabsContent value="organisations" className="space-y-6">
-            <OrganisationManagement />
-          </TabsContent>
+                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.14 }}>
+                  <Card className="border border-white/50 bg-white/65 shadow-lg backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/60">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Security Score</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <div className={`h-2 w-2 rounded-full ${liveStats.securityScore >= 90 ? 'bg-green-500' : liveStats.securityScore >= 70 ? 'bg-yellow-500' : 'bg-red-500'} animate-pulse`} />
+                        <Shield className="h-4 w-4 text-orange-600" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{liveStats.securityScore}%</div>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">
+                        {liveStats.securityScore >= 90 ? 'Excellent security' : liveStats.securityScore >= 70 ? 'Good security' : 'Needs attention'}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </div>
 
-          <TabsContent value="analytics" className="space-y-6">
-            <AnalyticsDashboard />
-            
-            {/* Live Reports Manager */}
-            <div className="mt-8">
-              <LiveReportsManager />
-            </div>
-            
-            {/* Live Schedule Automation */}
-            <div className="mt-8">
-              <LiveScheduleAutomation />
-            </div>
-          </TabsContent>
+              <RoleBasedUserManagement />
+            </TabsContent>
 
-          <TabsContent value="debug" className="space-y-6">
-            <DataDebugComponent />
-          </TabsContent>
+            <TabsContent value="users" className="space-y-6">
+              <SuperAdminUserManagement />
+            </TabsContent>
 
-          <TabsContent value="security" className="space-y-6">
-            <SecurityMonitoring />
-          </TabsContent>
+            <TabsContent value="user-roles" className="space-y-6">
+              <UserManagement />
+            </TabsContent>
 
-          <TabsContent value="2fa" className="space-y-6">
-            <TwoFactorManagement />
-          </TabsContent>
+            <TabsContent value="organisations" className="space-y-6">
+              <OrganisationManagement />
+            </TabsContent>
 
-          <TabsContent value="system" className="space-y-6">
-            <SystemSettings />
-          </TabsContent>
-        </Tabs>
-      </main>
+            <TabsContent value="analytics" className="space-y-6">
+              <AnalyticsDashboard />
 
-      <Footer />
+              <div className="mt-8">
+                <LiveReportsManager />
+              </div>
+
+              <div className="mt-8">
+                <LiveScheduleAutomation />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="debug" className="space-y-6">
+              <DataDebugComponent />
+            </TabsContent>
+
+            <TabsContent value="security" className="space-y-6">
+              <SecurityMonitoring />
+            </TabsContent>
+
+            <TabsContent value="2fa" className="space-y-6">
+              <TwoFactorManagement />
+            </TabsContent>
+
+            <TabsContent value="system" className="space-y-6">
+              <SystemSettings />
+            </TabsContent>
+          </Tabs>
+        </main>
+
+        <Footer />
+      </div>
     </div>
   );
 };
