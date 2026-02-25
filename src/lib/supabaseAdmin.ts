@@ -80,6 +80,47 @@ interface AdminOperationResult {
   error?: string;
 }
 
+interface RpcCreateUserResponse {
+  success?: boolean;
+  error?: string | null;
+  data?: unknown;
+  profile_id?: number;
+  user_id?: string;
+  username?: string;
+  display_name?: string;
+  user_type?: string;
+  login_username?: string;
+  auth_email?: string;
+  message?: string;
+}
+
+const normalizeCreateUserRpcResult = (payload: unknown): RpcCreateUserResponse | null => {
+  if (Array.isArray(payload)) {
+    const [first] = payload;
+    if (first && typeof first === 'object') {
+      return first as RpcCreateUserResponse;
+    }
+    return null;
+  }
+
+  if (payload && typeof payload === 'object') {
+    return payload as RpcCreateUserResponse;
+  }
+
+  return null;
+};
+
+const getRpcErrorMessage = (
+  normalized: RpcCreateUserResponse | null,
+  fallback: string
+): string => {
+  if (!normalized) return fallback;
+  if (typeof normalized.error === 'string' && normalized.error.trim()) {
+    return normalized.error;
+  }
+  return fallback;
+};
+
 // Admin user operations with fallback strategies
 export const adminUserOperations = {
   
@@ -172,9 +213,10 @@ export const adminUserOperations = {
         return { success: true, data };
       } else {
         // Fallback: Use RPC function for user creation
+        // Prefer create_user_with_credentials for compatibility with restored schemas.
         console.log('⚠️ No service role key - using RPC fallback for user creation');
-        
-        const { data, error } = await supabaseAdmin.rpc('create_user_with_username', {
+
+        const rpcPayload = {
           p_username: userData.user_metadata.username,
           p_password: userData.password,
           p_display_name: userData.user_metadata.display_name,
@@ -183,20 +225,46 @@ export const adminUserOperations = {
           p_department_id: safeDeptId,
           p_phone_number: userData.user_metadata.phone_number || null,
           p_created_by: userData.user_metadata.created_by || null
-        });
-        
+        };
+
+        let rpcName: 'create_user_with_credentials' | 'create_user_with_username' = 'create_user_with_credentials';
+        let { data, error } = await supabaseAdmin.rpc(rpcName, rpcPayload);
+
+        // Backward-compatible fallback where only create_user_with_username exists.
+        if (error?.message?.includes('Could not find the function public.create_user_with_credentials')) {
+          console.warn('⚠️ create_user_with_credentials not found, falling back to create_user_with_username');
+          rpcName = 'create_user_with_username';
+          ({ data, error } = await supabaseAdmin.rpc(rpcName, rpcPayload));
+        }
+
         if (error) {
-          console.error('❌ RPC user creation failed:', error.message);
+          console.error(`❌ RPC ${rpcName} user creation failed:`, error.message);
           return { success: false, error: error.message };
         }
-        
-        if (!data?.success) {
-          console.error('❌ RPC returned failure:', data?.error);
-          return { success: false, error: data?.error || 'User creation failed' };
+
+        const normalized = normalizeCreateUserRpcResult(data);
+        if (!normalized?.success) {
+          const errorMessage = getRpcErrorMessage(normalized, 'User creation failed');
+          console.error(`❌ RPC ${rpcName} returned failure:`, errorMessage, normalized);
+          return { success: false, error: errorMessage };
         }
-        
-        console.log('✅ User created via RPC fallback');
-        return { success: true, data };
+
+        // Normalize the payload shape (new/old function signatures).
+        const normalizedData =
+          normalized.data && typeof normalized.data === 'object'
+            ? normalized.data
+            : {
+                profile_id: normalized.profile_id,
+                user_id: normalized.user_id,
+                username: normalized.login_username || normalized.username || userData.user_metadata.username,
+                display_name: normalized.display_name || userData.user_metadata.display_name,
+                user_type: normalized.user_type || userData.user_metadata.user_type,
+                auth_email: normalized.auth_email,
+                message: normalized.message
+              };
+
+        console.log(`✅ User created via RPC fallback (${rpcName})`);
+        return { success: true, data: normalizedData };
       }
     } catch (error) {
       console.error('💥 Exception during user creation:', error);

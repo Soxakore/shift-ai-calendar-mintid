@@ -18,6 +18,17 @@ declare module '@supabase/supabase-js' {
       p_phone_number?: string | null;
       p_created_by?: string | null;
     }): Promise<{ data: any; error: any }>;
+
+    rpc(name: 'create_user_with_credentials', params: {
+      p_username: string;
+      p_password: string;
+      p_display_name: string;
+      p_user_type: string;
+      p_organisation_id?: string | null;
+      p_department_id?: string | null;
+      p_phone_number?: string | null;
+      p_created_by?: string | null;
+    }): Promise<{ data: any; error: any }>;
     
     rpc(name: 'change_user_password', params: {
       p_username: string;

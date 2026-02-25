@@ -31,6 +31,34 @@ interface Session {
   expires_at?: number;
 }
 
+interface UsernameAuthPayload {
+  profile_id?: number;
+  id?: number;
+  user_id?: string;
+  username?: string;
+  display_name?: string;
+  user_type?: string;
+  organisation_id?: string | null;
+  department_id?: string | null;
+  is_active?: boolean;
+  tracking_id?: string | null;
+  last_login?: string | null;
+}
+
+interface RpcCreateUserResponse {
+  success?: boolean;
+  error?: string | null;
+  data?: unknown;
+  profile_id?: number;
+  user_id?: string;
+  username?: string;
+  display_name?: string;
+  user_type?: string;
+  login_username?: string;
+  auth_email?: string;
+  message?: string;
+}
+
 export interface Profile {
   id: number; // Changed from string to number (bigint)
   user_id: string; // Added user_id field
@@ -435,6 +463,85 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
+  const normalizeUsernameAuthPayload = (authResult: unknown): UsernameAuthPayload | null => {
+    if (!authResult || typeof authResult !== 'object') return null;
+
+    const result = authResult as Record<string, unknown>;
+    const payload = (result.data || result.profile) as UsernameAuthPayload | undefined;
+
+    if (!payload || typeof payload !== 'object') return null;
+    return payload;
+  };
+
+  const applyUsernameAuthSession = (credential: string, payload: UsernameAuthPayload) => {
+    const profileId = payload.profile_id ?? payload.id ?? -1;
+    const payloadUserId = payload.user_id ? String(payload.user_id) : `username-${profileId}`;
+    const payloadUsername = payload.username || credential;
+    const payloadDisplayName = payload.display_name || payloadUsername;
+
+    const profileData: Profile = {
+      id: profileId,
+      user_id: payloadUserId,
+      username: payloadUsername,
+      display_name: payloadDisplayName,
+      user_type: (payload.user_type || 'employee') as 'super_admin' | 'org_admin' | 'manager' | 'employee',
+      organisation_id: payload.organisation_id || undefined,
+      department_id: payload.department_id || undefined,
+      is_active: payload.is_active ?? true,
+      tracking_id: payload.tracking_id || undefined,
+      last_login: payload.last_login || undefined,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const customUser = {
+      id: payloadUserId,
+      email: `${credential}@username.auth`,
+      user_metadata: {
+        username: payloadUsername,
+        display_name: payloadDisplayName,
+        auth_method: 'username_password'
+      }
+    } as User;
+
+    setUser(customUser);
+    setProfile(profileData);
+    setLoading(false);
+
+    setTimeout(() => {
+      logSessionEvent(
+        customUser.id,
+        'login',
+        `username-${Date.now()}`,
+        true
+      );
+    }, 0);
+  };
+
+  const normalizeCreateUserRpcResult = (payload: unknown): RpcCreateUserResponse | null => {
+    if (Array.isArray(payload)) {
+      const [first] = payload;
+      if (first && typeof first === 'object') {
+        return first as RpcCreateUserResponse;
+      }
+      return null;
+    }
+
+    if (payload && typeof payload === 'object') {
+      return payload as RpcCreateUserResponse;
+    }
+
+    return null;
+  };
+
+  const getRpcErrorMessage = (normalized: RpcCreateUserResponse | null, fallback: string): string => {
+    if (!normalized) return fallback;
+    if (typeof normalized.error === 'string' && normalized.error.trim()) {
+      return normalized.error;
+    }
+    return fallback;
+  };
+
   const signIn = async (credential: string, password: string) => {
     console.log('Sign in attempt for:', credential);
     // Don't set loading here as auth state change will handle it
@@ -465,51 +572,15 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
           return { success: false, error: authResult?.error || 'Invalid username or password' };
         }
 
-        console.log('✅ Username authentication successful:', authResult.data);
-        
-        // For username-based auth, we need to create a session manually or use a different approach
-        // Since we can't directly create Supabase auth sessions, we'll use a custom session approach
-        
-        // Store the authentication result in the context
-        const profileData: Profile = {
-          id: authResult.data.profile_id,
-          user_id: `username-${authResult.data.profile_id}`, // Custom identifier for username auth
-          username: authResult.data.username,
-          display_name: authResult.data.display_name,
-          user_type: authResult.data.user_type as 'super_admin' | 'org_admin' | 'manager' | 'employee',
-          organisation_id: authResult.data.organisation_id,
-          department_id: authResult.data.department_id,
-          is_active: authResult.data.is_active,
-          tracking_id: authResult.data.tracking_id,
-          last_login: authResult.data.last_login,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
+        const usernamePayload = normalizeUsernameAuthPayload(authResult);
+        if (!usernamePayload) {
+          console.error('❌ Username authentication payload missing expected data/profile object:', authResult);
+          setLoading(false);
+          return { success: false, error: 'Authentication response is invalid' };
+        }
 
-        // Set custom session for username-based auth
-        const customUser = {
-          id: `username-${authResult.data.profile_id}`,
-          email: `${credential}@username.auth`,
-          user_metadata: {
-            username: authResult.data.username,
-            display_name: authResult.data.display_name,
-            auth_method: 'username_password'
-          }
-        } as User;
-
-        setUser(customUser);
-        setProfile(profileData);
-        setLoading(false);
-
-        // Log session event
-        setTimeout(() => {
-          logSessionEvent(
-            customUser.id,
-            'login',
-            `username-${Date.now()}`,
-            true
-          );
-        }, 0);
+        console.log('✅ Username authentication successful:', usernamePayload);
+        applyUsernameAuthSession(credential, usernamePayload);
 
         return { success: true };
       }
@@ -562,83 +633,6 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         return { success: false, error: 'Invalid super admin credentials. Please check password or reset via Supabase dashboard.' };
       }
 
-      // Note: frontend.test hardcoded user removed for production
-      // All users should be authenticated through the proper systems
-
-      // Note: All hardcoded test users have been removed for production
-      // Users should be created through the proper admin interface
-
-      // Handle username-based login for managers and employees using new auth system
-      if (!isEmail) {
-        console.log('🔍 Username-based login attempt using credential system:', credential);
-        
-        // Try the new username-based authentication system first
-        const { data: authResult, error: authError } = await supabase.rpc('authenticate_username_login', {
-          p_username: credential,
-          p_password: password
-        });
-
-        if (authError) {
-          console.error('❌ Username authentication RPC error:', authError);
-          setLoading(false);
-          return { success: false, error: 'Authentication service error' };
-        }
-
-        if (!authResult?.success) {
-          console.error('❌ Username authentication failed:', authResult?.error);
-          setLoading(false);
-          return { success: false, error: authResult?.error || 'Invalid username or password' };
-        }
-
-        console.log('✅ Username authentication successful:', authResult.data);
-        
-        // For username-based auth, we need to create a session manually or use a different approach
-        // Since we can't directly create Supabase auth sessions, we'll use a custom session approach
-        
-        // Store the authentication result in the context
-        const profileData: Profile = {
-          id: authResult.data.profile_id,
-          user_id: `username-${authResult.data.profile_id}`, // Custom identifier for username auth
-          username: authResult.data.username,
-          display_name: authResult.data.display_name,
-          user_type: authResult.data.user_type as 'super_admin' | 'org_admin' | 'manager' | 'employee',
-          organisation_id: authResult.data.organisation_id,
-          department_id: authResult.data.department_id,
-          is_active: authResult.data.is_active,
-          tracking_id: authResult.data.tracking_id,
-          last_login: authResult.data.last_login,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-
-        // Set custom session for username-based auth
-        const customUser = {
-          id: `username-${authResult.data.profile_id}`,
-          email: `${credential}@username.auth`,
-          user_metadata: {
-            username: authResult.data.username,
-            display_name: authResult.data.display_name,
-            auth_method: 'username_password'
-          }
-        } as User;
-
-        setUser(customUser);
-        setProfile(profileData);
-        setLoading(false);
-
-        // Log session event
-        setTimeout(() => {
-          logSessionEvent(
-            customUser.id,
-            'login',
-            `username-${Date.now()}`,
-            true
-          );
-        }, 0);
-
-        return { success: true };
-      }
-      
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
@@ -742,8 +736,7 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
       }
       console.log('🔍 Created by value:', createdBy, 'Type:', typeof createdBy);
       
-      // Use the new username-based creation function
-      const { data: result, error } = await supabase.rpc('create_user_with_username', {
+      const rpcPayload = {
         p_username: userData.username.trim(),
         p_password: userData.password,
         p_display_name: userData.display_name.trim(),
@@ -752,25 +745,50 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         p_department_id: userData.department_id || null,
         p_phone_number: null,
         p_created_by: createdBy
-      });
+      };
+
+      // Prefer create_user_with_credentials for restored-schema compatibility.
+      let rpcName: 'create_user_with_credentials' | 'create_user_with_username' = 'create_user_with_credentials';
+      let { data: result, error } = await supabase.rpc(rpcName, rpcPayload);
+
+      if (error?.message?.includes('Could not find the function public.create_user_with_credentials')) {
+        console.warn('⚠️ create_user_with_credentials not found, falling back to create_user_with_username');
+        rpcName = 'create_user_with_username';
+        ({ data: result, error } = await supabase.rpc(rpcName, rpcPayload));
+      }
 
       if (error) {
-        console.error('❌ RPC function error:', error);
+        console.error(`❌ RPC ${rpcName} function error:`, error);
         return { success: false, error: error.message };
       }
 
-      if (!result?.success) {
-        console.error('❌ User creation failed:', result?.error);
-        return { success: false, error: result?.error || 'User creation failed' };
+      const normalized = normalizeCreateUserRpcResult(result);
+      if (!normalized?.success) {
+        const errorMessage = getRpcErrorMessage(normalized, 'User creation failed');
+        console.error(`❌ RPC ${rpcName} user creation failed:`, errorMessage, normalized);
+        return { success: false, error: errorMessage };
       }
 
-      console.log('✅ User created successfully with username-based auth:', result.data);
+      const normalizedData =
+        normalized.data && typeof normalized.data === 'object'
+          ? normalized.data
+          : {
+              profile_id: normalized.profile_id,
+              user_id: normalized.user_id,
+              username: normalized.login_username || normalized.username || userData.username,
+              display_name: normalized.display_name || userData.display_name,
+              user_type: normalized.user_type || userData.user_type,
+              auth_email: normalized.auth_email,
+              message: normalized.message
+            };
+
+      console.log(`✅ User created successfully with username-based auth via ${rpcName}:`, normalizedData);
       
       // Log audit event for user creation
       setTimeout(() => {
         logAuditEvent(
           'user_created',
-          result.data?.profile_id?.toString(),
+          (normalizedData as { profile_id?: number })?.profile_id?.toString(),
           userData.organisation_id,
           {
             username: userData.username,
@@ -781,7 +799,7 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         );
       }, 0);
       
-      return { success: true, data: result.data };
+      return { success: true, data: normalizedData };
     } catch (error) {
       console.error('💥 Unexpected error creating user:', error);
       return { success: false, error: 'Failed to create user' };

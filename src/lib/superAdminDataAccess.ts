@@ -55,6 +55,47 @@ interface CreateUserData {
   department_id: string;
 }
 
+interface RpcCreateUserResponse {
+  success?: boolean;
+  error?: string | null;
+  data?: unknown;
+  profile_id?: number;
+  user_id?: string;
+  username?: string;
+  display_name?: string;
+  user_type?: string;
+  login_username?: string;
+  auth_email?: string;
+  message?: string;
+}
+
+const normalizeCreateUserRpcResult = (payload: unknown): RpcCreateUserResponse | null => {
+  if (Array.isArray(payload)) {
+    const [first] = payload;
+    if (first && typeof first === 'object') {
+      return first as RpcCreateUserResponse;
+    }
+    return null;
+  }
+
+  if (payload && typeof payload === 'object') {
+    return payload as RpcCreateUserResponse;
+  }
+
+  return null;
+};
+
+const getRpcErrorMessage = (
+  normalized: RpcCreateUserResponse | null,
+  fallback: string
+): string => {
+  if (!normalized) return fallback;
+  if (typeof normalized.error === 'string' && normalized.error.trim()) {
+    return normalized.error;
+  }
+  return fallback;
+};
+
 export interface SuperAdminDataAccess {
   fetchOrganizations: () => Promise<Organization[]>;
   fetchProfiles: () => Promise<Profile[]>;
@@ -203,10 +244,12 @@ export const createUserAsAdmin = async (userData: CreateUserData) => {
   };
   
   try {
-    // Use the RPC function instead of edge function
-    console.log('🔄 Using RPC function for user creation (fallback)');
-    
-    const { data, error } = await supabase.rpc('create_user_with_username', {
+    // Use RPC fallback strategy:
+    // prefer create_user_with_credentials (restored DB compatibility),
+    // then fallback to create_user_with_username.
+    console.log('🔄 Using RPC function for user creation (fallback strategy)');
+
+    const rpcPayload = {
       p_username: userData.username,
       p_password: userData.password,
       p_display_name: userData.display_name,
@@ -214,21 +257,45 @@ export const createUserAsAdmin = async (userData: CreateUserData) => {
       p_organisation_id: safeOrgId,
       p_department_id: safeDeptId,
       p_phone_number: userData.phone_number || null,
-      p_created_by: null // Set to null since CreateUserData doesn't have this field
-    });
+      p_created_by: null // CreateUserData does not include actor id
+    };
+
+    let rpcName: 'create_user_with_credentials' | 'create_user_with_username' = 'create_user_with_credentials';
+    let { data, error } = await supabase.rpc(rpcName, rpcPayload);
+
+    if (error?.message?.includes('Could not find the function public.create_user_with_credentials')) {
+      console.warn('⚠️ create_user_with_credentials not found, falling back to create_user_with_username');
+      rpcName = 'create_user_with_username';
+      ({ data, error } = await supabase.rpc(rpcName, rpcPayload));
+    }
 
     if (error) {
-      console.error('❌ RPC user creation failed:', error);
+      console.error(`❌ RPC ${rpcName} user creation failed:`, error);
       return { data: null, error };
     }
 
-    if (!data?.success) {
-      console.error('❌ RPC returned failure:', data?.error);
-      return { data: null, error: { message: data?.error || 'User creation failed' } };
+    const normalized = normalizeCreateUserRpcResult(data);
+    if (!normalized?.success) {
+      const errorMessage = getRpcErrorMessage(normalized, 'User creation failed');
+      console.error(`❌ RPC ${rpcName} returned failure:`, errorMessage, normalized);
+      return { data: null, error: { message: errorMessage } };
     }
 
-    console.log('✅ User created successfully via RPC:', data);
-    return { data: data.data, error: null };
+    const normalizedData =
+      normalized.data && typeof normalized.data === 'object'
+        ? normalized.data
+        : {
+            profile_id: normalized.profile_id,
+            user_id: normalized.user_id,
+            username: normalized.login_username || normalized.username || userData.username,
+            display_name: normalized.display_name || userData.display_name,
+            user_type: normalized.user_type || userData.user_type,
+            auth_email: normalized.auth_email,
+            message: normalized.message
+          };
+
+    console.log(`✅ User created successfully via RPC (${rpcName}):`, normalizedData);
+    return { data: normalizedData as Profile, error: null };
     
   } catch (exception) {
     console.error('💥 Exception during user creation:', exception);
