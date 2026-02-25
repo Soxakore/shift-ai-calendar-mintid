@@ -22,18 +22,27 @@ import Footer from '@/components/Footer';
 import SEOHead from '@/components/SEOHead';
 import { getPageMetadata } from '@/lib/seo';
 import { useToast } from '@/hooks/use-toast';
-import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { LiveNotificationsPanel } from '@/components/LiveNotificationsPanel';
 
-const SchedulePage = () => {
-  const navigate = useNavigate();
-  interface DatabaseTimeLog {
+interface DatabaseSchedule {
   id: string;
   user_id: string;
-  organisation_id: string;
-  department_id: string;
+  date: string;
+  start_time: string | null;
+  end_time: string | null;
+  shift?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface DatabaseTimeLog {
+  id: string;
+  user_id: string;
+  organisation_id: string | null;
+  organization_id?: string | null;
+  department_id: string | null;
   date: string;
   clock_in?: string | null;
   clock_out?: string | null;
@@ -43,16 +52,57 @@ const SchedulePage = () => {
   updated_at?: string;
 }
 
-const { toast } = useToast();
+const SchedulePage = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const pageMetadata = getPageMetadata('schedule');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isOnline, setIsOnline] = useState(true);
   const [systemStatus, setSystemStatus] = useState('operational');
   const [isClockingOut, setIsClockingOut] = useState(false);
+  const [schedules, setSchedules] = useState<DatabaseSchedule[]>([]);
+  const [timeLogs, setTimeLogs] = useState<DatabaseTimeLog[]>([]);
   const [todayTimeLog, setTodayTimeLog] = useState<DatabaseTimeLog | null>(null);
 
   const { profile, user } = useSupabaseAuth();
-  const { schedules, timeLogs, refetch } = useSupabaseData();
+
+  const fetchSchedules = async () => {
+    if (!profile) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('schedules')
+        .select('*')
+        .eq('user_id', profile.id)
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+      setSchedules((data || []) as DatabaseSchedule[]);
+    } catch (error) {
+      console.error('Error fetching schedules:', error);
+    }
+  };
+
+  const fetchTimeLogs = async () => {
+    if (!profile) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('time_logs')
+        .select('*')
+        .eq('user_id', profile.id)
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+      setTimeLogs((data || []) as DatabaseTimeLog[]);
+    } catch (error) {
+      console.error('Error fetching time logs:', error);
+    }
+  };
+
+  const refetchData = async () => {
+    await Promise.all([fetchSchedules(), fetchTimeLogs()]);
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -76,7 +126,7 @@ const { toast } = useToast();
           filter: `user_id=eq.${profile.id}`
         },
         () => {
-          refetch();
+          fetchSchedules();
         }
       )
       .on(
@@ -88,7 +138,7 @@ const { toast } = useToast();
           filter: `user_id=eq.${profile.id}`
         },
         () => {
-          refetch();
+          fetchTimeLogs();
           loadTodayTimeLog();
         }
       )
@@ -98,24 +148,31 @@ const { toast } = useToast();
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile, refetch]);
+  }, [profile]);
 
   // Load today's time log
   const loadTodayTimeLog = async () => {
     if (!profile) return;
 
     const today = new Date().toISOString().split('T')[0];
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('time_logs')
       .select('*')
       .eq('user_id', profile.id)
       .eq('date', today)
-      .single();
+      .maybeSingle();
 
-    setTodayTimeLog(data);
+    if (error) {
+      console.error('Error loading today time log:', error);
+      return;
+    }
+
+    setTodayTimeLog((data as DatabaseTimeLog | null) || null);
   };
 
   useEffect(() => {
+    if (!profile) return;
+    refetchData();
     loadTodayTimeLog();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
@@ -139,6 +196,8 @@ const { toast } = useToast();
       const scheduleDate = new Date(schedule.date);
       return scheduleDate >= weekStart && scheduleDate <= weekEnd;
     }).reduce((total, schedule) => {
+      if (!schedule.start_time || !schedule.end_time) return total;
+
       const start = schedule.start_time.split(':');
       const end = schedule.end_time.split(':');
       const startHours = parseInt(start[0]) + parseInt(start[1]) / 60;
