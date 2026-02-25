@@ -72,20 +72,34 @@ export const useSupabaseData = () => {
       .filter((userId): userId is string => typeof userId === 'string' && userId.length > 0);
 
   const fetchOrganizations = async () => {
+    if (!profile) return;
+
     try {
-      const { data, error } = await supabase
-        .from('organisations')
-        .select('*')
-        .order('name');
+      let query = supabase.from('organisations').select('*');
+      const superAdminContext = getSuperAdminViewingOrg();
+
+      if (profile.user_type === 'super_admin' && superAdminContext?.id) {
+        query = query.eq('id', superAdminContext.id);
+      } else if (profile.user_type !== 'super_admin') {
+        if (!profile.organisation_id) {
+          setOrganisations([]);
+          return;
+        }
+        query = query.eq('id', profile.organisation_id);
+      }
+
+      const { data, error } = await query.order('name');
 
       if (error) {
         console.error('Error fetching organizations:', error);
+        setOrganisations([]);
         return;
       }
 
       setOrganisations((data || []) as Organisation[]);
     } catch (error) {
       console.error('Exception fetching organizations:', error);
+      setOrganisations([]);
     }
   };
 
@@ -98,7 +112,11 @@ export const useSupabaseData = () => {
 
       if (profile.user_type === 'super_admin' && superAdminContext) {
         query = query.eq('organisation_id', superAdminContext.id);
-      } else if (profile.user_type !== 'super_admin' && profile.organisation_id) {
+      } else if (profile.user_type !== 'super_admin') {
+        if (!profile.organisation_id) {
+          setDepartments([]);
+          return;
+        }
         query = query.eq('organisation_id', profile.organisation_id);
       }
 
@@ -106,12 +124,14 @@ export const useSupabaseData = () => {
 
       if (error) {
         console.error('Error fetching departments:', error);
+        setDepartments([]);
         return;
       }
 
       setDepartments((data || []) as Department[]);
     } catch (error) {
       console.error('Exception fetching departments:', error);
+      setDepartments([]);
     }
   };
 
@@ -124,11 +144,23 @@ export const useSupabaseData = () => {
 
       if (profile.user_type === 'super_admin' && superAdminContext) {
         query = query.eq('organisation_id', superAdminContext.id);
-      } else if (profile.user_type === 'org_admin' && profile.organisation_id) {
+      } else if (profile.user_type === 'org_admin') {
+        if (!profile.organisation_id) {
+          setProfiles([]);
+          return [];
+        }
         query = query.eq('organisation_id', profile.organisation_id);
-      } else if (profile.user_type === 'manager' && profile.department_id) {
+      } else if (profile.user_type === 'manager') {
+        if (!profile.department_id) {
+          setProfiles([]);
+          return [];
+        }
         query = query.eq('department_id', profile.department_id);
       } else if (profile.user_type === 'employee') {
+        if (!profile.id) {
+          setProfiles([]);
+          return [];
+        }
         query = query.eq('id', profile.id);
       }
 
@@ -164,8 +196,14 @@ export const useSupabaseData = () => {
           return;
         }
         query = query.eq('user_id', profile.user_id);
-      } else if (profile.user_type === 'manager' || profile.user_type === 'org_admin') {
-        if (scopedUserIds.length === 0) {
+      } else if (profile.user_type === 'manager') {
+        if (!profile.department_id || scopedUserIds.length === 0) {
+          setSchedules([]);
+          return;
+        }
+        query = query.in('user_id', scopedUserIds);
+      } else if (profile.user_type === 'org_admin') {
+        if (!profile.organisation_id || scopedUserIds.length === 0) {
           setSchedules([]);
           return;
         }
@@ -207,8 +245,14 @@ export const useSupabaseData = () => {
           return;
         }
         query = query.eq('user_id', profile.user_id);
-      } else if (profile.user_type === 'manager' || profile.user_type === 'org_admin') {
-        if (scopedUserIds.length === 0) {
+      } else if (profile.user_type === 'manager') {
+        if (!profile.department_id || scopedUserIds.length === 0) {
+          setTimeLogs([]);
+          return;
+        }
+        query = query.in('user_id', scopedUserIds);
+      } else if (profile.user_type === 'org_admin') {
+        if (!profile.organisation_id || scopedUserIds.length === 0) {
           setTimeLogs([]);
           return;
         }
@@ -250,8 +294,14 @@ export const useSupabaseData = () => {
           return;
         }
         query = query.eq('user_id', profile.user_id);
-      } else if (profile.user_type === 'manager' || profile.user_type === 'org_admin') {
-        if (scopedUserIds.length === 0) {
+      } else if (profile.user_type === 'manager') {
+        if (!profile.department_id || scopedUserIds.length === 0) {
+          setNotifications([]);
+          return;
+        }
+        query = query.in('user_id', scopedUserIds);
+      } else if (profile.user_type === 'org_admin') {
+        if (!profile.organisation_id || scopedUserIds.length === 0) {
           setNotifications([]);
           return;
         }

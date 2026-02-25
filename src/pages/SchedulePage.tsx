@@ -316,7 +316,12 @@ const SchedulePage = () => {
         pageName="schedule"
       />
 
-      <EmployeeHeader onUpdateProfile={handleUpdateProfile} />
+      <EmployeeHeader
+        onUpdateProfile={handleUpdateProfile}
+        userName={profile?.display_name || profile?.username || 'Employee'}
+        departmentName={currentDepartment?.name || 'Unassigned Department'}
+        isOnline={true}
+      />
 
       <main className="flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6">
         <div className="mb-6">

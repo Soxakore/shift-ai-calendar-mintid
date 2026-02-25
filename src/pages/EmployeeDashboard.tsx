@@ -32,6 +32,7 @@ import HoursWorkedChart from '@/components/HoursWorkedChart';
 import MonthlyPrecisionChart from '@/components/MonthlyPrecisionChart';
 import EnhancedScheduleCalendar from '@/components/EnhancedScheduleCalendar';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { supabase } from '@/integrations/supabase/client';
 
 const EmployeeDashboard = () => {
@@ -58,6 +59,11 @@ const EmployeeDashboard = () => {
 
   // Supabase hooks
   const { profile } = useSupabaseAuth();
+  const { departments } = useSupabaseData();
+
+  const currentDepartment = departments.find((entry) => entry.id === profile?.department_id);
+  const displayName = profile?.display_name || profile?.username || 'Employee';
+  const departmentName = currentDepartment?.name || 'Unassigned Department';
   
   // Local state for schedules and time logs with proper types
   const [schedules, setSchedules] = useState<Array<{
@@ -402,12 +408,12 @@ const EmployeeDashboard = () => {
             <div className="flex items-center gap-2 sm:gap-3">
               <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-gray-500 dark:text-gray-400" />
               <div>
-                <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Welcome to MinaTid, {profile?.display_name || 'Employee'}</h1>
+                <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Welcome to MinaTid, {displayName}</h1>
                 <div className="flex items-center gap-2">
                   <Badge className="bg-gray-500 text-white text-xs">EMPLOYEE</Badge>
                   <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                     <Utensils className="w-4 h-4" />
-                    Kitchen Department
+                    {departmentName}
                   </div>
                   <div className={`flex items-center gap-1 text-xs ${isOnline ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`}></div>
