@@ -250,7 +250,8 @@ export default function RoleBasedUserManagement() {
       // Use super admin data access for super admin users
       if (profile?.user_type === 'super_admin') {
         console.log('🚀 Using super admin organization creation');
-        const { data, error } = await createOrganizationAsAdmin(orgData);
+        const actorId = profile.user_id || profile.id?.toString() || null;
+        const { data, error } = await createOrganizationAsAdmin(orgData, actorId);
         
         if (error) {
           console.error('❌ Super admin organization creation failed:', error);

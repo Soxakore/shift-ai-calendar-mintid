@@ -64,6 +64,14 @@ export function LiveScheduleAutomation() {
     [scopedProfiles]
   );
 
+  const scopedProfileIds = useMemo(
+    () =>
+      scopedProfiles
+        .map((entry) => entry.id)
+        .filter((id): id is number => typeof id === 'number' && Number.isFinite(id)),
+    [scopedProfiles]
+  );
+
   const scopedUserIdSet = useMemo(() => new Set(scopedUserIds), [scopedUserIds]);
 
   const activeUsers = scopedProfiles.length;
@@ -122,20 +130,31 @@ export function LiveScheduleAutomation() {
         return;
       }
 
-      const rows = tomorrowShifts.map((entry) => ({
-        user_id: entry.user_id,
-        type: 'schedule_reminder',
-        title: 'Shift Reminder',
-        message: `Reminder: You are scheduled tomorrow from ${entry.start_time?.slice(0, 5) || '--'} to ${entry.end_time?.slice(0, 5) || '--'}.`,
-        data: {
-          shift_id: entry.id,
-          shift_date: entry.date,
-          triggered_by: profile?.user_id || null,
-          triggered_role: profile?.user_type || null,
-        },
-        read: false,
-        sent_via: ['in_app'],
-      }));
+      const rows = tomorrowShifts
+        .map((entry) => {
+          const profileId = scopedProfiles.find((profileEntry) => profileEntry.user_id === entry.user_id)?.id;
+          if (typeof profileId !== 'number') return null;
+
+          return {
+            user_id: profileId,
+            type: 'schedule_reminder',
+            title: 'Shift Reminder',
+            message: `Reminder: You are scheduled tomorrow from ${entry.start_time?.slice(0, 5) || '--'} to ${entry.end_time?.slice(0, 5) || '--'}.`,
+            data: {
+              shift_id: entry.id,
+              shift_date: entry.date,
+              triggered_by: profile?.user_id || null,
+              triggered_role: profile?.user_type || null,
+            },
+            is_read: false,
+            sent_via: ['in_app'],
+          };
+        })
+        .filter((row): row is NonNullable<typeof row> => !!row);
+
+      if (rows.length === 0) {
+        throw new Error('No notifications could be created because recipients are missing profile IDs');
+      }
 
       const { error } = await supabase.from('notifications').insert(rows);
       if (error) throw error;
@@ -193,13 +212,13 @@ export function LiveScheduleAutomation() {
 
       const recipients = scopedProfiles
         .filter((entry) => ['manager', 'org_admin', 'super_admin'].includes(entry.user_type))
-        .map((entry) => entry.user_id)
-        .filter((userId): userId is string => typeof userId === 'string' && userId.length > 0);
+        .map((entry) => entry.id)
+        .filter((id): id is number => typeof id === 'number' && Number.isFinite(id));
       const uniqueRecipients = [...new Set(recipients)];
 
       if (uniqueRecipients.length > 0) {
-        const rows = uniqueRecipients.map((userId) => ({
-          user_id: userId,
+        const rows = uniqueRecipients.map((profileId) => ({
+          user_id: profileId,
           type: 'weekly_report',
           title: 'Weekly Report Generated',
           message: `Weekly report ready: ${Math.round(totalHours * 10) / 10}h across ${totalEmployees} employee${totalEmployees === 1 ? '' : 's'}.`,
@@ -209,7 +228,7 @@ export function LiveScheduleAutomation() {
             total_work_sessions: totalSessions,
             total_employees: totalEmployees,
           },
-          read: false,
+          is_read: false,
           sent_via: ['in_app'],
         }));
         const { error: notificationError } = await supabase.from('notifications').insert(rows);
@@ -233,13 +252,22 @@ export function LiveScheduleAutomation() {
   };
 
   const sendTestEmergencyAlert = async () => {
-    if (!profile?.user_id) return;
+    if (typeof profile?.id !== 'number' && !profile?.user_id) return;
 
     setIsLoading(true);
     try {
-      const recipientIds = scopedUserIds.length > 0 ? scopedUserIds : [profile.user_id];
-      const rows = recipientIds.map((userId) => ({
-        user_id: userId,
+      const recipientIds = scopedProfileIds.length > 0
+        ? scopedProfileIds
+        : typeof profile?.id === 'number'
+          ? [profile.id]
+          : [];
+
+      if (recipientIds.length === 0) {
+        throw new Error('No recipients available for emergency alert');
+      }
+
+      const rows = recipientIds.map((profileId) => ({
+        user_id: profileId,
         type: 'emergency_alert',
         title: 'Emergency Test Alert',
         message: 'Test Alert: This is a system test. No action is required.',
@@ -248,7 +276,7 @@ export function LiveScheduleAutomation() {
           triggered_by: profile.user_id,
           triggered_role: profile.user_type,
         },
-        read: false,
+        is_read: false,
         sent_via: ['in_app'],
       }));
 
@@ -297,14 +325,14 @@ export function LiveScheduleAutomation() {
       }
 
       const recipients = scopedProfiles
-        .map((entry) => entry.user_id)
-        .filter((userId): userId is string => typeof userId === 'string' && userId.length > 0);
+        .map((entry) => entry.id)
+        .filter((id): id is number => typeof id === 'number' && Number.isFinite(id));
       const uniqueRecipients = [...new Set(recipients)];
 
       const targetRecipients = uniqueRecipients.length > 0
         ? uniqueRecipients
-        : profile?.user_id
-          ? [profile.user_id]
+        : typeof profile?.id === 'number'
+          ? [profile.id]
           : [];
 
       if (targetRecipients.length === 0) {
@@ -316,8 +344,8 @@ export function LiveScheduleAutomation() {
         return;
       }
 
-      const rows = targetRecipients.map((userId) => ({
-        user_id: userId,
+      const rows = targetRecipients.map((profileId) => ({
+        user_id: profileId,
         type: 'automation_update',
         title: 'Schedule Automation Updated',
         message: `Automation tasks configured: ${tasks.join(', ')}`,
@@ -325,7 +353,7 @@ export function LiveScheduleAutomation() {
           tasks,
           configured_by: profile?.user_id || null,
         },
-        read: false,
+        is_read: false,
         sent_via: ['in_app'],
       }));
       const { error } = await supabase.from('notifications').insert(rows);

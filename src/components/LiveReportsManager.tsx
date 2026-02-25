@@ -286,12 +286,12 @@ export function LiveReportsManager({ organisationId, departmentId }: LiveReports
     try {
       const recipients = scopedProfiles
         .filter((entry) => ['manager', 'org_admin', 'super_admin'].includes(entry.user_type))
-        .map((entry) => entry.user_id)
-        .filter((userId): userId is string => typeof userId === 'string' && userId.length > 0);
+        .map((entry) => entry.id)
+        .filter((id): id is number => typeof id === 'number' && Number.isFinite(id));
       const uniqueRecipients = [...new Set(recipients)];
 
-      if (uniqueRecipients.length === 0 && profile?.user_id) {
-        uniqueRecipients.push(profile.user_id);
+      if (uniqueRecipients.length === 0 && typeof profile?.id === 'number') {
+        uniqueRecipients.push(profile.id);
       }
 
       if (uniqueRecipients.length === 0) {
@@ -303,8 +303,8 @@ export function LiveReportsManager({ organisationId, departmentId }: LiveReports
         return;
       }
 
-      const rows = uniqueRecipients.map((userId) => ({
-        user_id: userId,
+      const rows = uniqueRecipients.map((profileId) => ({
+        user_id: profileId,
         type: 'report_schedule',
         title: 'Automated Reports Scheduled',
         message: `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} reports are now scheduled for your scope.`,
@@ -314,7 +314,7 @@ export function LiveReportsManager({ organisationId, departmentId }: LiveReports
           organisation_id: organisationId || profile?.organisation_id || null,
           department_id: departmentId || profile?.department_id || null,
         },
-        read: false,
+        is_read: false,
         sent_via: ['in_app'],
       }));
 

@@ -212,8 +212,8 @@ export const adminUserOperations = {
         console.log('✅ User created via admin API');
         return { success: true, data };
       } else {
-        // Fallback: Use RPC function for user creation
-        // Prefer create_user_with_credentials for compatibility with restored schemas.
+        // Fallback: Use RPC function for user creation.
+        // Prefer secure wrapper and fallback only when unavailable.
         console.log('⚠️ No service role key - using RPC fallback for user creation');
 
         const rpcPayload = {
@@ -227,14 +227,20 @@ export const adminUserOperations = {
           p_created_by: userData.user_metadata.created_by || null
         };
 
-        let rpcName: 'create_user_with_credentials' | 'create_user_with_username' = 'create_user_with_credentials';
+        let rpcName: 'create_user_secure' | 'create_user_with_credentials' | 'create_user_with_username' = 'create_user_secure';
         let { data, error } = await supabaseAdmin.rpc(rpcName, rpcPayload);
 
-        // Backward-compatible fallback where only create_user_with_username exists.
-        if (error?.message?.includes('Could not find the function public.create_user_with_credentials')) {
-          console.warn('⚠️ create_user_with_credentials not found, falling back to create_user_with_username');
-          rpcName = 'create_user_with_username';
+        if (error?.message?.includes('Could not find the function public.create_user_secure')) {
+          console.warn('⚠️ create_user_secure not found, falling back to legacy RPCs');
+          rpcName = 'create_user_with_credentials';
           ({ data, error } = await supabaseAdmin.rpc(rpcName, rpcPayload));
+
+          // Backward-compatible fallback where only create_user_with_username exists.
+          if (error?.message?.includes('Could not find the function public.create_user_with_credentials')) {
+            console.warn('⚠️ create_user_with_credentials not found, falling back to create_user_with_username');
+            rpcName = 'create_user_with_username';
+            ({ data, error } = await supabaseAdmin.rpc(rpcName, rpcPayload));
+          }
         }
 
         if (error) {

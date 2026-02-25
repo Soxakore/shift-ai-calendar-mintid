@@ -146,7 +146,7 @@ export function LiveNotificationsPanel({
   };
 
   const withAction = async (action: LiveAction, handler: () => Promise<void>) => {
-    if (!profile?.user_id) return;
+    if (typeof profile?.id !== 'number' && !profile?.user_id) return;
     setActiveAction(action);
     try {
       await handler();
@@ -157,7 +157,7 @@ export function LiveNotificationsPanel({
   };
 
   const getRecipientProfiles = () => {
-    if (!profile?.user_id) return [];
+    if (typeof profile?.id !== 'number' && !profile?.user_id) return [];
 
     if (profile.user_type === 'employee') {
       return activeProfiles.filter((entry) => entry.user_id === profile.user_id);
@@ -202,9 +202,13 @@ export function LiveNotificationsPanel({
 
       const notificationRows = shifts.map((shift) => {
         const recipient = profileByUserId.get(shift.user_id);
+        if (!recipient || typeof recipient.id !== 'number') {
+          return null;
+        }
+
         const shiftDate = new Date(shift.date).toLocaleDateString();
         return {
-          user_id: shift.user_id,
+          user_id: recipient.id,
           type: 'schedule_reminder',
           title: 'Shift Reminder',
           message: `Hi ${recipient?.display_name || recipient?.username || 'team member'}, you are scheduled on ${shiftDate} from ${formatScheduleTime(shift.start_time)} to ${formatScheduleTime(shift.end_time)}.`,
@@ -218,10 +222,14 @@ export function LiveNotificationsPanel({
             triggered_by: profile.user_id,
             triggered_role: profile.user_type,
           },
-          read: false,
+          is_read: false,
           sent_via: ['in_app'],
         };
-      });
+      }).filter((row): row is NonNullable<typeof row> => !!row);
+
+      if (notificationRows.length === 0) {
+        throw new Error('No notification recipients with valid profile IDs were found');
+      }
 
       const { error } = await supabase.from('notifications').insert(notificationRows);
       if (error) throw error;
@@ -296,13 +304,13 @@ export function LiveNotificationsPanel({
 
       const managerRecipients = recipients
         .filter((entry) => entry.user_type === 'manager' || entry.user_type === 'org_admin' || entry.user_id === profile?.user_id)
-        .map((entry) => entry.user_id)
-        .filter((userId): userId is string => typeof userId === 'string' && userId.length > 0);
+        .map((entry) => entry.id)
+        .filter((id): id is number => typeof id === 'number' && Number.isFinite(id));
       const uniqueManagerRecipients = [...new Set(managerRecipients)];
 
       if (uniqueManagerRecipients.length > 0) {
-        const reportNotifications = uniqueManagerRecipients.map((userId) => ({
-          user_id: userId,
+        const reportNotifications = uniqueManagerRecipients.map((profileId) => ({
+          user_id: profileId,
           type: 'weekly_report',
           title: 'Weekly Report',
           message: `Weekly report generated: ${formatHourValue(totalHours)} across ${employeesWorked} employee${employeesWorked === 1 ? '' : 's'}.`,
@@ -312,7 +320,7 @@ export function LiveNotificationsPanel({
             week_end: reportPayload.end_date,
             generated_by: profile?.user_id || null,
           },
-          read: false,
+          is_read: false,
           sent_via: ['in_app'],
         }));
 
@@ -332,10 +340,10 @@ export function LiveNotificationsPanel({
 
   const handleTestNotification = async () => {
     await withAction('test_notification', async () => {
-      if (!profile?.user_id) return;
+      if (typeof profile?.id !== 'number') return;
 
       const { error } = await supabase.from('notifications').insert({
-        user_id: profile.user_id,
+        user_id: profile.id,
         type: 'system_test',
         title: 'System Test',
         message: `Notification test successful at ${new Date().toLocaleTimeString()}.`,
@@ -343,7 +351,7 @@ export function LiveNotificationsPanel({
           tested_by: profile.user_id,
           tested_role: profile.user_type,
         },
-        read: false,
+        is_read: false,
         sent_via: ['in_app'],
       });
       if (error) throw error;
@@ -361,11 +369,11 @@ export function LiveNotificationsPanel({
   const handleEmergencyAlert = async () => {
     await withAction('emergency_alert', async () => {
       const recipients = getRecipientProfiles();
-      const recipientUserIds = recipients
-        .map((entry) => entry.user_id)
-        .filter((userId): userId is string => typeof userId === 'string' && userId.length > 0);
+      const recipientProfileIds = recipients
+        .map((entry) => entry.id)
+        .filter((id): id is number => typeof id === 'number' && Number.isFinite(id));
 
-      if (recipientUserIds.length === 0) {
+      if (recipientProfileIds.length === 0) {
         const detail = 'No active recipients available for emergency alert.';
         setLastAction(detail);
         addActionHistory({ action: 'Emergency alert', status: 'error', detail });
@@ -377,8 +385,8 @@ export function LiveNotificationsPanel({
         return;
       }
 
-      const alertRows = recipientUserIds.map((userId) => ({
-        user_id: userId,
+      const alertRows = recipientProfileIds.map((profileId) => ({
+        user_id: profileId,
         type: 'emergency_alert',
         title: 'Emergency Alert',
         message: 'Urgent: Please check your dashboard and follow manager instructions immediately.',
@@ -388,7 +396,7 @@ export function LiveNotificationsPanel({
           triggered_role: profile?.user_type || null,
           triggered_at: new Date().toISOString(),
         },
-        read: false,
+        is_read: false,
         sent_via: ['in_app'],
       }));
 

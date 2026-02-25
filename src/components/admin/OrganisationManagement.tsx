@@ -21,13 +21,16 @@ import {
   Plus
 } from 'lucide-react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import CreateOrganisationForm from './CreateOrganisationForm';
 import OrganisationsList from './OrganisationsList';
 import { getOrganizationAlias, getOrganizationDescription } from '@/lib/organizationHelpers';
+import { createDepartmentAsAdmin, createOrganizationAsAdmin } from '@/lib/superAdminDataAccess';
 
 const OrganisationManagement = () => {
+  const { profile } = useSupabaseAuth();
   const { organisations, profiles, departments, refetchOrganisations, refetchDepartments } = useSupabaseData();
   const { toast } = useToast();
   const [selectedOrg, setSelectedOrg] = useState<string>('');
@@ -49,18 +52,9 @@ const OrganisationManagement = () => {
     setIsCreating(true);
     try {
       console.log('Creating organisation with data:', orgData);
-      
-      const { data, error } = await supabase
-        .from('organisations')
-        .insert([{
-          name: orgData.name.trim(),
-          settings_json: {
-            alias: orgData.alias?.trim() || null,
-            description: orgData.description?.trim() || null
-          }
-        }])
-        .select()
-        .single();
+
+      const actorId = profile?.user_id || profile?.id?.toString() || null;
+      const { data, error } = await createOrganizationAsAdmin(orgData, actorId);
 
       if (error) {
         console.error('Organisation creation error:', error);
@@ -160,15 +154,12 @@ const OrganisationManagement = () => {
 
     setIsCreatingDept(true);
     try {
-      const { data, error } = await supabase
-        .from('departments')
-        .insert([{
-          name: newDeptData.name.trim(),
-          description: newDeptData.description?.trim() || null,
-          organisation_id: selectedOrg
-        }])
-        .select()
-        .single();
+      const actorId = profile?.user_id || profile?.id?.toString() || null;
+      const { data, error } = await createDepartmentAsAdmin({
+        name: newDeptData.name,
+        description: newDeptData.description,
+        organisation_id: selectedOrg
+      }, actorId);
 
       if (error) {
         console.error('Department creation error:', error);

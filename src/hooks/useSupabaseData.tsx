@@ -33,11 +33,12 @@ export interface TimeLogRecord {
 
 export interface NotificationRecord {
   id: string;
-  user_id: string | null;
+  user_id: number | null;
   type: string;
   title: string;
   message: string;
   data?: Record<string, unknown> | null;
+  is_read?: boolean | null;
   read?: boolean | null;
   sent_via?: string[] | null;
   created_at?: string | null;
@@ -70,6 +71,11 @@ export const useSupabaseData = () => {
     (scopeProfiles || profiles)
       .map((entry) => entry.user_id)
       .filter((userId): userId is string => typeof userId === 'string' && userId.length > 0);
+
+  const toScopedProfileIds = (scopeProfiles?: Profile[]) =>
+    (scopeProfiles || profiles)
+      .map((entry) => entry.id)
+      .filter((id): id is number => typeof id === 'number' && Number.isFinite(id));
 
   const fetchOrganizations = async () => {
     if (!profile) return;
@@ -285,33 +291,33 @@ export const useSupabaseData = () => {
 
     try {
       let query = supabase.from('notifications').select('*');
-      const scopedUserIds = toScopedUserIds(scopeProfiles);
+      const scopedProfileIds = toScopedProfileIds(scopeProfiles);
       const superAdminContext = getSuperAdminViewingOrg();
 
       if (profile.user_type === 'employee') {
-        if (!profile.user_id) {
+        if (typeof profile.id !== 'number') {
           setNotifications([]);
           return;
         }
-        query = query.eq('user_id', profile.user_id);
+        query = query.eq('user_id', profile.id);
       } else if (profile.user_type === 'manager') {
-        if (!profile.department_id || scopedUserIds.length === 0) {
+        if (!profile.department_id || scopedProfileIds.length === 0) {
           setNotifications([]);
           return;
         }
-        query = query.in('user_id', scopedUserIds);
+        query = query.in('user_id', scopedProfileIds);
       } else if (profile.user_type === 'org_admin') {
-        if (!profile.organisation_id || scopedUserIds.length === 0) {
+        if (!profile.organisation_id || scopedProfileIds.length === 0) {
           setNotifications([]);
           return;
         }
-        query = query.in('user_id', scopedUserIds);
+        query = query.in('user_id', scopedProfileIds);
       } else if (profile.user_type === 'super_admin' && superAdminContext) {
-        if (scopedUserIds.length === 0) {
+        if (scopedProfileIds.length === 0) {
           setNotifications([]);
           return;
         }
-        query = query.in('user_id', scopedUserIds);
+        query = query.in('user_id', scopedProfileIds);
       }
 
       const { data, error } = await query.order('created_at', { ascending: false }).limit(50);
@@ -322,7 +328,23 @@ export const useSupabaseData = () => {
         return;
       }
 
-      setNotifications((data || []) as NotificationRecord[]);
+      const normalized = ((data || []) as Array<Record<string, unknown>>).map((row) => {
+        const readValue =
+          typeof row.read === 'boolean'
+            ? row.read
+            : typeof row.is_read === 'boolean'
+              ? row.is_read
+              : false;
+
+        return {
+          ...(row as NotificationRecord),
+          user_id: typeof row.user_id === 'number' ? row.user_id : Number(row.user_id || 0) || null,
+          is_read: typeof row.is_read === 'boolean' ? row.is_read : readValue,
+          read: readValue,
+        };
+      });
+
+      setNotifications(normalized);
     } catch (error) {
       console.error('Exception fetching notifications:', error);
       setNotifications([]);

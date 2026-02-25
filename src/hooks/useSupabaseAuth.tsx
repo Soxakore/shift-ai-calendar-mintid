@@ -721,19 +721,9 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
   }) => {
     try {
       console.log('🚀 Creating user with username-based auth:', { ...userData, password: '[HIDDEN]' });
-      
-      // Safely handle the created_by field to avoid UUID validation errors
-      // Convert super admin profile ID to string, but use 'super-admin' for large numeric IDs
-      let createdBy: string | null = null;
-      if (user?.id) {
-        const userId = String(user.id);
-        // If it's our super admin bypass ID, use a safe string identifier
-        if (userId === '999999999') {
-          createdBy = 'super-admin';
-        } else {
-          createdBy = userId;
-        }
-      }
+
+      // Prefer canonical profile actor id (uuid), fallback to auth user id.
+      const createdBy = profile?.user_id || user?.id || null;
       console.log('🔍 Created by value:', createdBy, 'Type:', typeof createdBy);
       
       const rpcPayload = {
@@ -747,14 +737,20 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         p_created_by: createdBy
       };
 
-      // Prefer create_user_with_credentials for restored-schema compatibility.
-      let rpcName: 'create_user_with_credentials' | 'create_user_with_username' = 'create_user_with_credentials';
+      // Secure wrapper first. Only fallback when wrapper does not exist yet.
+      let rpcName: 'create_user_secure' | 'create_user_with_credentials' | 'create_user_with_username' = 'create_user_secure';
       let { data: result, error } = await supabase.rpc(rpcName, rpcPayload);
 
-      if (error?.message?.includes('Could not find the function public.create_user_with_credentials')) {
-        console.warn('⚠️ create_user_with_credentials not found, falling back to create_user_with_username');
-        rpcName = 'create_user_with_username';
+      if (error?.message?.includes('Could not find the function public.create_user_secure')) {
+        console.warn('⚠️ create_user_secure not found, falling back to legacy RPCs');
+        rpcName = 'create_user_with_credentials';
         ({ data: result, error } = await supabase.rpc(rpcName, rpcPayload));
+
+        if (error?.message?.includes('Could not find the function public.create_user_with_credentials')) {
+          console.warn('⚠️ create_user_with_credentials not found, falling back to create_user_with_username');
+          rpcName = 'create_user_with_username';
+          ({ data: result, error } = await supabase.rpc(rpcName, rpcPayload));
+        }
       }
 
       if (error) {

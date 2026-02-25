@@ -30,7 +30,7 @@ const UserManagement = () => {
   const [assigningRole, setAssigningRole] = useState<string | null>(null);
 
   // Check if user is super admin
-  const isSuperAdmin = profile?.role === 'super_admin';
+  const isSuperAdmin = profile?.user_type === 'super_admin';
 
   useEffect(() => {
     if (isSuperAdmin) {
@@ -66,7 +66,6 @@ const UserManagement = () => {
       const { data, error } = await supabase
         .from('organisations')
         .select('id, name')
-        .eq('is_active', true)
         .order('name');
 
       if (error) {

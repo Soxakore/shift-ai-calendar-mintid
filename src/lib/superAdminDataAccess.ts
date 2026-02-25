@@ -44,6 +44,12 @@ interface CreateOrgData {
   description?: string;
 }
 
+interface CreateDepartmentData {
+  name: string;
+  organisation_id: string;
+  description?: string;
+}
+
 interface CreateUserData {
   email: string;
   username: string;
@@ -67,6 +73,12 @@ interface RpcCreateUserResponse {
   login_username?: string;
   auth_email?: string;
   message?: string;
+}
+
+interface SecureRpcResponse<T = unknown> {
+  success?: boolean;
+  error?: string | null;
+  data?: T;
 }
 
 const normalizeCreateUserRpcResult = (payload: unknown): RpcCreateUserResponse | null => {
@@ -96,6 +108,17 @@ const getRpcErrorMessage = (
   return fallback;
 };
 
+const normalizeSecureRpcResult = <T = unknown>(payload: unknown): SecureRpcResponse<T> | null => {
+  if (!payload || typeof payload !== 'object') return null;
+  return payload as SecureRpcResponse<T>;
+};
+
+const resolveActorId = async (providedActorId?: string | null) => {
+  if (providedActorId) return providedActorId;
+  const { data } = await supabase.auth.getUser();
+  return data?.user?.id || null;
+};
+
 export interface SuperAdminDataAccess {
   fetchOrganizations: () => Promise<Organization[]>;
   fetchProfiles: () => Promise<Profile[]>;
@@ -104,11 +127,40 @@ export interface SuperAdminDataAccess {
 }
 
 // Create organization with super admin privileges
-export const createOrganizationAsAdmin = async (orgData: CreateOrgData) => {
+export const createOrganizationAsAdmin = async (orgData: CreateOrgData, actorId?: string | null) => {
   console.log('🚀 Super admin creating organization:', orgData);
   
   try {
-    // First, try the standard approach
+    const resolvedActorId = await resolveActorId(actorId);
+    const securePayload = {
+      p_name: orgData.name.trim(),
+      p_alias: orgData.alias?.trim() || null,
+      p_description: orgData.description?.trim() || null,
+      p_created_by: resolvedActorId
+    };
+
+    let { data: secureResult, error: secureError } = await supabase.rpc('create_organisation_secure', securePayload);
+
+    if (!secureError) {
+      const normalized = normalizeSecureRpcResult<Organization>(secureResult);
+      if (normalized?.success && normalized.data) {
+        console.log('✅ Organization created via secure RPC:', normalized.data);
+        return { data: normalized.data, error: null };
+      }
+
+      const message = normalized?.error || 'Secure organization creation failed';
+      console.error('❌ Secure RPC returned failure:', message, secureResult);
+      return { data: null, error: { message } };
+    }
+
+    if (!secureError.message?.includes('Could not find the function public.create_organisation_secure')) {
+      console.error('❌ Secure organization RPC failed:', secureError);
+      return { data: null, error: secureError };
+    }
+
+    console.warn('⚠️ create_organisation_secure not found, falling back to direct insert');
+
+    // Fallback for environments where secure RPC is not deployed yet.
     const insertData = {
       name: orgData.name.trim(),
       settings_json: {
@@ -143,6 +195,65 @@ export const createOrganizationAsAdmin = async (orgData: CreateOrgData) => {
     
   } catch (exception) {
     console.error('💥 Exception during organization creation:', exception);
+    return { data: null, error: { message: exception.message } };
+  }
+};
+
+export const createDepartmentAsAdmin = async (
+  deptData: CreateDepartmentData,
+  actorId?: string | null
+) => {
+  console.log('🚀 Admin creating department:', deptData);
+
+  try {
+    const resolvedActorId = await resolveActorId(actorId);
+    const securePayload = {
+      p_name: deptData.name.trim(),
+      p_organisation_id: deptData.organisation_id,
+      p_description: deptData.description?.trim() || null,
+      p_created_by: resolvedActorId
+    };
+
+    const { data: secureResult, error: secureError } = await supabase.rpc('create_department_secure', securePayload);
+
+    if (!secureError) {
+      const normalized = normalizeSecureRpcResult(secureResult);
+      if (normalized?.success && normalized.data) {
+        console.log('✅ Department created via secure RPC:', normalized.data);
+        return { data: normalized.data as { id: string; name: string; organisation_id: string }, error: null };
+      }
+
+      const message = normalized?.error || 'Secure department creation failed';
+      console.error('❌ Secure department RPC returned failure:', message, secureResult);
+      return { data: null, error: { message } };
+    }
+
+    if (!secureError.message?.includes('Could not find the function public.create_department_secure')) {
+      console.error('❌ Secure department RPC failed:', secureError);
+      return { data: null, error: secureError };
+    }
+
+    console.warn('⚠️ create_department_secure not found, falling back to direct insert');
+
+    const { data, error } = await supabase
+      .from('departments')
+      .insert([{
+        name: deptData.name.trim(),
+        description: deptData.description?.trim() || null,
+        organisation_id: deptData.organisation_id
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Fallback department creation failed:', error);
+      return { data: null, error };
+    }
+
+    console.log('✅ Department created via fallback insert:', data);
+    return { data, error: null };
+  } catch (exception) {
+    console.error('💥 Exception during department creation:', exception);
     return { data: null, error: { message: exception.message } };
   }
 };
@@ -236,18 +347,12 @@ export const createUserAsAdmin = async (userData: CreateUserData) => {
     safe_dept: safeDeptId
   });
   
-  // FIXED: Don't convert invalid UUIDs to empty strings - use null instead
-  const cleanUserData = {
-    ...userData,
-    organisation_id: safeOrgId,  // Let it be null if invalid UUID
-    department_id: safeDeptId     // Let it be null if invalid UUID
-  };
-  
   try {
-    // Use RPC fallback strategy:
-    // prefer create_user_with_credentials (restored DB compatibility),
-    // then fallback to create_user_with_username.
+    // Use secure RPC first. Fallback only when secure wrapper is unavailable.
     console.log('🔄 Using RPC function for user creation (fallback strategy)');
+
+    const { data: authData } = await supabase.auth.getUser();
+    const actorUserId = authData?.user?.id || null;
 
     const rpcPayload = {
       p_username: userData.username,
@@ -257,16 +362,22 @@ export const createUserAsAdmin = async (userData: CreateUserData) => {
       p_organisation_id: safeOrgId,
       p_department_id: safeDeptId,
       p_phone_number: userData.phone_number || null,
-      p_created_by: null // CreateUserData does not include actor id
+      p_created_by: actorUserId
     };
 
-    let rpcName: 'create_user_with_credentials' | 'create_user_with_username' = 'create_user_with_credentials';
+    let rpcName: 'create_user_secure' | 'create_user_with_credentials' | 'create_user_with_username' = 'create_user_secure';
     let { data, error } = await supabase.rpc(rpcName, rpcPayload);
 
-    if (error?.message?.includes('Could not find the function public.create_user_with_credentials')) {
-      console.warn('⚠️ create_user_with_credentials not found, falling back to create_user_with_username');
-      rpcName = 'create_user_with_username';
+    if (error?.message?.includes('Could not find the function public.create_user_secure')) {
+      console.warn('⚠️ create_user_secure not found, falling back to legacy RPCs');
+      rpcName = 'create_user_with_credentials';
       ({ data, error } = await supabase.rpc(rpcName, rpcPayload));
+
+      if (error?.message?.includes('Could not find the function public.create_user_with_credentials')) {
+        console.warn('⚠️ create_user_with_credentials not found, falling back to create_user_with_username');
+        rpcName = 'create_user_with_username';
+        ({ data, error } = await supabase.rpc(rpcName, rpcPayload));
+      }
     }
 
     if (error) {

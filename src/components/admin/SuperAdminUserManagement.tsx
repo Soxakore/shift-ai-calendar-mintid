@@ -18,7 +18,7 @@ import OrganisationsList from './OrganisationsList';
 import UsersList from './UsersList';
 import OrganizationPauseManager from './OrganizationPauseManager';
 import HistoryButton from './HistoryButton';
-import { fetchProfilesAsAdmin, fetchOrganizationsAsAdmin } from '@/lib/superAdminDataAccess';
+import { createOrganizationAsAdmin, fetchProfilesAsAdmin, fetchOrganizationsAsAdmin } from '@/lib/superAdminDataAccess';
 import { adminUserOperations, hasAdminAccess } from '@/lib/supabaseAdmin';
 import OrganizationDeletionTester from '../debug/OrganizationDeletionTester';
 
@@ -751,18 +751,9 @@ export default function SuperAdminUserManagement() {
     setIsCreating(true);
     try {
       console.log('Creating organization with data:', orgData);
-      
-      const { data, error } = await supabase
-        .from('organisations')
-        .insert([{
-          name: orgData.name.trim(),
-          settings_json: {
-            alias: orgData.alias?.trim() || null,
-            description: orgData.description?.trim() || null
-          }
-        }])
-        .select()
-        .single();
+
+      const actorId = profile?.user_id || profile?.id?.toString() || null;
+      const { data, error } = await createOrganizationAsAdmin(orgData, actorId);
 
       if (error) {
         console.error('Organization creation error:', error);
@@ -774,7 +765,8 @@ export default function SuperAdminUserManagement() {
         return;
       }
 
-      console.log('Organization created successfully:', data);        toast({
+      console.log('Organization created successfully:', data);
+      toast({
           title: "✅ Organisation Created",
           description: `Organisation "${orgData.name}" created successfully`,
         });
