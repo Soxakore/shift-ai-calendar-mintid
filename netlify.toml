@@ -20,8 +20,8 @@
 
 [build.environment]
   NODE_VERSION = "18"
-  VITE_SUPABASE_URL = "https://vcjmwgbjbllkkivrkvqx.supabase.co"
-  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjam13Z2JqYmxsa2tpdnJrdnF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwOTA0NjIsImV4cCI6MjA2NDY2NjQ2Mn0.-Z3F5KeBUbQYt_-HvvkSefBW1KcKx93kfwOEjjR2Uw4"
+  VITE_SUPABASE_URL = "https://hryobcytffxjsamzzjmj.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeW9iY3l0ZmZ4anNhbXp6am1qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5Mzk2NTksImV4cCI6MjA4NzUxNTY1OX0.6omLcOwZqV_74qZnXtbpvHKuUePp4bGsGwgDKCES5Lc"
 
 [[headers]]
   for = "/*"
@@ -30,7 +30,7 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://cdn.gpteng.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://www.google-analytics.com https://analytics.google.com wss:; object-src 'none'; base-uri 'self'; form-action 'self';"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://cdn.gpteng.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://hryobcytffxjsamzzjmj.supabase.co https://www.google-analytics.com https://analytics.google.com wss:; object-src 'none'; base-uri 'self'; form-action 'self';"
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
 
 [[headers]]
