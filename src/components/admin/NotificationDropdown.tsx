@@ -159,11 +159,11 @@ const NotificationDropdown = ({ compact = false, className }: NotificationDropdo
   const getIcon = (type: string) => {
     switch (type) {
       case 'security':
-        return <Shield className="h-4 w-4 text-rose-400" />;
+        return <Shield className="h-4 w-4 text-[hsl(var(--sa-danger))]" />;
       case 'user':
-        return <Users className="h-4 w-4 text-blue-300" />;
+        return <Users className="h-4 w-4 text-[hsl(var(--sa-accent))]" />;
       default:
-        return <AlertTriangle className="h-4 w-4 text-amber-300" />;
+        return <AlertTriangle className="h-4 w-4 text-[hsl(var(--sa-warning))]" />;
     }
   };
 
@@ -178,8 +178,8 @@ const NotificationDropdown = ({ compact = false, className }: NotificationDropdo
   };
 
   const triggerClass = compact
-    ? 'relative h-9 w-9 rounded-lg border-white/20 bg-[rgba(15,17,26,0.62)] text-slate-200 hover:bg-slate-800/70'
-    : 'relative border-white/20 bg-[rgba(15,17,26,0.62)] text-slate-200 hover:bg-slate-800/70';
+    ? 'relative h-9 w-9 rounded-lg border border-[hsl(var(--sa-border)/0.45)] bg-[hsl(var(--sa-surface-1)/0.75)] text-[hsl(var(--sa-text-primary))] hover:bg-[hsl(var(--sa-surface-2)/0.85)]'
+    : 'relative border border-[hsl(var(--sa-border)/0.45)] bg-[hsl(var(--sa-surface-1)/0.75)] text-[hsl(var(--sa-text-primary))] hover:bg-[hsl(var(--sa-surface-2)/0.85)]';
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -196,15 +196,20 @@ const NotificationDropdown = ({ compact = false, className }: NotificationDropdo
       </PopoverTrigger>
 
       <PopoverContent
-        className="z-50 w-80 max-h-96 overflow-y-auto border border-white/10 bg-[rgba(15,17,26,0.94)] p-0 text-slate-100 backdrop-blur-2xl"
+        className="z-50 w-80 max-h-96 overflow-y-auto border border-[hsl(var(--sa-border)/0.42)] bg-[hsl(var(--sa-surface-1)/0.95)] p-0 text-[hsl(var(--sa-text-primary))] backdrop-blur-2xl"
         align="end"
       >
         <Card className="border-0 bg-transparent shadow-none">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base text-slate-100">Notifications</CardTitle>
+              <CardTitle className="text-base text-[hsl(var(--sa-text-primary))]">Notifications</CardTitle>
               {unreadCount > 0 && (
-                <Button variant="ghost" size="sm" onClick={markAllAsRead} className="h-7 px-2 text-xs text-slate-300 hover:text-white">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={markAllAsRead}
+                  className="h-7 px-2 text-xs text-[hsl(var(--sa-text-secondary))] hover:bg-[hsl(var(--sa-surface-2)/0.8)] hover:text-[hsl(var(--sa-text-primary))]"
+                >
                   Mark all read
                 </Button>
               )}
@@ -213,9 +218,9 @@ const NotificationDropdown = ({ compact = false, className }: NotificationDropdo
 
           <CardContent className="space-y-2 p-3 pt-0">
             {loading ? (
-              <div className="py-6 text-center text-sm text-slate-400">Loading notifications...</div>
+              <div className="py-6 text-center text-sm text-[hsl(var(--sa-text-secondary))]">Loading notifications...</div>
             ) : notifications.length === 0 ? (
-              <div className="py-6 text-center text-sm text-slate-400">No notifications yet.</div>
+              <div className="py-6 text-center text-sm text-[hsl(var(--sa-text-secondary))]">No notifications yet.</div>
             ) : (
               notifications.map((notification) => (
                 <button
@@ -225,23 +230,23 @@ const NotificationDropdown = ({ compact = false, className }: NotificationDropdo
                   className={cn(
                     'w-full rounded-lg border px-3 py-2 text-left transition-colors',
                     notification.read
-                      ? 'border-white/5 bg-white/[0.02]'
+                      ? 'border-[hsl(var(--sa-border)/0.2)] bg-[hsl(var(--sa-surface-2)/0.45)]'
                       : notification.urgent
-                        ? 'border-rose-400/30 bg-rose-500/10'
-                        : 'border-indigo-300/20 bg-indigo-500/10'
+                        ? 'border-[hsl(var(--sa-danger)/0.35)] bg-[hsl(var(--sa-danger)/0.1)]'
+                        : 'border-[hsl(var(--sa-accent)/0.25)] bg-[hsl(var(--sa-accent)/0.1)]'
                   )}
                 >
                   <div className="flex items-start gap-3">
                     {getIcon(notification.type)}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className={cn('truncate text-sm font-medium', notification.read ? 'text-slate-300' : 'text-slate-100')}>
+                        <p className={cn('truncate text-sm font-medium', notification.read ? 'text-[hsl(var(--sa-text-secondary))]' : 'text-[hsl(var(--sa-text-primary))]')}>
                           {notification.title}
                         </p>
-                        {!notification.read && <span className="h-2 w-2 rounded-full bg-indigo-300" />}
+                        {!notification.read && <span className="h-2 w-2 rounded-full bg-[hsl(var(--sa-accent))]" />}
                       </div>
-                      <p className="mt-1 line-clamp-2 text-xs text-slate-400">{notification.message}</p>
-                      <p className="mt-1 text-[11px] text-slate-500">{formatTimestamp(notification.timestamp)}</p>
+                      <p className="mt-1 line-clamp-2 text-xs text-[hsl(var(--sa-text-secondary))]">{notification.message}</p>
+                      <p className="mt-1 text-[11px] text-[hsl(var(--sa-text-secondary)/0.82)]">{formatTimestamp(notification.timestamp)}</p>
                     </div>
                   </div>
                 </button>

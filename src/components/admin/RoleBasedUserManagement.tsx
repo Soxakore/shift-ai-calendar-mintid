@@ -683,7 +683,7 @@ export default function RoleBasedUserManagement() {
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Example: manager, MinaTid HQ, +46..."
-                className="sa-focus-ring h-10 w-full rounded-xl border border-white/20 bg-[hsl(var(--sa-surface-1)/0.72)] px-3 sa-text-14 text-[hsl(var(--sa-text-primary))] placeholder:text-[hsl(var(--sa-text-secondary))]"
+                className="sa-focus-ring h-10 w-full rounded-xl border border-[hsl(var(--sa-border)/0.42)] bg-[hsl(var(--sa-surface-1)/0.72)] px-3 sa-text-14 text-[hsl(var(--sa-text-primary))] placeholder:text-[hsl(var(--sa-text-secondary))]"
                 {...getActionDataAttributes('header.search')}
               />
             </AdminField>
@@ -694,7 +694,7 @@ export default function RoleBasedUserManagement() {
                 fetchOrganizations();
                 fetchUsers();
               }}
-              className="sa-focus-ring border-white/20 bg-[hsl(var(--sa-surface-1)/0.75)] text-[hsl(var(--sa-text-primary))]"
+              className="sa-focus-ring border-[hsl(var(--sa-border)/0.42)] bg-[hsl(var(--sa-surface-1)/0.75)] text-[hsl(var(--sa-text-primary))]"
               {...getActionDataAttributes('overview.refresh')}
             >
               Refresh
@@ -821,11 +821,11 @@ export default function RoleBasedUserManagement() {
 
       {activeTab === 'list' && (
         <div className="space-y-6">
-          <Card className="sa-panel border-white/15 bg-[hsl(var(--sa-surface-1)/0.72)]">
-            <CardHeader className="border-b border-white/10">
+          <Card className="sa-panel border-[hsl(var(--sa-border)/0.35)] bg-[hsl(var(--sa-surface-1)/0.72)]">
+            <CardHeader className="border-b border-[hsl(var(--sa-border)/0.3)]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <Building className="h-5 w-5 text-indigo-200" />
+                  <Building className="h-5 w-5 text-[hsl(var(--sa-accent)/0.8)]" />
                   <CardTitle className="sa-text-20 font-semibold text-[hsl(var(--sa-text-primary))]">
                     Organisations ({filteredOrganizations.length})
                     {searchTerm && (
@@ -835,7 +835,7 @@ export default function RoleBasedUserManagement() {
                     )}
                   </CardTitle>
                 </div>
-                <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 sa-text-12 text-emerald-100">
+                <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 sa-text-12 text-emerald-700 dark:text-emerald-200">
                   {filteredOrganizations.filter((org) => org.users?.length > 0).length} active
                 </span>
               </div>
@@ -857,11 +857,11 @@ export default function RoleBasedUserManagement() {
             </CardContent>
           </Card>
 
-          <Card className="sa-panel border-white/15 bg-[hsl(var(--sa-surface-1)/0.72)]">
-            <CardHeader className="border-b border-white/10">
+          <Card className="sa-panel border-[hsl(var(--sa-border)/0.35)] bg-[hsl(var(--sa-surface-1)/0.72)]">
+            <CardHeader className="border-b border-[hsl(var(--sa-border)/0.3)]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <Users className="h-5 w-5 text-emerald-200" />
+                  <Users className="h-5 w-5 text-emerald-500 dark:text-emerald-300" />
                   <CardTitle className="sa-text-20 font-semibold text-[hsl(var(--sa-text-primary))]">
                     Users ({filteredUsers.length})
                     {searchTerm && (
@@ -872,7 +872,7 @@ export default function RoleBasedUserManagement() {
                   </CardTitle>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 sa-text-12 text-emerald-100">
+                  <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 sa-text-12 text-emerald-700 dark:text-emerald-200">
                     {filteredUsers.filter((user) => user.is_active).length} active
                   </span>
                   <HistoryButton

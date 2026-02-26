@@ -147,7 +147,7 @@ const UserManagement = () => {
 
   if (loading) {
     return (
-      <Card className="sa-panel border-white/15 bg-[hsl(var(--sa-surface-1)/0.75)]">
+      <Card className="sa-panel border-[hsl(var(--sa-border)/0.35)] bg-[hsl(var(--sa-surface-1)/0.75)]">
         <CardContent className="flex items-center justify-center p-8">
           <Loader2 className="w-6 h-6 animate-spin mr-2" />
           Loading user management...
@@ -158,7 +158,7 @@ const UserManagement = () => {
 
   return (
     <div className="space-y-6">
-      <Card className="sa-panel border-white/15 bg-[hsl(var(--sa-surface-1)/0.75)]">
+      <Card className="sa-panel border-[hsl(var(--sa-border)/0.35)] bg-[hsl(var(--sa-surface-1)/0.75)]">
         <CardHeader>
           <SectionHeader
             title="User Role Management"

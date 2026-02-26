@@ -176,7 +176,7 @@ const ManagerDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       <SEOHead
         title={pageMetadata.title}
         description={pageMetadata.description}
@@ -212,7 +212,7 @@ const ManagerDashboard = () => {
               variant="destructive"
               size="sm"
               onClick={handleLogout}
-              className="shadow-sm hover:shadow-md transition-shadow text-white"
+              className="shadow-sm hover:shadow-md transition-shadow"
             >
               <LogOut className="w-4 h-4 mr-2" />
               Logout

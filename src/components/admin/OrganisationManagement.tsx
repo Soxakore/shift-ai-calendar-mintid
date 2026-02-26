@@ -239,7 +239,7 @@ const OrganisationManagement = () => {
 
       {/* Organisation Details */}
       {organisations.length > 0 && (
-        <Card className="sa-panel border-white/15 bg-[hsl(var(--sa-surface-1)/0.75)]">
+        <Card className="sa-panel border-[hsl(var(--sa-border)/0.35)] bg-[hsl(var(--sa-surface-1)/0.75)]">
           <CardHeader>
             <CardTitle>Organisation Details</CardTitle>
             <CardDescription>Select an organisation to view details</CardDescription>

@@ -39,29 +39,29 @@ const accentStyles: Record<
   }
 > = {
   indigo: {
-    iconContainer: 'border-white/20 bg-[hsl(var(--sa-accent)/0.14)] text-[hsl(var(--sa-text-primary))] shadow-[var(--sa-shadow-glass-sm)]',
-    roleBadge: 'bg-[hsl(var(--sa-accent))] text-slate-950',
+    iconContainer: 'border-[hsl(var(--sa-border)/0.45)] bg-[hsl(var(--sa-accent)/0.14)] text-[hsl(var(--sa-text-primary))] shadow-[var(--sa-shadow-glass-sm)]',
+    roleBadge: 'bg-[hsl(var(--sa-accent))] text-[hsl(var(--sa-accent-foreground))]',
     focus: 'focus:border-[hsl(var(--sa-accent)/0.55)] focus:ring-[hsl(var(--sa-accent)/0.5)]',
     dividerGlow: 'via-indigo-300/45',
     avatar: 'from-indigo-400 to-blue-500 text-white',
   },
   blue: {
-    iconContainer: 'border-white/20 bg-[hsl(var(--sa-accent)/0.14)] text-[hsl(var(--sa-text-primary))] shadow-[var(--sa-shadow-glass-sm)]',
-    roleBadge: 'bg-[hsl(var(--sa-accent))] text-slate-950',
+    iconContainer: 'border-[hsl(var(--sa-border)/0.45)] bg-[hsl(var(--sa-accent)/0.14)] text-[hsl(var(--sa-text-primary))] shadow-[var(--sa-shadow-glass-sm)]',
+    roleBadge: 'bg-[hsl(var(--sa-accent))] text-[hsl(var(--sa-accent-foreground))]',
     focus: 'focus:border-[hsl(var(--sa-accent)/0.55)] focus:ring-[hsl(var(--sa-accent)/0.5)]',
     dividerGlow: 'via-blue-300/45',
-    avatar: 'from-blue-400 to-cyan-500 text-slate-950',
+    avatar: 'from-blue-400 to-cyan-500 text-white',
   },
   emerald: {
-    iconContainer: 'border-white/20 bg-[hsl(var(--sa-accent)/0.14)] text-[hsl(var(--sa-text-primary))] shadow-[var(--sa-shadow-glass-sm)]',
-    roleBadge: 'bg-[hsl(var(--sa-accent))] text-slate-950',
+    iconContainer: 'border-[hsl(var(--sa-border)/0.45)] bg-[hsl(var(--sa-accent)/0.14)] text-[hsl(var(--sa-text-primary))] shadow-[var(--sa-shadow-glass-sm)]',
+    roleBadge: 'bg-[hsl(var(--sa-accent))] text-[hsl(var(--sa-accent-foreground))]',
     focus: 'focus:border-[hsl(var(--sa-accent)/0.55)] focus:ring-[hsl(var(--sa-accent)/0.5)]',
     dividerGlow: 'via-emerald-300/45',
-    avatar: 'from-emerald-400 to-teal-500 text-slate-950',
+    avatar: 'from-emerald-400 to-teal-500 text-white',
   },
   slate: {
-    iconContainer: 'border-white/20 bg-[hsl(var(--sa-accent)/0.14)] text-[hsl(var(--sa-text-primary))] shadow-[var(--sa-shadow-glass-sm)]',
-    roleBadge: 'bg-[hsl(var(--sa-accent))] text-slate-950',
+    iconContainer: 'border-[hsl(var(--sa-border)/0.45)] bg-[hsl(var(--sa-accent)/0.14)] text-[hsl(var(--sa-text-primary))] shadow-[var(--sa-shadow-glass-sm)]',
+    roleBadge: 'bg-[hsl(var(--sa-accent))] text-[hsl(var(--sa-accent-foreground))]',
     focus: 'focus:border-[hsl(var(--sa-accent)/0.55)] focus:ring-[hsl(var(--sa-accent)/0.5)]',
     dividerGlow: 'via-slate-300/40',
     avatar: 'from-slate-400 to-slate-600 text-white',
@@ -69,11 +69,11 @@ const accentStyles: Record<
 };
 
 const metaToneStyles: Record<MetaTone, string> = {
-  neutral: 'bg-[hsl(var(--sa-surface-2)/0.72)] text-[hsl(var(--sa-text-secondary))] border-white/15',
-  success: 'bg-[hsl(var(--sa-success)/0.2)] text-emerald-100 border-emerald-400/35',
-  warning: 'bg-[hsl(var(--sa-warning)/0.2)] text-amber-100 border-amber-400/35',
-  danger: 'bg-[hsl(var(--sa-danger)/0.2)] text-rose-100 border-rose-400/35',
-  accent: 'bg-[hsl(var(--sa-accent)/0.2)] text-indigo-100 border-indigo-300/35',
+  neutral: 'bg-[hsl(var(--sa-surface-2)/0.72)] text-[hsl(var(--sa-text-secondary))] border-[hsl(var(--sa-border)/0.35)]',
+  success: 'bg-[hsl(var(--sa-success)/0.16)] text-[hsl(var(--sa-success))] border-[hsl(var(--sa-success)/0.36)]',
+  warning: 'bg-[hsl(var(--sa-warning)/0.16)] text-[hsl(var(--sa-warning))] border-[hsl(var(--sa-warning)/0.36)]',
+  danger: 'bg-[hsl(var(--sa-danger)/0.16)] text-[hsl(var(--sa-danger))] border-[hsl(var(--sa-danger)/0.36)]',
+  accent: 'bg-[hsl(var(--sa-accent)/0.16)] text-[hsl(var(--sa-accent))] border-[hsl(var(--sa-accent)/0.36)]',
 };
 
 const getInitials = (name: string) =>
@@ -105,7 +105,7 @@ export default function RoleDashboardHeader({
   const searchActionAttrs = getActionDataAttributes('header.search');
 
   return (
-    <header className={cn('sticky top-0 z-50 border-b border-white/15 bg-[hsl(var(--sa-bg)/0.78)] backdrop-blur-2xl', className)}>
+    <header className={cn('sticky top-0 z-50 border-b border-[hsl(var(--sa-border)/0.35)] bg-[hsl(var(--sa-bg)/0.78)] backdrop-blur-2xl', className)}>
       <div className={cn('pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent to-transparent', style.dividerGlow)} />
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex min-w-0 items-center gap-4">
@@ -143,7 +143,7 @@ export default function RoleDashboardHeader({
                 aria-label="Search super admin resources"
                 {...searchActionAttrs}
                 className={cn(
-                  'sa-focus-ring h-10 w-full rounded-xl border border-white/[0.16] bg-[hsl(var(--sa-surface-1)/0.72)] pl-10 pr-3 sa-text-14 text-[hsl(var(--sa-text-primary))] placeholder:text-[hsl(var(--sa-text-secondary))] outline-none transition-colors',
+                  'sa-focus-ring h-10 w-full rounded-xl border border-[hsl(var(--sa-border)/0.35)] bg-[hsl(var(--sa-surface-1)/0.72)] pl-10 pr-3 sa-text-14 text-[hsl(var(--sa-text-primary))] placeholder:text-[hsl(var(--sa-text-secondary))] outline-none transition-colors',
                   style.focus
                 )}
               />
@@ -153,7 +153,7 @@ export default function RoleDashboardHeader({
 
         <div className="flex items-center gap-2 sm:gap-3">
           {actions}
-          <div className="hidden lg:flex items-center gap-3 rounded-xl border border-white/15 bg-[hsl(var(--sa-surface-1)/0.72)] px-3 py-2 backdrop-blur-xl">
+          <div className="hidden lg:flex items-center gap-3 rounded-xl border border-[hsl(var(--sa-border)/0.35)] bg-[hsl(var(--sa-surface-1)/0.72)] px-3 py-2 backdrop-blur-xl">
             <div className="text-right">
               <p className="sa-text-14 font-semibold text-[hsl(var(--sa-text-primary))]">{userName}</p>
               <p className="sa-text-12 text-[hsl(var(--sa-text-secondary))]">{userRoleLabel}</p>
@@ -162,7 +162,7 @@ export default function RoleDashboardHeader({
               <div className={cn('flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold', style.avatar)}>
                 {initials}
               </div>
-              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-900" />
+              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-[hsl(var(--sa-bg))]" />
             </div>
           </div>
         </div>

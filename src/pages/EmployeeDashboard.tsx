@@ -433,7 +433,7 @@ const EmployeeDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       <SEOHead
         title={pageMetadata.title}
         description={pageMetadata.description}
@@ -484,7 +484,7 @@ const EmployeeDashboard = () => {
               <span className="hidden sm:inline">My Profile</span>
               <span className="sm:hidden">Profile</span>
             </Button>
-            <Button variant="destructive" size="sm" onClick={handleLogout} className="text-white">
+            <Button variant="destructive" size="sm" onClick={handleLogout}>
               <LogOut className="w-4 h-4 mr-2" />
               Logout
             </Button>

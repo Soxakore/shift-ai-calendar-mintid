@@ -430,7 +430,7 @@ export default function SuperAdminUserManagement() {
               ? 'Example: MinaTid Downtown'
               : 'Example: amina, manager, @username'
           }
-          className="sa-focus-ring border-white/20 bg-[hsl(var(--sa-surface-1)/0.7)] text-[hsl(var(--sa-text-primary))] placeholder:text-[hsl(var(--sa-text-secondary))]"
+          className="sa-focus-ring border-[hsl(var(--sa-border)/0.42)] bg-[hsl(var(--sa-surface-1)/0.7)] text-[hsl(var(--sa-text-primary))] placeholder:text-[hsl(var(--sa-text-secondary))]"
           {...getActionDataAttributes(activeView === 'organizations' ? 'organisations.search' : 'users.search')}
         />
       </AdminField>
@@ -438,7 +438,7 @@ export default function SuperAdminUserManagement() {
       <Button
         type="button"
         onClick={() => setActiveView(activeView === 'organizations' ? 'create-org' : 'create-user')}
-        className="sa-focus-ring bg-[hsl(var(--sa-accent))] text-slate-950 hover:bg-[hsl(var(--sa-accent)/0.9)]"
+        className="sa-focus-ring bg-[hsl(var(--sa-accent))] text-[hsl(var(--sa-accent-foreground))] hover:bg-[hsl(var(--sa-accent)/0.9)]"
         {...getActionDataAttributes(activeView === 'organizations' ? 'organisations.create' : 'users.create')}
       >
         {activeView === 'organizations' ? 'Add Organisation' : 'Add User'}
@@ -576,7 +576,7 @@ export default function SuperAdminUserManagement() {
           <StatCard label="Recent Logins" value={stats.recentLogins} note="Last 24 hours" icon={<Clock4 className="h-4 w-4" />} tone="warning" />
         </div>
 
-        <Card className="sa-panel border-white/15 bg-[hsl(var(--sa-surface-1)/0.75)]">
+        <Card className="sa-panel border-[hsl(var(--sa-border)/0.35)] bg-[hsl(var(--sa-surface-1)/0.75)]">
           <CardHeader className="pb-2">
             <CardTitle className="sa-text-20 text-[hsl(var(--sa-text-primary))]">Quick Actions</CardTitle>
           </CardHeader>
@@ -612,8 +612,8 @@ export default function SuperAdminUserManagement() {
         </div>
 
         <Alert className="border-emerald-400/30 bg-emerald-500/10">
-          <CheckCircle className="h-4 w-4 text-emerald-300" />
-          <AlertDescription className="text-emerald-100">
+          <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
+          <AlertDescription className="text-emerald-700 dark:text-emerald-200">
             <strong>System Status: Operational.</strong> All core services are healthy and data sync is active.
           </AlertDescription>
         </Alert>

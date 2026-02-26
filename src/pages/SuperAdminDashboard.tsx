@@ -325,7 +325,7 @@ const SuperAdminDashboard = () => {
   // These components fetch real data from your live database
 
   return (
-    <div className="super-admin-theme relative min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_12%_6%,hsl(var(--sa-bg))_0%,#0f172a_36%,#0f111a_100%)] text-[hsl(var(--sa-text-primary))]">
+    <div className="super-admin-theme relative min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_12%_6%,hsl(var(--sa-bg))_0%,hsl(var(--sa-bg-mid))_38%,hsl(var(--sa-bg-deep))_100%)] text-[hsl(var(--sa-text-primary))]">
       <SEOHead
         title={pageMetadata.title}
         description={pageMetadata.description}
@@ -338,18 +338,18 @@ const SuperAdminDashboard = () => {
         <svg className="absolute inset-0 h-full w-full opacity-40" viewBox="0 0 1600 900" fill="none">
           <defs>
             <linearGradient id="admin-wave" x1="0" y1="0" x2="1600" y2="900">
-              <stop offset="0%" stopColor="#1919e6" />
-              <stop offset="42%" stopColor="#4f4ff0" />
-              <stop offset="100%" stopColor="#0f111a" />
+              <stop offset="0%" stopColor="hsl(var(--sa-wave-start))" />
+              <stop offset="42%" stopColor="hsl(var(--sa-wave-mid))" />
+              <stop offset="100%" stopColor="hsl(var(--sa-wave-end))" />
             </linearGradient>
             <linearGradient id="admin-accent" x1="0" y1="0" x2="1600" y2="0">
-              <stop offset="0%" stopColor="#c7d2fe" />
-              <stop offset="50%" stopColor="#818cf8" />
-              <stop offset="100%" stopColor="#a5b4fc" />
+              <stop offset="0%" stopColor="hsl(var(--sa-accent) / 0.4)" />
+              <stop offset="50%" stopColor="hsl(var(--sa-accent) / 0.76)" />
+              <stop offset="100%" stopColor="hsl(var(--sa-accent) / 0.55)" />
             </linearGradient>
             <radialGradient id="admin-spot" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1180 140) rotate(130) scale(680 480)">
-              <stop stopColor="#818cf8" stopOpacity="0.36" />
-              <stop offset="1" stopColor="#0f172a" stopOpacity="0" />
+              <stop stopColor="hsl(var(--sa-spot))" stopOpacity="0.36" />
+              <stop offset="1" stopColor="hsl(var(--sa-bg-deep))" stopOpacity="0" />
             </radialGradient>
             <filter id="glass-noise">
               <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="2" stitchTiles="stitch" />
@@ -363,21 +363,21 @@ const SuperAdminDashboard = () => {
           <path d="M0 180C210 258 460 84 706 152C948 222 1190 410 1600 248V0H0V180Z" fill="url(#admin-wave)" fillOpacity="0.22" />
           <path d="M0 772C270 680 442 820 710 776C980 730 1254 526 1600 604V900H0V772Z" fill="url(#admin-wave)" fillOpacity="0.18" />
           <path d="M110 612C332 542 612 560 902 502C1118 458 1320 374 1510 298" stroke="url(#admin-accent)" strokeOpacity="0.22" strokeWidth="2" />
-          <path d="M84 684C312 626 550 652 786 620C1018 588 1238 498 1468 420" stroke="#818cf8" strokeOpacity="0.18" strokeWidth="1.5" />
+          <path d="M84 684C312 626 550 652 786 620C1018 588 1238 498 1468 420" stroke="hsl(var(--sa-accent) / 0.36)" strokeOpacity="0.18" strokeWidth="1.5" />
           <rect width="1600" height="900" filter="url(#glass-noise)" opacity="0.65" />
         </svg>
         <motion.div
-          className="absolute -top-24 left-[22%] h-[26rem] w-[26rem] rounded-full bg-indigo-400/20 blur-[120px]"
+          className="absolute -top-24 left-[22%] h-[26rem] w-[26rem] rounded-full bg-[hsl(var(--sa-accent)/0.24)] blur-[120px]"
           animate={{ x: [0, 26, 0], y: [0, 20, 0], scale: [1, 1.06, 1] }}
           transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
         />
         <motion.div
-          className="absolute -bottom-24 right-[18%] h-[30rem] w-[30rem] rounded-full bg-violet-500/16 blur-[128px]"
+          className="absolute -bottom-24 right-[18%] h-[30rem] w-[30rem] rounded-full bg-[hsl(var(--sa-warning)/0.18)] blur-[128px]"
           animate={{ x: [0, -30, 0], y: [0, -24, 0], scale: [1, 0.96, 1] }}
           transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
         />
         <motion.svg
-          className="absolute -right-36 top-14 h-[28rem] w-[28rem] text-indigo-200/25"
+          className="absolute -right-36 top-14 h-[28rem] w-[28rem] text-[hsl(var(--sa-accent)/0.3)]"
           viewBox="0 0 400 400"
           fill="none"
           animate={{ rotate: [0, 10, 0] }}
@@ -387,7 +387,13 @@ const SuperAdminDashboard = () => {
           <circle cx="200" cy="200" r="118" stroke="currentColor" strokeWidth="1.2" strokeOpacity="0.8" />
           <path d="M54 262C102 144 196 82 312 108" stroke="currentColor" strokeWidth="1.4" />
         </motion.svg>
-        <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #fff 1px, transparent 0)', backgroundSize: '18px 18px' }} />
+        <div
+          className="absolute inset-0 opacity-[0.07]"
+          style={{
+            backgroundImage: 'radial-gradient(circle at 1px 1px, hsl(var(--sa-grid-dot) / 0.6) 1px, transparent 0)',
+            backgroundSize: '18px 18px',
+          }}
+        />
       </div>
 
       <div className="relative z-10 flex min-h-screen flex-col">
@@ -409,7 +415,7 @@ const SuperAdminDashboard = () => {
           actions={
             <>
               <div {...getActionDataAttributes('header.history')}>
-                <HistoryButton variant="outline" size="sm" showBadge={false} className="h-9 w-9 p-0 border-white/20 bg-[hsl(var(--sa-surface-1)/0.75)]" />
+                <HistoryButton variant="outline" size="sm" showBadge={false} className="h-9 w-9 p-0 border-[hsl(var(--sa-border)/0.45)] bg-[hsl(var(--sa-surface-1)/0.75)]" />
               </div>
               <div {...getActionDataAttributes('header.notifications')}>
                 <NotificationDropdown compact={true} />
@@ -421,7 +427,7 @@ const SuperAdminDashboard = () => {
                 variant="destructive"
                 size="sm"
                 onClick={handleLogout}
-                className="sa-focus-ring text-white shadow-sm transition-shadow hover:shadow-md"
+                className="sa-focus-ring shadow-sm transition-shadow hover:shadow-md"
                 {...getActionDataAttributes('auth.logout')}
               >
                 <LogOut className="mr-2 h-4 w-4" />
@@ -434,7 +440,7 @@ const SuperAdminDashboard = () => {
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <div className="overflow-x-auto pb-1">
-              <TabsList className="h-auto min-w-max rounded-none border-b border-white/15 bg-transparent p-0">
+              <TabsList className="h-auto min-w-max rounded-none border-b border-[hsl(var(--sa-border)/0.36)] bg-transparent p-0">
                 <TabsTrigger value="overview" className={tabTriggerClass} {...getActionDataAttributes(tabActionMap.overview)}>
                   <BarChart3 className="h-4 w-4" />
                   Overview
@@ -518,7 +524,7 @@ const SuperAdminDashboard = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.26, delay: 0.12, ease: 'easeOut' }}
                 >
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-200/35 to-transparent" />
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[hsl(var(--sa-accent)/0.45)] to-transparent" />
                   <SectionHeader
                     title="Operations Snapshot"
                     description="Use this section for immediate context, then continue in tabs for complete administrative workflows."
@@ -527,7 +533,7 @@ const SuperAdminDashboard = () => {
                         variant="outline"
                         size="sm"
                         onClick={fetchLiveStats}
-                        className="sa-focus-ring border-white/20 bg-[hsl(var(--sa-surface-1)/0.75)] text-[hsl(var(--sa-text-primary))] hover:bg-[hsl(var(--sa-surface-2)/0.9)]"
+                        className="sa-focus-ring border-[hsl(var(--sa-border)/0.45)] bg-[hsl(var(--sa-surface-1)/0.75)] text-[hsl(var(--sa-text-primary))] hover:bg-[hsl(var(--sa-surface-2)/0.9)]"
                         {...getActionDataAttributes('overview.refresh')}
                       >
                         Refresh
@@ -542,7 +548,7 @@ const SuperAdminDashboard = () => {
                   </div>
 
                   {statsError && (
-                    <div className="mb-4 rounded-[var(--sa-radius-md)] border border-amber-400/30 bg-amber-500/10 px-3 py-2 sa-text-12 text-amber-100">
+                    <div className="mb-4 rounded-[var(--sa-radius-md)] border border-[hsl(var(--sa-warning)/0.45)] bg-[hsl(var(--sa-warning)/0.14)] px-3 py-2 sa-text-12 text-[hsl(var(--sa-warning))]">
                       Some metrics are temporarily unavailable. Refresh or verify your data-access policies.
                     </div>
                   )}
@@ -566,7 +572,7 @@ const SuperAdminDashboard = () => {
                     <div className={glassInsetClass}>
                       <div className="flex items-center justify-between">
                         <p className="sa-text-12 font-semibold uppercase tracking-wide text-[hsl(var(--sa-text-secondary))]">Operational State</p>
-                        <Activity className="h-4 w-4 text-indigo-200" />
+                        <Activity className="h-4 w-4 text-[hsl(var(--sa-accent)/0.72)]" />
                       </div>
                       <p className="mt-1 sa-text-24 font-bold text-[hsl(var(--sa-text-primary))]">{liveStats.systemStatus}</p>
                       <p className="sa-text-12 text-[hsl(var(--sa-text-secondary))]">Derived from authentication and platform activity signals.</p>
@@ -580,7 +586,7 @@ const SuperAdminDashboard = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.26, delay: 0.16, ease: 'easeOut' }}
                 >
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-200/35 to-transparent" />
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[hsl(var(--sa-accent)/0.45)] to-transparent" />
                   <h3 className="sa-text-18 font-bold text-[hsl(var(--sa-text-primary))]">Quick Actions</h3>
                   <div className="mt-4 space-y-3">
                     {quickActions.map((action) => (

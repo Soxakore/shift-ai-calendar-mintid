@@ -56,23 +56,31 @@
 
     --sidebar-ring: 217.2 91.2% 59.8%;
 
-    --sa-bg: 226 42% 9%;
-    --sa-surface-1: 231 35% 14%;
-    --sa-surface-2: 231 30% 18%;
-    --sa-surface-3: 229 28% 24%;
-    --sa-border: 225 27% 34%;
-    --sa-text-primary: 225 47% 97%;
-    --sa-text-secondary: 226 21% 72%;
-    --sa-accent: 231 86% 68%;
-    --sa-success: 151 60% 46%;
-    --sa-warning: 38 92% 58%;
-    --sa-danger: 348 84% 60%;
+    --sa-bg: 220 55% 97%;
+    --sa-bg-mid: 223 44% 93%;
+    --sa-bg-deep: 221 36% 87%;
+    --sa-surface-1: 0 0% 100%;
+    --sa-surface-2: 220 40% 96%;
+    --sa-surface-3: 220 34% 91%;
+    --sa-border: 220 25% 80%;
+    --sa-text-primary: 224 52% 14%;
+    --sa-text-secondary: 221 17% 42%;
+    --sa-accent: 231 79% 56%;
+    --sa-accent-foreground: 228 46% 8%;
+    --sa-success: 151 66% 34%;
+    --sa-warning: 35 92% 43%;
+    --sa-danger: 348 78% 46%;
+    --sa-wave-start: 228 88% 66%;
+    --sa-wave-mid: 230 76% 58%;
+    --sa-wave-end: 219 43% 31%;
+    --sa-spot: 231 87% 63%;
+    --sa-grid-dot: 224 37% 34%;
     --sa-radius-sm: 10px;
     --sa-radius-md: 14px;
     --sa-radius-lg: 18px;
-    --sa-shadow-glass-sm: 0 12px 30px -22px rgba(2, 6, 23, 0.9);
-    --sa-shadow-glass-md: 0 18px 40px -25px rgba(2, 6, 23, 0.95);
-    --sa-shadow-glass-lg: 0 26px 58px -34px rgba(2, 6, 23, 0.98);
+    --sa-shadow-glass-sm: 0 10px 28px -18px rgba(15, 23, 42, 0.22);
+    --sa-shadow-glass-md: 0 18px 36px -22px rgba(15, 23, 42, 0.26);
+    --sa-shadow-glass-lg: 0 28px 56px -30px rgba(15, 23, 42, 0.32);
     --sa-motion-sm: 120ms;
     --sa-motion-md: 180ms;
     --sa-motion-lg: 260ms;
@@ -115,6 +123,29 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --sa-bg: 226 42% 9%;
+    --sa-bg-mid: 224 36% 12%;
+    --sa-bg-deep: 231 34% 8%;
+    --sa-surface-1: 231 35% 14%;
+    --sa-surface-2: 231 30% 18%;
+    --sa-surface-3: 229 28% 24%;
+    --sa-border: 225 27% 34%;
+    --sa-text-primary: 225 47% 97%;
+    --sa-text-secondary: 226 21% 72%;
+    --sa-accent: 231 86% 68%;
+    --sa-accent-foreground: 228 46% 8%;
+    --sa-success: 151 60% 46%;
+    --sa-warning: 38 92% 58%;
+    --sa-danger: 348 84% 60%;
+    --sa-wave-start: 233 82% 50%;
+    --sa-wave-mid: 240 84% 63%;
+    --sa-wave-end: 230 30% 8%;
+    --sa-spot: 234 89% 74%;
+    --sa-grid-dot: 0 0% 100%;
+    --sa-shadow-glass-sm: 0 12px 30px -22px rgba(2, 6, 23, 0.9);
+    --sa-shadow-glass-md: 0 18px 40px -25px rgba(2, 6, 23, 0.95);
+    --sa-shadow-glass-lg: 0 26px 58px -34px rgba(2, 6, 23, 0.98);
   }
 }
 
@@ -145,7 +176,7 @@
     --accent: var(--sa-surface-2);
     --accent-foreground: var(--sa-text-primary);
     --primary: var(--sa-accent);
-    --primary-foreground: 228 46% 8%;
+    --primary-foreground: var(--sa-accent-foreground);
     --secondary: var(--sa-surface-2);
     --secondary-foreground: var(--sa-text-primary);
     --destructive: var(--sa-danger);
