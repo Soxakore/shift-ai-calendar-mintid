@@ -56,6 +56,14 @@ interface ScopedUserDirectoryRow {
   updated_at: string | null;
 }
 
+interface PendingUserRow {
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  role: string | null;
+  created_at: string | null;
+}
+
 interface CreateOrgData {
   name: string;
   alias?: string;
@@ -135,6 +143,80 @@ const resolveActorId = async (providedActorId?: string | null) => {
   if (providedActorId) return providedActorId;
   const { data } = await supabase.auth.getUser();
   return data?.user?.id || null;
+};
+
+const sortProfilesByCreatedAtDesc = (profiles: Profile[]) =>
+  [...profiles].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+const normalizeScopedDirectoryRows = (rows: ScopedUserDirectoryRow[] | null | undefined): Profile[] => {
+  return (rows || []).map((row, index) => {
+    const userId = row.user_id || `missing-user-${index}`;
+    const fallbackUsername = row.email ? row.email.split('@')[0] : `user_${String(userId).slice(0, 8)}`;
+    const username = row.username || fallbackUsername || 'user';
+    const displayName = row.display_name || username || 'User';
+
+    return {
+      id: row.id ?? `auth:${userId}`,
+      user_id: row.user_id || undefined,
+      username,
+      display_name: displayName,
+      email: row.email || undefined,
+      user_type: row.user_type || 'employee',
+      organisation_id: row.organisation_id || '',
+      department_id: row.department_id || '',
+      is_active: row.is_active ?? true,
+      tracking_id: row.tracking_id || null,
+      phone_number: row.phone_number || null,
+      created_at: row.created_at || new Date().toISOString()
+    } as Profile;
+  });
+};
+
+const augmentWithPendingUsers = async (profiles: Profile[]): Promise<Profile[]> => {
+  try {
+    const { data, error } = await supabase.rpc('get_pending_users');
+    if (error) {
+      return profiles;
+    }
+
+    const pendingRows = (data as PendingUserRow[] | null) || [];
+    if (!pendingRows.length) {
+      return profiles;
+    }
+
+    const profilesByUserId = new Map<string, Profile>();
+    profiles.forEach((profile) => {
+      if (profile.user_id) {
+        profilesByUserId.set(profile.user_id, profile);
+      }
+    });
+
+    pendingRows.forEach((pending, index) => {
+      if (!pending.user_id) return;
+
+      if (!profilesByUserId.has(pending.user_id)) {
+        const fallbackUsername = pending.email ? pending.email.split('@')[0] : `pending_${index + 1}`;
+        profilesByUserId.set(pending.user_id, {
+          id: `pending:${pending.user_id}`,
+          user_id: pending.user_id,
+          username: fallbackUsername,
+          display_name: pending.full_name || fallbackUsername || 'User',
+          email: pending.email || undefined,
+          user_type: pending.role || 'employee',
+          organisation_id: '',
+          department_id: '',
+          is_active: true,
+          tracking_id: null,
+          phone_number: null,
+          created_at: pending.created_at || new Date().toISOString()
+        });
+      }
+    });
+
+    return sortProfilesByCreatedAtDesc(Array.from(profilesByUserId.values()));
+  } catch {
+    return profiles;
+  }
 };
 
 export interface SuperAdminDataAccess {
@@ -325,30 +407,10 @@ export const fetchProfilesAsAdmin = async () => {
     const { data: scopedData, error: scopedError } = await supabase.rpc('get_scoped_user_directory');
 
     if (!scopedError) {
-      const normalized = ((scopedData as ScopedUserDirectoryRow[] | null) || []).map((row, index) => {
-        const userId = row.user_id || `missing-user-${index}`;
-        const fallbackUsername = row.email ? row.email.split('@')[0] : `user_${String(userId).slice(0, 8)}`;
-        const username = row.username || fallbackUsername || 'user';
-        const displayName = row.display_name || username || 'User';
-
-        return {
-          id: row.id ?? `auth:${userId}`,
-          user_id: row.user_id || undefined,
-          username,
-          display_name: displayName,
-          email: row.email || undefined,
-          user_type: row.user_type || 'employee',
-          organisation_id: row.organisation_id || '',
-          department_id: row.department_id || '',
-          is_active: row.is_active ?? true,
-          tracking_id: row.tracking_id || null,
-          phone_number: row.phone_number || null,
-          created_at: row.created_at || new Date().toISOString()
-        } as Profile;
-      });
-
-      console.log('✅ Profiles fetched successfully via scoped RPC:', normalized.length);
-      return normalized;
+      const normalized = normalizeScopedDirectoryRows(scopedData as ScopedUserDirectoryRow[] | null);
+      const merged = await augmentWithPendingUsers(normalized);
+      console.log('✅ Profiles fetched successfully via scoped RPC:', merged.length);
+      return merged;
     }
 
     if (!scopedError.message?.includes('Could not find the function public.get_scoped_user_directory')) {
@@ -392,8 +454,9 @@ export const fetchProfilesAsAdmin = async () => {
       created_at: profile.created_at || new Date().toISOString()
     })) as Profile[];
 
-    console.log('✅ Profiles fetched successfully:', normalizedFallback.length);
-    return normalizedFallback;
+    const mergedFallback = await augmentWithPendingUsers(normalizedFallback);
+    console.log('✅ Profiles fetched successfully (fallback):', mergedFallback.length);
+    return mergedFallback;
     
   } catch (exception) {
     console.error('💥 Exception during profiles fetch:', exception);
