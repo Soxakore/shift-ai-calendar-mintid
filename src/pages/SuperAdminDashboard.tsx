@@ -36,6 +36,7 @@ import { LiveReportsManager } from '@/components/LiveReportsManager';
 import UserManagement from '@/components/UserManagement';
 import { LiveScheduleAutomation } from '@/components/LiveScheduleAutomation';
 import RoleDashboardHeader from '@/components/layout/RoleDashboardHeader';
+import { fetchOrganizationsAsAdmin, fetchProfilesAsAdmin } from '@/lib/superAdminDataAccess';
 
 const SuperAdminDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
@@ -60,32 +61,25 @@ const SuperAdminDashboard = () => {
   // Fetch live dashboard data
   const fetchLiveStats = async () => {
     try {
-      // Get total active users
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, is_active, created_at')
-        .eq('is_active', true);
-
-      // Get total organisations
-      const { data: organisations, error: orgsError } = await supabase
-        .from('organisations')
-        .select('id');
-
       // Get recent session activity (last 24 hours)
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
-      
-      const { data: recentSessions, error: sessionsError } = await supabase
-        .from('session_logs')
-        .select('action, success, created_at')
-        .gte('created_at', yesterday.toISOString());
 
-      if (profilesError || orgsError || sessionsError) {
-        throw new Error(
-          [profilesError?.message, orgsError?.message, sessionsError?.message]
-            .filter(Boolean)
-            .join(' | ')
-        );
+      const [
+        scopedUsers,
+        scopedOrganisations,
+        { data: recentSessions, error: sessionsError }
+      ] = await Promise.all([
+        fetchProfilesAsAdmin(),
+        fetchOrganizationsAsAdmin(),
+        supabase
+          .from('session_logs')
+          .select('action, success, created_at')
+          .gte('created_at', yesterday.toISOString())
+      ]);
+
+      if (sessionsError) {
+        throw sessionsError;
       }
 
       const successfulLogins = recentSessions?.filter(log =>
@@ -104,8 +98,8 @@ const SuperAdminDashboard = () => {
       setStatsError(null);
       setLiveStats({
         systemStatus: failedLogins > 50 ? 'Warning' : 'Optimal',
-        activeUsers: profiles?.length || 0,
-        totalOrganisations: organisations?.length || 0,
+        activeUsers: scopedUsers.length,
+        totalOrganisations: scopedOrganisations.length,
         securityScore: Math.max(securityScore, 60), // Minimum 60%
         recentLogins: successfulLogins,
         failedLogins: failedLogins
@@ -209,7 +203,7 @@ const SuperAdminDashboard = () => {
     ? 'No successful sign-ins recorded in the last 24h.'
     : `${liveStats.recentLogins} successful sign-ins recorded in the last 24h.`;
   const organisationNote = liveStats.totalOrganisations > 0
-    ? `${Math.round(liveStats.activeUsers / Math.max(liveStats.totalOrganisations, 1))} average active users per organisation.`
+    ? `${Math.round(liveStats.activeUsers / Math.max(liveStats.totalOrganisations, 1))} average users per organisation.`
     : 'No organisations are configured yet.';
   const securityNote = liveStats.securityScore >= 90
     ? 'Security posture is stable and within target.'
@@ -230,7 +224,7 @@ const SuperAdminDashboard = () => {
     },
     {
       key: 'users',
-      label: 'Active Users',
+      label: 'Directory Users',
       value: liveStats.activeUsers,
       note: userActivityNote,
       dotClass: 'bg-emerald-500 animate-pulse',

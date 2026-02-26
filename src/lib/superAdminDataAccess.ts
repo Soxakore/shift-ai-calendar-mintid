@@ -26,16 +26,34 @@ interface Organization {
 }
 
 interface Profile {
-  id: number;
+  id: number | string;
+  user_id?: string;
   username: string;
   display_name: string;
+  email?: string;
   user_type: string;
-  organisation_id: string;
-  department_id: string;
+  organisation_id?: string;
+  department_id?: string;
   is_active: boolean;
   tracking_id: string | null;
   phone_number: string | null;
   created_at: string;
+}
+
+interface ScopedUserDirectoryRow {
+  id: number | null;
+  user_id: string | null;
+  username: string | null;
+  display_name: string | null;
+  email: string | null;
+  user_type: string | null;
+  organisation_id: string | null;
+  department_id: string | null;
+  is_active: boolean | null;
+  tracking_id: string | null;
+  phone_number: string | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 interface CreateOrgData {
@@ -304,6 +322,41 @@ export const fetchProfilesAsAdmin = async () => {
   console.log('🔍 Super admin fetching profiles...');
   
   try {
+    const { data: scopedData, error: scopedError } = await supabase.rpc('get_scoped_user_directory');
+
+    if (!scopedError) {
+      const normalized = ((scopedData as ScopedUserDirectoryRow[] | null) || []).map((row, index) => {
+        const userId = row.user_id || `missing-user-${index}`;
+        const fallbackUsername = row.email ? row.email.split('@')[0] : `user_${String(userId).slice(0, 8)}`;
+        const username = row.username || fallbackUsername || 'user';
+        const displayName = row.display_name || username || 'User';
+
+        return {
+          id: row.id ?? `auth:${userId}`,
+          user_id: row.user_id || undefined,
+          username,
+          display_name: displayName,
+          email: row.email || undefined,
+          user_type: row.user_type || 'employee',
+          organisation_id: row.organisation_id || '',
+          department_id: row.department_id || '',
+          is_active: row.is_active ?? true,
+          tracking_id: row.tracking_id || null,
+          phone_number: row.phone_number || null,
+          created_at: row.created_at || new Date().toISOString()
+        } as Profile;
+      });
+
+      console.log('✅ Profiles fetched successfully via scoped RPC:', normalized.length);
+      return normalized;
+    }
+
+    if (!scopedError.message?.includes('Could not find the function public.get_scoped_user_directory')) {
+      console.error('❌ Scoped profile RPC fetch failed:', scopedError);
+    } else {
+      console.warn('⚠️ get_scoped_user_directory not found, falling back to direct profiles query');
+    }
+
     // Try standard fetch first
     const { data, error } = await supabase
       .from('profiles')
@@ -323,8 +376,24 @@ export const fetchProfilesAsAdmin = async () => {
       return [];
     }
 
-    console.log('✅ Profiles fetched successfully:', data?.length || 0);
-    return data || [];
+    const normalizedFallback = (data || []).map(profile => ({
+      ...profile,
+      id: profile.id,
+      user_id: profile.user_id || undefined,
+      username: profile.username || 'user',
+      display_name: profile.display_name || profile.username || 'User',
+      email: undefined,
+      user_type: profile.user_type || 'employee',
+      organisation_id: profile.organisation_id || '',
+      department_id: profile.department_id || '',
+      is_active: profile.is_active ?? true,
+      tracking_id: profile.tracking_id || null,
+      phone_number: profile.phone_number || null,
+      created_at: profile.created_at || new Date().toISOString()
+    })) as Profile[];
+
+    console.log('✅ Profiles fetched successfully:', normalizedFallback.length);
+    return normalizedFallback;
     
   } catch (exception) {
     console.error('💥 Exception during profiles fetch:', exception);

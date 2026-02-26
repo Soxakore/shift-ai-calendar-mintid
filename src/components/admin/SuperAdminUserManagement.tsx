@@ -89,36 +89,32 @@ export default function SuperAdminUserManagement() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const { count: totalUsers } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact' });
-
-      const { count: activeUsers } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact' })
-        .eq('is_active', true);
-
-      const { count: totalOrganizations } = await supabase
-        .from('organisations')
-        .select('*', { count: 'exact' });
+      const [scopedUsers, scopedOrganizations] = await Promise.all([
+        fetchProfilesAsAdmin(),
+        fetchOrganizationsAsAdmin()
+      ]);
 
       // Fetch recent session activity (last 24 hours)
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       
-      const { data: recentSessions } = await supabase
+      const { data: recentSessions, error: recentSessionsError } = await supabase
         .from('session_logs')
         .select('action, success, created_at')
         .gte('created_at', yesterday.toISOString());
+
+      if (recentSessionsError) {
+        throw recentSessionsError;
+      }
 
       const successfulLogins = recentSessions?.filter(log => 
         log.action === 'login' && log.success
       ).length || 0;
 
       setStats({
-        totalUsers: totalUsers || 0,
-        activeUsers: activeUsers || 0,
-        totalOrganizations: totalOrganizations || 0,
+        totalUsers: scopedUsers.length,
+        activeUsers: scopedUsers.filter(user => user.is_active).length,
+        totalOrganizations: scopedOrganizations.length,
         recentLogins: successfulLogins
       });
     } catch (error) {
