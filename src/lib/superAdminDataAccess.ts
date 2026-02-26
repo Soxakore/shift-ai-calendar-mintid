@@ -404,6 +404,11 @@ export const fetchProfilesAsAdmin = async () => {
   console.log('🔍 Super admin fetching profiles...');
   
   try {
+    const { error: ensureProfileError } = await supabase.rpc('ensure_authenticated_profile');
+    if (ensureProfileError) {
+      console.warn('⚠️ ensure_authenticated_profile failed before scoped directory fetch:', ensureProfileError);
+    }
+
     const { data: scopedData, error: scopedError } = await supabase.rpc('get_scoped_user_directory');
 
     if (!scopedError) {
