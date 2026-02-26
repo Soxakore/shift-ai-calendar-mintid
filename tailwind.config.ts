@@ -18,6 +18,11 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				display: ['var(--sa-font-display)', 'Space Grotesk', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+				sans: ['var(--sa-font-body)', 'Manrope', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+				mono: ['var(--sa-font-mono)', 'IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -67,6 +72,14 @@ export default {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
+			},
+			transitionTimingFunction: {
+				'sa-standard': 'cubic-bezier(0.2, 0, 0, 1)'
+			},
+			transitionDuration: {
+				'sa-sm': '120ms',
+				'sa-md': '180ms',
+				'sa-lg': '260ms'
 			},
 			keyframes: {
 				'accordion-down': {

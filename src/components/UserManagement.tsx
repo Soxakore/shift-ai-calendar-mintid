@@ -8,6 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Users, Shield, Building2, UserCog, Mail, Calendar, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { EmptyStatePanel, SectionHeader } from '@/components/admin/design';
+import { getActionDataAttributes } from '@/config/superAdminActionRegistry';
+import { fetchOrganizationsAsAdmin } from '@/lib/superAdminDataAccess';
 
 interface PendingUser {
   user_id: string;
@@ -68,17 +71,8 @@ const UserManagement = () => {
 
   const fetchOrganisations = async () => {
     try {
-      const { data, error } = await supabase
-        .from('organisations')
-        .select('id, name')
-        .order('name');
-
-      if (error) {
-        console.error('Error fetching organisations:', error);
-        return;
-      }
-
-      setOrganisations(data || []);
+      const data = await fetchOrganizationsAsAdmin();
+      setOrganisations((data || []).map((organisation) => ({ id: organisation.id, name: organisation.name })));
     } catch (error) {
       console.error('Error:', error);
     }
@@ -153,7 +147,7 @@ const UserManagement = () => {
 
   if (loading) {
     return (
-      <Card>
+      <Card className="sa-panel border-white/15 bg-[hsl(var(--sa-surface-1)/0.75)]">
         <CardContent className="flex items-center justify-center p-8">
           <Loader2 className="w-6 h-6 animate-spin mr-2" />
           Loading user management...
@@ -164,26 +158,20 @@ const UserManagement = () => {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="sa-panel border-white/15 bg-[hsl(var(--sa-surface-1)/0.75)]">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserCog className="w-5 h-5" />
-            User Role Management
-          </CardTitle>
+          <SectionHeader
+            title="User Role Management"
+            description="Assign roles to users who registered through GitHub OAuth."
+            action={<UserCog className="w-5 h-5 text-[hsl(var(--sa-text-secondary))]" />}
+          />
         </CardHeader>
         <CardContent>
-          <p className="text-gray-600 mb-4">
-            Assign roles to users who have registered via GitHub OAuth. 
-            New users are automatically assigned as 'employee' until you update their role.
-          </p>
-
           {pendingUsers.length === 0 ? (
-            <Alert>
-              <Users className="w-4 h-4" />
-              <AlertDescription>
-                No pending users found. All registered users have been assigned appropriate roles.
-              </AlertDescription>
-            </Alert>
+            <EmptyStatePanel
+              title="No pending users"
+              description="All registered users currently have assigned roles."
+            />
           ) : (
             <div className="space-y-4">
               {pendingUsers.map((user) => (
@@ -232,13 +220,13 @@ const UserCard: React.FC<UserCardProps> = ({
   const needsOrganisation = ['org_admin', 'manager'].includes(selectedRole);
 
   return (
-    <Card className="border-l-4 border-l-blue-500">
+    <Card className="border-l-4 border-l-[hsl(var(--sa-accent))] bg-[hsl(var(--sa-surface-1)/0.75)]">
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-gray-500" />
+                <Mail className="w-4 h-4 text-[hsl(var(--sa-text-secondary))]" />
                 <span className="font-medium">{user.full_name}</span>
               </div>
               <Badge className={getRoleBadgeColor(user.role)}>
@@ -247,11 +235,11 @@ const UserCard: React.FC<UserCardProps> = ({
               </Badge>
             </div>
             
-            <div className="text-sm text-gray-600 mb-2">
+            <div className="text-sm text-[hsl(var(--sa-text-secondary))] mb-2">
               {user.email}
             </div>
             
-            <div className="flex items-center gap-1 text-xs text-gray-500">
+            <div className="flex items-center gap-1 text-xs text-[hsl(var(--sa-text-secondary))]">
               <Calendar className="w-3 h-3" />
               Registered: {new Date(user.created_at).toLocaleDateString()}
             </div>
@@ -271,24 +259,28 @@ const UserCard: React.FC<UserCardProps> = ({
             </Select>
 
             {needsOrganisation && (
-              <Select value={selectedOrganisation} onValueChange={setSelectedOrganisation}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Select org..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {organisations.map((org) => (
-                    <SelectItem key={org.id} value={org.id}>
-                      {org.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-1">
+                <span className="sr-only">Organisation</span>
+                <Select value={selectedOrganisation} onValueChange={setSelectedOrganisation}>
+                  <SelectTrigger className="w-40" aria-label="Organisation">
+                    <SelectValue placeholder="Example: MinaTid HQ" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {organisations.map((org) => (
+                      <SelectItem key={org.id} value={org.id}>
+                        {org.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             )}
 
             <Button
               onClick={handleAssign}
               disabled={isAssigning || (needsOrganisation && !selectedOrganisation)}
               size="sm"
+              {...getActionDataAttributes('overview.role-assignments')}
             >
               {isAssigning ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

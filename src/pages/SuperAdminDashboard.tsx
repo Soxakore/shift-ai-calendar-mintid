@@ -37,6 +37,9 @@ import UserManagement from '@/components/UserManagement';
 import { LiveScheduleAutomation } from '@/components/LiveScheduleAutomation';
 import RoleDashboardHeader from '@/components/layout/RoleDashboardHeader';
 import { fetchOrganizationsAsAdmin, fetchProfilesAsAdmin } from '@/lib/superAdminDataAccess';
+import { ActionTile, InlineStatus, SectionHeader, StatCard } from '@/components/admin/design';
+import { getActionDataAttributes } from '@/config/superAdminActionRegistry';
+import type { SuperAdminActionId } from '@/types/superAdminUI';
 
 const SuperAdminDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
@@ -191,10 +194,10 @@ const SuperAdminDashboard = () => {
 
   const adminName = profile?.display_name || profile?.username || profile?.email || 'Super Admin';
   const adminRole = profile?.user_type ? profile.user_type.replace('_', ' ').toUpperCase() : 'SUPER ADMIN';
-  const glassPanelClass = 'relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[rgba(26,28,46,0.78)] shadow-[0_24px_60px_-38px_rgba(2,6,23,0.98)] backdrop-blur-2xl';
-  const glassCardClass = 'group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[rgba(30,32,55,0.62)] p-6 shadow-[0_22px_44px_-36px_rgba(2,6,23,0.98)] backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1 hover:border-indigo-300/35 hover:bg-[rgba(30,32,55,0.78)]';
-  const glassInsetClass = 'rounded-xl border border-white/[0.08] bg-[rgba(15,17,26,0.62)] p-4 backdrop-blur-xl';
-  const tabTriggerClass = 'rounded-none border-b-2 border-transparent px-3 pb-4 pt-2 text-sm font-semibold text-slate-400 transition-all data-[state=active]:border-indigo-300 data-[state=active]:bg-transparent data-[state=active]:text-slate-100';
+  const isDebugEnabled = import.meta.env.DEV || import.meta.env.VITE_ENABLE_SUPERADMIN_DEBUG === 'true';
+  const glassPanelClass = 'sa-panel relative overflow-hidden';
+  const glassInsetClass = 'sa-surface-soft rounded-[var(--sa-radius-md)] p-4';
+  const tabTriggerClass = 'rounded-none border-b-2 border-transparent px-3 pb-4 pt-2 sa-text-14 font-semibold text-[hsl(var(--sa-text-secondary))] transition-all duration-sa-md ease-sa-standard data-[state=active]:border-[hsl(var(--sa-accent))] data-[state=active]:bg-transparent data-[state=active]:text-[hsl(var(--sa-text-primary))]';
 
   const failedLoginNote = liveStats.failedLogins === 0
     ? 'No suspicious sign-in activity in the last 24h.'
@@ -217,9 +220,7 @@ const SuperAdminDashboard = () => {
       label: 'Platform Health',
       value: liveStats.systemStatus,
       note: failedLoginNote,
-      dotClass: liveStats.systemStatus === 'Optimal' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-pulse',
-      iconClass: 'text-indigo-200',
-      glowClass: 'bg-indigo-400/18',
+      tone: liveStats.systemStatus === 'Optimal' ? 'success' : 'warning',
       Icon: Shield,
     },
     {
@@ -227,9 +228,7 @@ const SuperAdminDashboard = () => {
       label: 'Directory Users',
       value: liveStats.activeUsers,
       note: userActivityNote,
-      dotClass: 'bg-emerald-500 animate-pulse',
-      iconClass: 'text-blue-200',
-      glowClass: 'bg-blue-400/16',
+      tone: 'accent',
       Icon: Users,
     },
     {
@@ -237,9 +236,7 @@ const SuperAdminDashboard = () => {
       label: 'Organisations',
       value: liveStats.totalOrganisations,
       note: organisationNote,
-      dotClass: 'bg-indigo-300 animate-pulse',
-      iconClass: 'text-indigo-200',
-      glowClass: 'bg-violet-400/14',
+      tone: 'neutral',
       Icon: Building2,
     },
     {
@@ -247,48 +244,76 @@ const SuperAdminDashboard = () => {
       label: 'Security Score',
       value: `${liveStats.securityScore}%`,
       note: securityNote,
-      dotClass: liveStats.securityScore >= 90 ? 'bg-emerald-500 animate-pulse' : liveStats.securityScore >= 70 ? 'bg-amber-500 animate-pulse' : 'bg-rose-500 animate-pulse',
-      iconClass: 'text-emerald-200',
-      glowClass: 'bg-emerald-400/16',
+      tone: liveStats.securityScore >= 90 ? 'success' : liveStats.securityScore >= 70 ? 'warning' : 'danger',
       Icon: Shield,
     },
   ] as const;
 
+  const tabActionMap: Record<string, SuperAdminActionId> = {
+    overview: 'navigation.overview',
+    users: 'navigation.users',
+    'user-roles': 'navigation.user-roles',
+    organisations: 'navigation.organisations',
+    analytics: 'navigation.analytics',
+    security: 'navigation.security',
+    '2fa': 'navigation.2fa',
+    system: 'navigation.system',
+    debug: 'navigation.debug',
+  };
+
   const quickActions = [
     {
       key: 'users',
+      actionId: 'overview.manage-users' as const,
       title: 'Manage User Directory',
       subtitle: 'Create, edit, and deactivate accounts',
+      tone: 'accent' as const,
+      icon: <Users className="h-4 w-4" />,
       onClick: () => setActiveTab('users'),
     },
     {
       key: 'roles',
+      actionId: 'overview.role-assignments' as const,
       title: 'Review Role Assignments',
       subtitle: 'Validate role scope for new and existing users',
+      tone: 'neutral' as const,
+      icon: <UserPlus className="h-4 w-4" />,
       onClick: () => setActiveTab('user-roles'),
     },
     {
       key: 'orgs',
+      actionId: 'overview.manage-organisations' as const,
       title: 'Organisation Settings',
       subtitle: 'Update organisation profiles and ownership',
+      tone: 'neutral' as const,
+      icon: <Building2 className="h-4 w-4" />,
       onClick: () => setActiveTab('organisations'),
     },
     {
       key: 'analytics',
+      actionId: 'overview.analytics-workspace' as const,
       title: 'Analytics Workspace',
       subtitle: 'Open performance and workforce reporting',
+      tone: 'neutral' as const,
+      icon: <BarChart3 className="h-4 w-4" />,
       onClick: () => setActiveTab('analytics'),
     },
     {
       key: 'security',
+      actionId: 'overview.security-monitoring' as const,
       title: 'Security Monitoring',
       subtitle: 'Review authentication, policies, and alerts',
+      tone: 'warning' as const,
+      icon: <Shield className="h-4 w-4" />,
       onClick: () => setActiveTab('security'),
     },
     {
       key: 'history',
+      actionId: 'overview.audit-history' as const,
       title: 'Audit History',
       subtitle: 'Inspect recent administrative changes',
+      tone: 'neutral' as const,
+      icon: <Activity className="h-4 w-4" />,
       onClick: () => navigate('/history'),
     },
   ] as const;
@@ -300,7 +325,7 @@ const SuperAdminDashboard = () => {
   // These components fetch real data from your live database
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_12%_6%,#111c34_0%,#0f172a_36%,#0f111a_100%)] text-slate-100">
+    <div className="super-admin-theme relative min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_12%_6%,hsl(var(--sa-bg))_0%,#0f172a_36%,#0f111a_100%)] text-[hsl(var(--sa-text-primary))]">
       <SEOHead
         title={pageMetadata.title}
         description={pageMetadata.description}
@@ -380,17 +405,24 @@ const SuperAdminDashboard = () => {
           ]}
           searchValue={searchTerm}
           onSearchChange={setSearchTerm}
-          searchPlaceholder="Search users, organisations, and logs..."
+          searchPlaceholder="Type a name, email, username, or organisation..."
           actions={
             <>
-              <HistoryButton variant="outline" size="sm" showBadge={false} className="h-9 w-9 p-0" />
-              <NotificationDropdown compact={true} />
-              <ThemeToggle />
+              <div {...getActionDataAttributes('header.history')}>
+                <HistoryButton variant="outline" size="sm" showBadge={false} className="h-9 w-9 p-0 border-white/20 bg-[hsl(var(--sa-surface-1)/0.75)]" />
+              </div>
+              <div {...getActionDataAttributes('header.notifications')}>
+                <NotificationDropdown compact={true} />
+              </div>
+              <div {...getActionDataAttributes('header.theme-toggle')}>
+                <ThemeToggle />
+              </div>
               <Button
                 variant="destructive"
                 size="sm"
                 onClick={handleLogout}
-                className="text-white shadow-sm transition-shadow hover:shadow-md"
+                className="sa-focus-ring text-white shadow-sm transition-shadow hover:shadow-md"
+                {...getActionDataAttributes('auth.logout')}
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout
@@ -402,53 +434,55 @@ const SuperAdminDashboard = () => {
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <div className="overflow-x-auto pb-1">
-              <TabsList className="h-auto min-w-max rounded-none border-b border-white/10 bg-transparent p-0">
-                <TabsTrigger value="overview" className={tabTriggerClass}>
+              <TabsList className="h-auto min-w-max rounded-none border-b border-white/15 bg-transparent p-0">
+                <TabsTrigger value="overview" className={tabTriggerClass} {...getActionDataAttributes(tabActionMap.overview)}>
                   <BarChart3 className="h-4 w-4" />
                   Overview
                 </TabsTrigger>
-                <TabsTrigger value="users" className={tabTriggerClass}>
+                <TabsTrigger value="users" className={tabTriggerClass} {...getActionDataAttributes(tabActionMap.users)}>
                   <Users className="h-4 w-4" />
                   Users
                 </TabsTrigger>
-                <TabsTrigger value="user-roles" className={tabTriggerClass}>
+                <TabsTrigger value="user-roles" className={tabTriggerClass} {...getActionDataAttributes(tabActionMap['user-roles'])}>
                   <UserPlus className="h-4 w-4" />
                   Role Mgmt
                   <Badge className="ml-1 bg-emerald-600 text-white text-[10px]">OAuth</Badge>
                 </TabsTrigger>
-                <TabsTrigger value="organisations" className={tabTriggerClass}>
+                <TabsTrigger value="organisations" className={tabTriggerClass} {...getActionDataAttributes(tabActionMap.organisations)}>
                   <Building2 className="h-4 w-4" />
                   Organisations
                 </TabsTrigger>
-                <TabsTrigger value="analytics" className={tabTriggerClass}>
+                <TabsTrigger value="analytics" className={tabTriggerClass} {...getActionDataAttributes(tabActionMap.analytics)}>
                   <BarChart3 className="h-4 w-4" />
                   Analytics
                 </TabsTrigger>
-                <TabsTrigger value="security" className={tabTriggerClass}>
+                <TabsTrigger value="security" className={tabTriggerClass} {...getActionDataAttributes(tabActionMap.security)}>
                   <Shield className="h-4 w-4" />
                   Security
                   <Badge variant="destructive" className="ml-1 text-[10px] text-white">New</Badge>
                 </TabsTrigger>
-                <TabsTrigger value="2fa" className={tabTriggerClass}>
+                <TabsTrigger value="2fa" className={tabTriggerClass} {...getActionDataAttributes(tabActionMap['2fa'])}>
                   <Shield className="h-4 w-4" />
                   2FA
                   <Badge className="ml-1 bg-blue-500 text-white text-[10px]">New</Badge>
                 </TabsTrigger>
-                <TabsTrigger value="system" className={tabTriggerClass}>
+                <TabsTrigger value="system" className={tabTriggerClass} {...getActionDataAttributes(tabActionMap.system)}>
                   <Settings className="h-4 w-4" />
                   System
                 </TabsTrigger>
-                <TabsTrigger value="debug" className={tabTriggerClass}>
-                  <Settings className="h-4 w-4" />
-                  Debug
-                  <Badge className="ml-1 bg-red-500 text-white text-[10px]">Test</Badge>
-                </TabsTrigger>
+                {isDebugEnabled ? (
+                  <TabsTrigger value="debug" className={tabTriggerClass} {...getActionDataAttributes(tabActionMap.debug)}>
+                    <Settings className="h-4 w-4" />
+                    Debug
+                    <Badge className="ml-1 bg-red-500 text-white text-[10px]">Test</Badge>
+                  </TabsTrigger>
+                ) : null}
               </TabsList>
             </div>
 
             {searchTerm && (
-              <div className="rounded-xl border border-indigo-300/30 bg-indigo-500/10 px-3 py-2 text-xs text-indigo-100 backdrop-blur-xl">
-                Active filter: "{searchTerm}". Dashboard actions remain available.
+              <div className="sa-surface-soft rounded-[var(--sa-radius-md)] border px-3 py-2 sa-text-12 text-[hsl(var(--sa-text-secondary))]">
+                Active filter: "{searchTerm}". All actions remain available.
               </div>
             )}
 
@@ -462,23 +496,16 @@ const SuperAdminDashboard = () => {
                       key={card.key}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.42, delay: 0.02 + index * 0.06, ease: 'easeOut' }}
-                      whileHover={{ y: -5, scale: 1.01 }}
+                      transition={{ duration: 0.26, delay: 0.02 + index * 0.05, ease: 'easeOut' }}
+                      whileHover={{ y: -3, scale: 1.01 }}
                     >
-                      <section className={glassCardClass}>
-                        <div className={`absolute -right-10 -top-10 h-24 w-24 rounded-full blur-2xl transition-opacity group-hover:opacity-100 ${card.glowClass}`} />
-                        <header className="relative z-10 flex items-center justify-between pb-2">
-                          <h3 className="text-sm font-medium text-slate-300">{card.label}</h3>
-                          <div className="flex items-center gap-2">
-                            <div className={`h-2 w-2 rounded-full ${card.dotClass}`} />
-                            <CardIcon className={`h-4 w-4 ${card.iconClass}`} />
-                          </div>
-                        </header>
-                        <div className="relative z-10">
-                          <div className="text-3xl font-bold tracking-tight text-white">{card.value}</div>
-                          <p className="text-xs leading-relaxed text-slate-300/90">{card.note}</p>
-                        </div>
-                      </section>
+                      <StatCard
+                        label={card.label}
+                        value={card.value}
+                        note={card.note}
+                        tone={card.tone}
+                        icon={<CardIcon className="h-4 w-4" />}
+                      />
                     </motion.div>
                   );
                 })}
@@ -489,53 +516,60 @@ const SuperAdminDashboard = () => {
                   className={`${glassPanelClass} p-6 lg:col-span-2`}
                   initial={{ opacity: 0, y: 14 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.16, ease: 'easeOut' }}
+                  transition={{ duration: 0.26, delay: 0.12, ease: 'easeOut' }}
                 >
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/45 to-transparent" />
-                  <div className="mb-5 flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-bold text-white">Operations Snapshot</h3>
-                      <p className="text-sm leading-relaxed text-slate-300/90">Use this section for immediate context, then continue in tabs for full administrative workflows.</p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={fetchLiveStats}
-                      className="border-white/20 bg-[rgba(15,17,26,0.62)] text-slate-100 hover:bg-slate-800"
-                    >
-                      Refresh
-                    </Button>
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-200/35 to-transparent" />
+                  <SectionHeader
+                    title="Operations Snapshot"
+                    description="Use this section for immediate context, then continue in tabs for complete administrative workflows."
+                    action={
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={fetchLiveStats}
+                        className="sa-focus-ring border-white/20 bg-[hsl(var(--sa-surface-1)/0.75)] text-[hsl(var(--sa-text-primary))] hover:bg-[hsl(var(--sa-surface-2)/0.9)]"
+                        {...getActionDataAttributes('overview.refresh')}
+                      >
+                        Refresh
+                      </Button>
+                    }
+                  />
+                  <div className="mb-5 mt-4">
+                    <InlineStatus
+                      label={liveStats.systemStatus === 'Optimal' ? 'All services operational' : 'Attention required'}
+                      tone={liveStats.systemStatus === 'Optimal' ? 'success' : 'warning'}
+                    />
                   </div>
 
                   {statsError && (
-                    <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-100 backdrop-blur-xl">
-                      Some dashboard metrics are temporarily unavailable. Refresh or check your data access policies.
+                    <div className="mb-4 rounded-[var(--sa-radius-md)] border border-amber-400/30 bg-amber-500/10 px-3 py-2 sa-text-12 text-amber-100">
+                      Some metrics are temporarily unavailable. Refresh or verify your data-access policies.
                     </div>
                   )}
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className={glassInsetClass}>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Authentication Throughput</p>
-                      <p className="mt-1 text-2xl font-bold text-white">{liveStats.recentLogins}</p>
-                      <p className="text-xs text-slate-400">Successful logins over the last 24 hours.</p>
+                      <p className="sa-text-12 font-semibold uppercase tracking-wide text-[hsl(var(--sa-text-secondary))]">Authentication Throughput</p>
+                      <p className="mt-1 sa-text-24 font-bold text-[hsl(var(--sa-text-primary))]">{liveStats.recentLogins}</p>
+                      <p className="sa-text-12 text-[hsl(var(--sa-text-secondary))]">Successful logins over the last 24 hours.</p>
                     </div>
                     <div className={glassInsetClass}>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Risk Events</p>
-                      <p className="mt-1 text-2xl font-bold text-white">{liveStats.failedLogins}</p>
-                      <p className="text-xs text-slate-400">Failed authentication attempts in the same period.</p>
+                      <p className="sa-text-12 font-semibold uppercase tracking-wide text-[hsl(var(--sa-text-secondary))]">Risk Events</p>
+                      <p className="mt-1 sa-text-24 font-bold text-[hsl(var(--sa-text-primary))]">{liveStats.failedLogins}</p>
+                      <p className="sa-text-12 text-[hsl(var(--sa-text-secondary))]">Failed authentication attempts in the same period.</p>
                     </div>
                     <div className={glassInsetClass}>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Organisation Coverage</p>
-                      <p className="mt-1 text-2xl font-bold text-white">{liveStats.totalOrganisations}</p>
-                      <p className="text-xs text-slate-400">Organisations currently managed in this tenant.</p>
+                      <p className="sa-text-12 font-semibold uppercase tracking-wide text-[hsl(var(--sa-text-secondary))]">Organisation Coverage</p>
+                      <p className="mt-1 sa-text-24 font-bold text-[hsl(var(--sa-text-primary))]">{liveStats.totalOrganisations}</p>
+                      <p className="sa-text-12 text-[hsl(var(--sa-text-secondary))]">Organisations currently managed in this tenant.</p>
                     </div>
                     <div className={glassInsetClass}>
                       <div className="flex items-center justify-between">
-                        <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Operational State</p>
+                        <p className="sa-text-12 font-semibold uppercase tracking-wide text-[hsl(var(--sa-text-secondary))]">Operational State</p>
                         <Activity className="h-4 w-4 text-indigo-200" />
                       </div>
-                      <p className="mt-1 text-2xl font-bold text-white">{liveStats.systemStatus}</p>
-                      <p className="text-xs text-slate-400">Derived from authentication and platform activity signals.</p>
+                      <p className="mt-1 sa-text-24 font-bold text-[hsl(var(--sa-text-primary))]">{liveStats.systemStatus}</p>
+                      <p className="sa-text-12 text-[hsl(var(--sa-text-secondary))]">Derived from authentication and platform activity signals.</p>
                     </div>
                   </div>
                 </motion.section>
@@ -544,21 +578,21 @@ const SuperAdminDashboard = () => {
                   className={`${glassPanelClass} p-5`}
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.48, delay: 0.22, ease: 'easeOut' }}
+                  transition={{ duration: 0.26, delay: 0.16, ease: 'easeOut' }}
                 >
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-200/40 to-transparent" />
-                  <h3 className="mb-4 text-base font-bold text-white">Quick Actions</h3>
-                  <div className="space-y-3">
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-200/35 to-transparent" />
+                  <h3 className="sa-text-18 font-bold text-[hsl(var(--sa-text-primary))]">Quick Actions</h3>
+                  <div className="mt-4 space-y-3">
                     {quickActions.map((action) => (
-                      <button
+                      <ActionTile
                         key={action.key}
-                        type="button"
+                        actionId={action.actionId}
+                        title={action.title}
+                        description={action.subtitle}
+                        tone={action.tone}
+                        icon={action.icon}
                         onClick={action.onClick}
-                        className="w-full rounded-xl border border-white/[0.08] bg-[rgba(15,17,26,0.62)] px-3 py-2.5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300/40 hover:bg-indigo-500/12"
-                      >
-                        <p className="text-xs font-semibold text-slate-100">{action.title}</p>
-                        <p className="mt-0.5 text-[11px] leading-relaxed text-slate-400">{action.subtitle}</p>
-                      </button>
+                      />
                     ))}
                   </div>
                 </motion.section>
@@ -568,7 +602,7 @@ const SuperAdminDashboard = () => {
                 className={`${glassPanelClass} p-3 sm:p-4`}
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.26, ease: 'easeOut' }}
+                transition={{ duration: 0.26, delay: 0.2, ease: 'easeOut' }}
               >
                 <RoleBasedUserManagement />
               </motion.div>
@@ -598,9 +632,11 @@ const SuperAdminDashboard = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="debug" className="space-y-6">
-              <DataDebugComponent />
-            </TabsContent>
+            {isDebugEnabled ? (
+              <TabsContent value="debug" className="space-y-6">
+                <DataDebugComponent />
+              </TabsContent>
+            ) : null}
 
             <TabsContent value="security" className="space-y-6">
               <SecurityMonitoring />

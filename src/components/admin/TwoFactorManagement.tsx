@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { getActionDataAttributes } from '@/config/superAdminActionRegistry';
 
 interface TwoFactorStats {
   enabled: number;
@@ -77,8 +78,8 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
         </div>
       </div>
       <DialogFooter>
-        <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button onClick={onConfirm} className="bg-blue-600 hover:bg-blue-700">
+        <Button variant="outline" onClick={onClose} {...getActionDataAttributes('navigation.security')}>Cancel</Button>
+        <Button onClick={onConfirm} className="bg-blue-600 hover:bg-blue-700" {...getActionDataAttributes('navigation.security')}>
           <Send className="w-4 h-4 mr-2" />
           Send Email
         </Button>
@@ -661,7 +662,7 @@ const TwoFactorManagement = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 super-admin-theme">
       {/* Enhanced header section */}
       <div className="bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 p-6 rounded-lg border border-red-200 dark:border-red-800">
         <div className="flex items-center gap-3 mb-4">
@@ -705,6 +706,7 @@ const TwoFactorManagement = () => {
                   }}
                   variant="outline"
                   className="dark:border-gray-600 dark:text-gray-100"
+                  {...getActionDataAttributes('overview.security-monitoring')}
                 >
                   Save
                 </Button>
@@ -796,6 +798,7 @@ const TwoFactorManagement = () => {
                     onClick={handleGenerateBackupCodes}
                     disabled={isGeneratingCodes}
                     className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                    {...getActionDataAttributes('overview.security-monitoring')}
                   >
                     {isGeneratingCodes ? (
                       <>
@@ -853,6 +856,7 @@ const TwoFactorManagement = () => {
                     disabled={isValidatingEmail}
                     variant="outline"
                     className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
+                    {...getActionDataAttributes('overview.security-monitoring')}
                   >
                     {isValidatingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                     Check
@@ -881,6 +885,7 @@ const TwoFactorManagement = () => {
                     disabled={isSendingTest || !emailValidationResult?.isValid}
                     variant="outline"
                     className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
+                    {...getActionDataAttributes('overview.security-monitoring')}
                   >
                     {isSendingTest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
                     Test Reset Email
@@ -890,6 +895,7 @@ const TwoFactorManagement = () => {
                     disabled={isSendingTest || !emailValidationResult?.isValid}
                     variant="outline"
                     className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
+                    {...getActionDataAttributes('overview.security-monitoring')}
                   >
                     {isSendingTest ? <Loader2 className="h-4 w-4 animate-spin" /> : <AlertTriangle className="h-4 w-4" />}
                     Test Security Alert
@@ -931,6 +937,7 @@ const TwoFactorManagement = () => {
               <Button 
                 onClick={handleForce2FAReset}
                 className="w-full justify-start bg-blue-600 hover:bg-blue-700 text-white"
+                {...getActionDataAttributes('overview.security-monitoring')}
               >
                 <UserCheck className="w-4 h-4 mr-2" />
                 Force 2FA Reset
@@ -938,6 +945,7 @@ const TwoFactorManagement = () => {
               <Button 
                 onClick={handleBulkEnable2FA}
                 className="w-full justify-start bg-emerald-600 hover:bg-emerald-700 text-white"
+                {...getActionDataAttributes('overview.security-monitoring')}
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Bulk Enable 2FA
@@ -945,6 +953,7 @@ const TwoFactorManagement = () => {
               <Button 
                 onClick={handleSecurityAudit}
                 className="w-full justify-start bg-orange-600 hover:bg-orange-700 text-white"
+                {...getActionDataAttributes('overview.security-monitoring')}
               >
                 <AlertTriangle className="w-4 h-4 mr-2" />
                 Security Audit
@@ -952,6 +961,7 @@ const TwoFactorManagement = () => {
               <Button 
                 onClick={handleEmergencyLockdown}
                 className="w-full justify-start bg-red-600 hover:bg-red-700 text-white"
+                {...getActionDataAttributes('overview.security-monitoring')}
               >
                 <Lock className="w-4 h-4 mr-2" />
                 Emergency Lockdown

@@ -1,9 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
+    --sa-font-display: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --sa-font-body: 'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --sa-font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
@@ -49,6 +55,28 @@
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --sa-bg: 226 42% 9%;
+    --sa-surface-1: 231 35% 14%;
+    --sa-surface-2: 231 30% 18%;
+    --sa-surface-3: 229 28% 24%;
+    --sa-border: 225 27% 34%;
+    --sa-text-primary: 225 47% 97%;
+    --sa-text-secondary: 226 21% 72%;
+    --sa-accent: 231 86% 68%;
+    --sa-success: 151 60% 46%;
+    --sa-warning: 38 92% 58%;
+    --sa-danger: 348 84% 60%;
+    --sa-radius-sm: 10px;
+    --sa-radius-md: 14px;
+    --sa-radius-lg: 18px;
+    --sa-shadow-glass-sm: 0 12px 30px -22px rgba(2, 6, 23, 0.9);
+    --sa-shadow-glass-md: 0 18px 40px -25px rgba(2, 6, 23, 0.95);
+    --sa-shadow-glass-lg: 0 26px 58px -34px rgba(2, 6, 23, 0.98);
+    --sa-motion-sm: 120ms;
+    --sa-motion-md: 180ms;
+    --sa-motion-lg: 260ms;
+    --sa-ease-standard: cubic-bezier(0.2, 0, 0, 1);
   }
 
   .dark {
@@ -97,5 +125,120 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--sa-font-body);
+  }
+}
+
+@layer components {
+  .super-admin-theme {
+    --background: var(--sa-bg);
+    --foreground: var(--sa-text-primary);
+    --card: var(--sa-surface-1);
+    --card-foreground: var(--sa-text-primary);
+    --popover: var(--sa-surface-1);
+    --popover-foreground: var(--sa-text-primary);
+    --border: var(--sa-border);
+    --input: var(--sa-surface-2);
+    --ring: var(--sa-accent);
+    --muted: var(--sa-surface-2);
+    --muted-foreground: var(--sa-text-secondary);
+    --accent: var(--sa-surface-2);
+    --accent-foreground: var(--sa-text-primary);
+    --primary: var(--sa-accent);
+    --primary-foreground: 228 46% 8%;
+    --secondary: var(--sa-surface-2);
+    --secondary-foreground: var(--sa-text-primary);
+    --destructive: var(--sa-danger);
+    --destructive-foreground: var(--sa-text-primary);
+    color: hsl(var(--sa-text-primary));
+    font-family: var(--sa-font-body);
+  }
+
+  .super-admin-theme h1,
+  .super-admin-theme h2,
+  .super-admin-theme h3,
+  .super-admin-theme h4,
+  .super-admin-theme h5,
+  .super-admin-theme h6 {
+    font-family: var(--sa-font-display);
+    letter-spacing: -0.02em;
+  }
+
+  .super-admin-theme code,
+  .super-admin-theme .font-mono {
+    font-family: var(--sa-font-mono);
+  }
+
+  .super-admin-theme .sa-panel {
+    border: 1px solid hsl(var(--sa-border) / 0.45);
+    border-radius: var(--sa-radius-lg);
+    background: linear-gradient(155deg, hsl(var(--sa-surface-1) / 0.9), hsl(var(--sa-surface-2) / 0.72));
+    box-shadow: var(--sa-shadow-glass-md);
+    backdrop-filter: blur(18px);
+  }
+
+  .super-admin-theme .sa-surface-soft {
+    border: 1px solid hsl(var(--sa-border) / 0.35);
+    border-radius: var(--sa-radius-md);
+    background: hsl(var(--sa-surface-2) / 0.72);
+    box-shadow: var(--sa-shadow-glass-sm);
+    backdrop-filter: blur(14px);
+  }
+
+  .super-admin-theme .sa-focus-ring:focus-visible {
+    outline: 2px solid hsl(var(--sa-accent) / 0.7);
+    outline-offset: 2px;
+  }
+
+  .super-admin-theme .sa-text-12 {
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+
+  .super-admin-theme .sa-text-14 {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  .super-admin-theme .sa-text-16 {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+
+  .super-admin-theme .sa-text-18 {
+    font-size: 1.125rem;
+    line-height: 1.625rem;
+  }
+
+  .super-admin-theme .sa-text-20 {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+
+  .super-admin-theme .sa-text-24 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+
+  .super-admin-theme .sa-text-30 {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+  }
+
+  .super-admin-theme .sa-stack-1 > * + * {
+    margin-top: 0.5rem;
+  }
+
+  .super-admin-theme .sa-stack-2 > * + * {
+    margin-top: 1rem;
+  }
+
+  .super-admin-theme .sa-stack-3 > * + * {
+    margin-top: 1.5rem;
+  }
+
+  .super-admin-theme :is(button, [role='button'], a, input, select, textarea) {
+    transition-duration: var(--sa-motion-md);
+    transition-timing-function: var(--sa-ease-standard);
   }
 }

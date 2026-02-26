@@ -28,6 +28,8 @@ import CreateOrganisationForm from './CreateOrganisationForm';
 import OrganisationsList from './OrganisationsList';
 import { getOrganizationAlias, getOrganizationDescription } from '@/lib/organizationHelpers';
 import { createDepartmentAsAdmin, createOrganizationAsAdmin } from '@/lib/superAdminDataAccess';
+import { AdminField, EmptyStatePanel, SectionHeader, StatCard } from './design';
+import { getActionDataAttributes } from '@/config/superAdminActionRegistry';
 
 const OrganisationManagement = () => {
   const { profile } = useSupabaseAuth();
@@ -200,22 +202,19 @@ const OrganisationManagement = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Building2 className="h-8 w-8 text-primary" />
-          <div>
-            <h1 className="text-2xl font-bold">Organisation Management</h1>
-            <p className="text-muted-foreground">
-              Manage organisations, view details, and create new organisations
-            </p>
-          </div>
-        </div>
-        <Button onClick={() => setShowCreateOrg(!showCreateOrg)}>
-          <UserPlus className="h-4 w-4 mr-2" />
-          Create Organisation
-        </Button>
-      </div>
+      <SectionHeader
+        title="Organisation Management"
+        description="Manage organisations, departments, and related operational metadata."
+        action={
+          <Button
+            onClick={() => setShowCreateOrg(!showCreateOrg)}
+            {...getActionDataAttributes('organisations.create')}
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Create Organisation
+          </Button>
+        }
+      />
 
       {/* Create Organisation Form */}
       {showCreateOrg && (
@@ -240,70 +239,58 @@ const OrganisationManagement = () => {
 
       {/* Organisation Details */}
       {organisations.length > 0 && (
-        <Card>
+        <Card className="sa-panel border-white/15 bg-[hsl(var(--sa-surface-1)/0.75)]">
           <CardHeader>
             <CardTitle>Organisation Details</CardTitle>
             <CardDescription>Select an organisation to view details</CardDescription>
           </CardHeader>
           <CardContent>
-            <Select value={selectedOrg} onValueChange={setSelectedOrg}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select an organisation to view details" />
-              </SelectTrigger>
-              <SelectContent>
-                {organisations.map((org) => (
-                  <SelectItem key={org.id} value={org.id}>
-                    <div className="flex items-center space-x-2">
-                      <Building2 className="h-4 w-4" />
-                      <span>{org.name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <AdminField
+              id="organisation-select"
+              label="Organisation"
+              helperText="Select an organisation to view members, departments, and metadata."
+            >
+              <Select value={selectedOrg} onValueChange={setSelectedOrg}>
+                <SelectTrigger id="organisation-select" className="w-full">
+                  <SelectValue placeholder="Example: MinaTid Downtown" />
+                </SelectTrigger>
+                <SelectContent>
+                  {organisations.map((org) => (
+                    <SelectItem key={org.id} value={org.id}>
+                      <div className="flex items-center space-x-2">
+                        <Building2 className="h-4 w-4" />
+                        <span>{org.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </AdminField>
 
             {currentOrg && (
               <div className="mt-6 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center space-x-2">
-                        <Building2 className="h-5 w-5 text-blue-500" />
-                        <div>
-                          <p className="text-sm font-medium">Organisation</p>
-                          <p className="text-lg font-bold">{currentOrg.name}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center space-x-2">
-                        <Users className="h-5 w-5 text-green-500" />
-                        <div>
-                          <p className="text-sm font-medium">Users</p>
-                          <p className="text-lg font-bold">
-                            {profiles.filter(p => p.organisation_id === currentOrg.id).length}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center space-x-2">
-                        <Briefcase className="h-5 w-5 text-purple-500" />
-                        <div>
-                          <p className="text-sm font-medium">Departments</p>
-                          <p className="text-lg font-bold">
-                            {departments.filter(d => d.organisation_id === currentOrg.id).length}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <StatCard
+                    label="Organisation"
+                    value={currentOrg.name}
+                    note="Selected scope"
+                    icon={<Building2 className="h-4 w-4" />}
+                    tone="accent"
+                  />
+                  <StatCard
+                    label="Users"
+                    value={profiles.filter((profileItem) => profileItem.organisation_id === currentOrg.id).length}
+                    note="Assigned users"
+                    icon={<Users className="h-4 w-4" />}
+                    tone="success"
+                  />
+                  <StatCard
+                    label="Departments"
+                    value={departments.filter((department) => department.organisation_id === currentOrg.id).length}
+                    note="Organisation units"
+                    icon={<Briefcase className="h-4 w-4" />}
+                    tone="neutral"
+                  />
                 </div>
 
                 {/* Department Management Section */}
@@ -316,7 +303,7 @@ const OrganisationManagement = () => {
                       </CardTitle>
                       <Dialog open={isCreateDeptOpen} onOpenChange={setIsCreateDeptOpen}>
                         <DialogTrigger asChild>
-                          <Button>
+                          <Button {...getActionDataAttributes('organisations.create')}>
                             <Plus className="h-4 w-4 mr-2" />
                             Add Department
                           </Button>
@@ -349,10 +336,10 @@ const OrganisationManagement = () => {
                             </div>
                           </div>
                           <div className="flex justify-end space-x-2">
-                            <Button variant="outline" onClick={() => setIsCreateDeptOpen(false)}>
+                            <Button variant="outline" onClick={() => setIsCreateDeptOpen(false)} {...getActionDataAttributes('navigation.organisations')}>
                               Cancel
                             </Button>
-                            <Button onClick={handleCreateDepartment} disabled={isCreatingDept}>
+                            <Button onClick={handleCreateDepartment} disabled={isCreatingDept} {...getActionDataAttributes('organisations.create')}>
                               {isCreatingDept ? "Creating..." : "Create Department"}
                             </Button>
                           </div>
@@ -363,9 +350,10 @@ const OrganisationManagement = () => {
                   <CardContent>
                     <div className="space-y-3">
                       {departments.filter(d => d.organisation_id === currentOrg.id).length === 0 ? (
-                        <p className="text-muted-foreground text-center py-8">
-                          No departments found. Create your first department to organise users.
-                        </p>
+                        <EmptyStatePanel
+                          title="No Departments Yet"
+                          description="Create the first department to organize users and role ownership."
+                        />
                       ) : (
                         departments
                           .filter(d => d.organisation_id === currentOrg.id)
@@ -389,10 +377,10 @@ const OrganisationManagement = () => {
                                   </div>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                  <Button variant="outline" size="sm">
+                                  <Button variant="outline" size="sm" disabled title="Department editing is planned for a future patch">
                                     <Edit3 className="w-4 h-4" />
                                   </Button>
-                                  <Button variant="destructive" size="sm">
+                                  <Button variant="destructive" size="sm" disabled title="Department deletion is planned for a future patch">
                                     <Trash2 className="w-4 h-4" />
                                   </Button>
                                 </div>

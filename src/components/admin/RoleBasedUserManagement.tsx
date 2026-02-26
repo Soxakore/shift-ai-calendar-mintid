@@ -12,7 +12,6 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import HistoryButton from './HistoryButton';
-import SuperAdminHeader from './SuperAdminHeader';
 import { useAuditLogger } from '@/hooks/useAuditLogger';
 import { getOrganizationAlias, getOrganizationDescription } from '@/lib/organizationHelpers';
 import { 
@@ -24,6 +23,8 @@ import {
 import { adminUserOperations, hasAdminAccess } from '@/lib/supabaseAdmin';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import EditUserDialog from './EditUserDialog';
+import { AdminField, EmptyStatePanel, SectionHeader } from './design';
+import { getActionDataAttributes } from '@/config/superAdminActionRegistry';
 
 interface Organization {
   id: string;
@@ -666,27 +667,48 @@ export default function RoleBasedUserManagement() {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header Section with Search */}
-      <SuperAdminHeader
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        onRefresh={() => {
-          fetchOrganizations();
-          fetchUsers();
-        }}
-        organizationsCount={organizations.length}
-        usersCount={allUsers.length}
-        departmentsCount={0}
-        filteredOrganizationsCount={filteredOrganizations.length}
-        filteredUsersCount={filteredUsers.length}
+      <SectionHeader
+        title="Directory Operations"
+        description="Manage users, organisations, and credential lifecycle from one secured workspace."
+        action={
+          <div className="flex flex-wrap items-end gap-3">
+            <AdminField
+              id="role-based-search"
+              label="Search directory"
+              helperText="Search by user, role, organisation, alias, tracking ID, or phone."
+              className="min-w-[220px] sm:w-80"
+            >
+              <input
+                id="role-based-search"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Example: manager, MinaTid HQ, +46..."
+                className="sa-focus-ring h-10 w-full rounded-xl border border-white/20 bg-[hsl(var(--sa-surface-1)/0.72)] px-3 sa-text-14 text-[hsl(var(--sa-text-primary))] placeholder:text-[hsl(var(--sa-text-secondary))]"
+                {...getActionDataAttributes('header.search')}
+              />
+            </AdminField>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                fetchOrganizations();
+                fetchUsers();
+              }}
+              className="sa-focus-ring border-white/20 bg-[hsl(var(--sa-surface-1)/0.75)] text-[hsl(var(--sa-text-primary))]"
+              {...getActionDataAttributes('overview.refresh')}
+            >
+              Refresh
+            </Button>
+          </div>
+        }
       />
 
-      {/* Navigation Tabs */}
-      <div className="flex flex-wrap gap-2 p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+      <div className="sa-surface-soft flex flex-wrap gap-2 p-3">
         <Button
           variant={activeTab === 'list' ? 'default' : 'outline'}
           onClick={() => setActiveTab('list')}
           className="flex items-center gap-2"
+          {...getActionDataAttributes('overview.manage-users')}
         >
           <Users className="w-4 h-4" />
           View All
@@ -695,14 +717,16 @@ export default function RoleBasedUserManagement() {
           variant={activeTab === 'create-org' ? 'default' : 'outline'}
           onClick={() => setActiveTab('create-org')}
           className="flex items-center gap-2"
+          {...getActionDataAttributes('organisations.create')}
         >
           <Building className="w-4 h-4" />
-          Create Organization
+          Create Organisation
         </Button>
         <Button
           variant={activeTab === 'create-user' ? 'default' : 'outline'}
           onClick={() => setActiveTab('create-user')}
           className="flex items-center gap-2"
+          {...getActionDataAttributes('users.create')}
         >
           <UserPlus className="w-4 h-4" />
           Create User (Email)
@@ -711,6 +735,7 @@ export default function RoleBasedUserManagement() {
           variant={activeTab === 'username-create' ? 'default' : 'outline'}
           onClick={() => setActiveTab('username-create')}
           className="flex items-center gap-2"
+          {...getActionDataAttributes('users.create')}
         >
           <UserPlus className="w-4 h-4" />
           Create User (Username)
@@ -719,13 +744,13 @@ export default function RoleBasedUserManagement() {
           variant={activeTab === 'password-change' ? 'default' : 'outline'}
           onClick={() => setActiveTab('password-change')}
           className="flex items-center gap-2"
+          {...getActionDataAttributes('users.edit')}
         >
           <KeyRound className="w-4 h-4" />
           Change Password
         </Button>
       </div>
 
-      {/* Create Organization Form */}
       {activeTab === 'create-org' && (
         <CreateOrganisationForm
           isCreating={isCreatingOrg}
@@ -734,7 +759,6 @@ export default function RoleBasedUserManagement() {
         />
       )}
 
-      {/* Create User Form */}
       {activeTab === 'create-user' && (
         <CreateUserForm
           isCreating={isCreatingUser}
@@ -744,44 +768,49 @@ export default function RoleBasedUserManagement() {
         />
       )}
 
-      {/* Username-Based User Creation */}
       {activeTab === 'username-create' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Create User with Username/Password</h2>
-            <Button 
-              variant="outline" 
-              onClick={() => setActiveTab('list')}
-            >
-              Back to List
-            </Button>
-          </div>
+          <SectionHeader
+            title="Create User with Username"
+            description="Provision users with username/password credentials."
+            action={
+              <Button
+                variant="outline"
+                onClick={() => setActiveTab('list')}
+                {...getActionDataAttributes('navigation.users')}
+              >
+                Back to List
+              </Button>
+            }
+          />
           <UsernameBasedUserCreation />
         </div>
       )}
 
-      {/* Password Change */}
       {activeTab === 'password-change' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Change Password</h2>
-            <Button 
-              variant="outline" 
-              onClick={() => setActiveTab('list')}
-            >
-              Back to List
-            </Button>
-          </div>
+          <SectionHeader
+            title="Change Password"
+            description="Rotate credentials and enforce password policy."
+            action={
+              <Button
+                variant="outline"
+                onClick={() => setActiveTab('list')}
+                {...getActionDataAttributes('navigation.users')}
+              >
+                Back to List
+              </Button>
+            }
+          />
           <UsernamePasswordChange />
         </div>
       )}
 
-      {/* Edit User Dialog */}
       {editingUser && (
         <EditUserDialog
           user={{
             ...editingUser,
-            organization_id: editingUser.organisation_id
+            organization_id: editingUser.organisation_id,
           }}
           isUpdating={isUpdatingUser}
           organizations={organizations}
@@ -790,37 +819,35 @@ export default function RoleBasedUserManagement() {
         />
       )}
 
-      {/* Organizations and Users List */}
       {activeTab === 'list' && (
         <div className="space-y-6">
-          {/* Organizations Section */}
-          <Card className="border-0 shadow-xl bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm">
-            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 border-b border-slate-200 dark:border-slate-600">
+          <Card className="sa-panel border-white/15 bg-[hsl(var(--sa-surface-1)/0.72)]">
+            <CardHeader className="border-b border-white/10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <Building className="h-5 w-5 text-blue-600" />
-                  <CardTitle className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-                    Organizations ({filteredOrganizations.length})
+                  <Building className="h-5 w-5 text-indigo-200" />
+                  <CardTitle className="sa-text-20 font-semibold text-[hsl(var(--sa-text-primary))]">
+                    Organisations ({filteredOrganizations.length})
                     {searchTerm && (
-                      <span className="text-sm font-normal text-slate-600 dark:text-slate-400 ml-2">
+                      <span className="ml-2 sa-text-12 font-normal text-[hsl(var(--sa-text-secondary))]">
                         of {organizations.length} total
                       </span>
                     )}
                   </CardTitle>
                 </div>
-                <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                  {filteredOrganizations.filter(org => org.users?.length > 0).length} Active
-                </Badge>
+                <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 sa-text-12 text-emerald-100">
+                  {filteredOrganizations.filter((org) => org.users?.length > 0).length} active
+                </span>
               </div>
             </CardHeader>
             <CardContent className="p-0">
               <OrganisationsList
-                organisations={filteredOrganizations.map(org => ({
+                organisations={filteredOrganizations.map((org) => ({
                   ...org,
                   description: getOrganizationDescription(org),
                   alias: getOrganizationAlias(org),
                   organization_number: org.tracking_id,
-                  settings_json: org.settings_json as Record<string, unknown> || {}
+                  settings_json: (org.settings_json as Record<string, unknown>) || {},
                 }))}
                 profiles={allUsers}
                 departments={[]}
@@ -830,49 +857,57 @@ export default function RoleBasedUserManagement() {
             </CardContent>
           </Card>
 
-          {/* Users Section */}
-          <Card className="border-0 shadow-xl bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm">
-            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 border-b border-slate-200 dark:border-slate-600">
+          <Card className="sa-panel border-white/15 bg-[hsl(var(--sa-surface-1)/0.72)]">
+            <CardHeader className="border-b border-white/10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <Users className="h-5 w-5 text-emerald-600" />
-                  <CardTitle className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-                    All Users ({filteredUsers.length})
+                  <Users className="h-5 w-5 text-emerald-200" />
+                  <CardTitle className="sa-text-20 font-semibold text-[hsl(var(--sa-text-primary))]">
+                    Users ({filteredUsers.length})
                     {searchTerm && (
-                      <span className="text-sm font-normal text-slate-600 dark:text-slate-400 ml-2">
+                      <span className="ml-2 sa-text-12 font-normal text-[hsl(var(--sa-text-secondary))]">
                         of {allUsers.length} total
                       </span>
                     )}
                   </CardTitle>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
-                    {filteredUsers.filter(user => user.is_active).length} Active
-                  </Badge>
-                  <HistoryButton 
-                    variant="ghost" 
+                  <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 sa-text-12 text-emerald-100">
+                    {filteredUsers.filter((user) => user.is_active).length} active
+                  </span>
+                  <HistoryButton
+                    variant="ghost"
                     size="sm"
-                    className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+                    className="text-[hsl(var(--sa-text-secondary))] hover:text-[hsl(var(--sa-text-primary))]"
                   />
                 </div>
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <UsersList
-                users={filteredUsers.map(user => ({
-                  ...user,
-                  id: String(user.id),
-                  organization_id: user.organisation_id // Map British to American spelling
-                }))}
-                organizations={organizations}
-                deletingUserId={deletingUserId}
-                onEdit={handleEditUser}
-                onDelete={handleDeleteUser}
-                getUserOrganization={(orgId: string) => {
-                  const org = organizations.find(o => o.id === orgId);
-                  return org?.name || 'Unknown Organization';
-                }}
-              />
+              {filteredUsers.length > 0 ? (
+                <UsersList
+                  users={filteredUsers.map((user) => ({
+                    ...user,
+                    id: String(user.id),
+                    organization_id: user.organisation_id,
+                  }))}
+                  organizations={organizations}
+                  deletingUserId={deletingUserId}
+                  onEdit={handleEditUser}
+                  onDelete={handleDeleteUser}
+                  getUserOrganization={(orgId: string) => {
+                    const org = organizations.find((item) => item.id === orgId);
+                    return org?.name || 'Unknown Organization';
+                  }}
+                />
+              ) : (
+                <div className="p-4">
+                  <EmptyStatePanel
+                    title="No directory matches"
+                    description="No users matched your current filter. Try another search or clear the filter."
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

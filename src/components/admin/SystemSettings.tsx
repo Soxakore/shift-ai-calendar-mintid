@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { getActionDataAttributes } from '@/config/superAdminActionRegistry';
 import { 
   Database, Download, Upload, RefreshCw, Globe, Smartphone, 
   Clock, Users, Building, Shield, Bell, Settings as SettingsIcon,
@@ -137,13 +138,13 @@ const SystemSettings = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 super-admin-theme">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">System Settings</h2>
           <p className="text-slate-600 dark:text-slate-400">Configure your MinaTid workforce management system</p>
         </div>
-        <Button onClick={saveAllSettings} className="bg-gradient-to-r from-blue-500 to-blue-600">
+        <Button onClick={saveAllSettings} className="bg-gradient-to-r from-blue-500 to-blue-600" {...getActionDataAttributes('navigation.system')}>
           Save All Settings
         </Button>
       </div>
@@ -419,7 +420,7 @@ const SystemSettings = () => {
                     />
                   </div>
 
-                  <Button onClick={testNotifications} variant="outline" size="sm" className="mt-2">
+                  <Button onClick={testNotifications} variant="outline" size="sm" className="mt-2" {...getActionDataAttributes('navigation.system')}>
                     Test Notifications
                   </Button>
                 </div>
@@ -658,17 +659,17 @@ const SystemSettings = () => {
               <div className="pt-6 border-t border-slate-200 dark:border-slate-700">
                 <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-4">Data Management</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Button onClick={performBackup} className="flex items-center gap-2">
+                  <Button onClick={performBackup} className="flex items-center gap-2" {...getActionDataAttributes('navigation.system')}>
                     <Download className="w-4 h-4" />
                     Create Backup
                   </Button>
                   
-                  <Button variant="outline" onClick={restoreBackup} className="flex items-center gap-2">
+                  <Button variant="outline" onClick={restoreBackup} className="flex items-center gap-2" {...getActionDataAttributes('navigation.system')}>
                     <Upload className="w-4 h-4" />
                     Restore Backup
                   </Button>
                   
-                  <Button variant="outline" onClick={exportData} className="flex items-center gap-2">
+                  <Button variant="outline" onClick={exportData} className="flex items-center gap-2" {...getActionDataAttributes('navigation.system')}>
                     <RefreshCw className="w-4 h-4" />
                     Export All Data
                   </Button>

@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import SystemStartupRecovery from './SystemStartupRecovery';
 import HackingAttemptMonitor from './HackingAttemptMonitor';
+import { getActionDataAttributes } from '@/config/superAdminActionRegistry';
 
 interface SecurityEvent {
   id: string;
@@ -249,12 +250,13 @@ export default function SecurityMonitoring() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 super-admin-theme">
       {/* Tab Navigation */}
       <div className="border-b border-slate-200 dark:border-slate-700">
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('overview')}
+            {...getActionDataAttributes('navigation.security')}
             className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
               activeTab === 'overview'
                 ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -265,6 +267,7 @@ export default function SecurityMonitoring() {
           </button>
           <button
             onClick={() => setActiveTab('recovery')}
+            {...getActionDataAttributes('navigation.security')}
             className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
               activeTab === 'recovery'
                 ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -275,6 +278,7 @@ export default function SecurityMonitoring() {
           </button>
           <button
             onClick={() => setActiveTab('threats')}
+            {...getActionDataAttributes('navigation.security')}
             className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
               activeTab === 'threats'
                 ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -348,6 +352,7 @@ export default function SecurityMonitoring() {
                   variant="outline" 
                   size="sm" 
                   className="mt-2 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
+                  {...getActionDataAttributes('overview.security-monitoring')}
                 >
                   {alertsEnabled ? "Disable" : "Enable"}
                 </Button>
@@ -405,6 +410,7 @@ export default function SecurityMonitoring() {
                           variant="outline" 
                           size="sm"
                           className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
+                          {...getActionDataAttributes('overview.security-monitoring')}
                         >
                           Block IP
                         </Button>
@@ -439,6 +445,7 @@ export default function SecurityMonitoring() {
                       variant="outline" 
                       size="sm"
                       className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
+                      {...getActionDataAttributes('overview.security-monitoring')}
                     >
                       Unblock
                     </Button>

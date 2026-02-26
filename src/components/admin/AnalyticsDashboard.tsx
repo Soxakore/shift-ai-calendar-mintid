@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { fetchOrganizationsAsAdmin, fetchProfilesAsAdmin } from '@/lib/superAdminDataAccess';
+import { getActionDataAttributes } from '@/config/superAdminActionRegistry';
 
 interface AnalyticsData {
   userStats: {
@@ -50,14 +52,10 @@ export default function AnalyticsDashboard() {
   const fetchAnalytics = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch user statistics
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_type, is_active, created_at, organization_id');
-
-      const { data: organizations } = await supabase
-        .from('organisations')
-        .select('id, created_at');
+      const [profiles, organizations] = await Promise.all([
+        fetchProfilesAsAdmin(),
+        fetchOrganizationsAsAdmin(),
+      ]);
 
       const { data: sessionLogs } = await supabase
         .from('session_logs')
@@ -87,7 +85,7 @@ export default function AnalyticsDashboard() {
 
       const organizationStats = {
         total: organizations?.length || 0,
-        withUsers: new Set(profiles?.map(p => p.organization_id).filter(Boolean)).size,
+        withUsers: new Set(profiles?.map((profile) => profile.organisation_id).filter(Boolean)).size,
         averageUsers: organizations?.length ? Math.round((profiles?.length || 0) / organizations.length) : 0
       };
 
@@ -158,7 +156,7 @@ export default function AnalyticsDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 super-admin-theme">
       {/* Header Controls */}
       <div className="flex items-center justify-between">
         <div>
@@ -170,16 +168,17 @@ export default function AnalyticsDashboard() {
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value)}
             className="px-3 py-2 border rounded-md bg-blue-50 border-blue-300 text-blue-900 focus:ring-blue-500 focus:border-blue-500"
+            {...getActionDataAttributes('overview.analytics-workspace')}
           >
             <option value="1d">Last 24 Hours</option>
             <option value="7d">Last 7 Days</option>
             <option value="30d">Last 30 Days</option>
           </select>
-          <Button onClick={fetchAnalytics} variant="outline" size="sm">
+          <Button onClick={fetchAnalytics} variant="outline" size="sm" {...getActionDataAttributes('overview.refresh')}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
-          <Button onClick={exportReport} variant="outline" size="sm">
+          <Button onClick={exportReport} variant="outline" size="sm" {...getActionDataAttributes('overview.analytics-workspace')}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
