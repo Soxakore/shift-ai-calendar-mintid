@@ -21,6 +21,8 @@ import { Badge } from '@/components/ui/badge';
 import SEOHead from '@/components/SEOHead';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import HistoryButton from '@/components/admin/HistoryButton';
+import NotificationDropdown from '@/components/admin/NotificationDropdown';
+import RoleDashboardHeader from '@/components/layout/RoleDashboardHeader';
 import Footer from '@/components/Footer';
 
 // Dashboard Components
@@ -513,6 +515,12 @@ const OrgAdminDashboard = () => {
     }
   };
 
+  const adminName = profile?.display_name || profile?.username || 'Organisation Admin';
+  const roleLabel = superAdminContext ? 'SUPER ADMIN VIEW' : 'ORG ADMIN';
+  const roleSubtitle = superAdminContext
+    ? `Viewing organisation admin panel for ${superAdminContext.name}`
+    : 'Organisation-level user, department, schedule, and storage operations';
+
   return (
     <div 
       className="min-h-screen bg-gray-50 dark:bg-slate-900 flex flex-col" 
@@ -547,71 +555,44 @@ const OrgAdminDashboard = () => {
         </Alert>
       )}
       
-      {/* Sticky Header */}
-      <header className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-4 sm:px-6 py-4 sticky top-0 z-40 backdrop-blur-sm bg-opacity-95">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg transform hover:scale-105 transition-transform">
-                <Calendar className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {t('appName')} {t('organizationManagement')}
-                  {superAdminContext && (
-                    <span className="text-blue-600 dark:text-blue-400 ml-2">
-                      - {superAdminContext.name}
-                    </span>
-                  )}
-                </h1>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-white text-xs px-2 py-1 rounded ${
-                    superAdminContext ? 'bg-purple-500' : 'bg-blue-500'
-                  }`}>
-                    {superAdminContext ? 'SUPER ADMIN VIEW' : 'ORG ADMIN'}
-                  </span>
-                  <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                    {t('tagline')}
-                  </span>
-                  {profile?.tracking_id && (
-                    <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs px-2 py-1 rounded animate-pulse">
-                      ID: {profile.tracking_id}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-2 sm:space-x-3">
-            <HistoryButton 
-              variant="outline" 
-              size="sm" 
-              showBadge={true}
-              className="hidden sm:flex"
-            />
+      <RoleDashboardHeader
+        icon={<Calendar className="h-5 w-5" />}
+        title={`${t('appName')} ${t('organizationManagement')}`}
+        subtitle={roleSubtitle}
+        roleLabel={roleLabel}
+        accent={superAdminContext ? 'indigo' : 'blue'}
+        userName={adminName}
+        userRoleLabel={roleLabel}
+        metaItems={[
+          ...(profile?.tracking_id ? [{ label: `ID: ${profile.tracking_id}`, tone: 'accent' as const }] : []),
+          { label: `${stats.activeUsers} active users`, tone: 'success' as const },
+        ]}
+        actions={
+          <>
+            <HistoryButton variant="outline" size="sm" showBadge={false} className="h-9 w-9 p-0 hidden sm:flex" />
+            <NotificationDropdown compact={true} />
             <ThemeToggle />
-            <Button 
-              variant={superAdminContext ? "outline" : "destructive"}
-              size="sm" 
+            <Button
+              variant={superAdminContext ? 'outline' : 'destructive'}
+              size="sm"
               onClick={handleLogout}
               className="shadow-sm hover:shadow-md transition-all duration-200"
             >
               {superAdminContext ? (
                 <>
-                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  <ArrowLeft className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Exit View</span>
                 </>
               ) : (
                 <>
-                  <LogOut className="w-4 h-4 mr-2" />
+                  <LogOut className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Logout</span>
                 </>
               )}
             </Button>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {/* Main Dashboard Content */}
       <main className="flex-1 overflow-x-hidden">

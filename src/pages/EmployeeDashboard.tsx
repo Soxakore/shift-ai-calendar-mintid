@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
   ChevronLeft, 
@@ -18,7 +17,8 @@ import {
   Bell,
   AlertTriangle,
   Shield,
-  PieChart
+  PieChart,
+  LogOut
 } from 'lucide-react';
 import Footer from '@/components/Footer';
 import SEOHead from '@/components/SEOHead';
@@ -34,6 +34,9 @@ import EnhancedScheduleCalendar from '@/components/EnhancedScheduleCalendar';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { supabase } from '@/integrations/supabase/client';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import NotificationDropdown from '@/components/admin/NotificationDropdown';
+import RoleDashboardHeader from '@/components/layout/RoleDashboardHeader';
 
 const EmployeeDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
@@ -58,7 +61,7 @@ const EmployeeDashboard = () => {
   } | null>(null);
 
   // Supabase hooks
-  const { profile } = useSupabaseAuth();
+  const { profile, signOut } = useSupabaseAuth();
   const { departments, notifications } = useSupabaseData();
 
   const currentDepartment = departments.find((entry) => entry.id === profile?.department_id);
@@ -331,6 +334,24 @@ const EmployeeDashboard = () => {
     });
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/auth');
+      toast({
+        title: 'Logged out',
+        description: 'You have been signed out successfully.',
+      });
+    } catch (error) {
+      console.error('Employee logout error:', error);
+      toast({
+        title: 'Logout failed',
+        description: 'Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleViewDirectory = () => {
     toast({
       title: "Department Details",
@@ -442,34 +463,34 @@ const EmployeeDashboard = () => {
         </Alert>
       )}
 
-      {/* Header */}
-      <header className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-4 sm:px-6 py-4 sticky top-0 z-40">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-gray-500 dark:text-gray-400" />
-              <div>
-                <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Welcome to MinaTid, {displayName}</h1>
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-gray-500 text-white text-xs">EMPLOYEE</Badge>
-                  <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                    <Utensils className="w-4 h-4" />
-                    {departmentName}
-                  </div>
-                  <div className={`flex items-center gap-1 text-xs ${isOnline ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                    <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                    {isOnline ? 'Online' : 'Offline'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <Button variant="outline" size="sm" className="text-xs sm:text-sm" onClick={handleUpdateProfile}>
-            <Settings className="w-4 h-4 mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">My </span>Profile
-          </Button>
-        </div>
-      </header>
+      <RoleDashboardHeader
+        icon={<Calendar className="h-5 w-5" />}
+        title={`Welcome to MinaTid, ${displayName}`}
+        subtitle="Personal schedule, attendance, and daily task tracking"
+        roleLabel="EMPLOYEE"
+        accent="slate"
+        userName={displayName}
+        userRoleLabel="EMPLOYEE"
+        metaItems={[
+          { label: departmentName, tone: 'accent' },
+          { label: isOnline ? 'Online' : 'Offline', tone: isOnline ? 'success' : 'warning' },
+        ]}
+        actions={
+          <>
+            <NotificationDropdown compact={true} />
+            <ThemeToggle />
+            <Button variant="outline" size="sm" onClick={handleUpdateProfile}>
+              <Settings className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">My Profile</span>
+              <span className="sm:hidden">Profile</span>
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleLogout} className="text-white">
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </>
+        }
+      />
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6">

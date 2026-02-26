@@ -9,7 +9,6 @@ import {
   Building2,
   Calendar,
   LogOut,
-  Search,
   Settings,
   Shield,
   UserPlus,
@@ -36,6 +35,7 @@ import SuperAdminUserManagement from '@/components/admin/SuperAdminUserManagemen
 import { LiveReportsManager } from '@/components/LiveReportsManager';
 import UserManagement from '@/components/UserManagement';
 import { LiveScheduleAutomation } from '@/components/LiveScheduleAutomation';
+import RoleDashboardHeader from '@/components/layout/RoleDashboardHeader';
 
 const SuperAdminDashboard = () => {
   const pageMetadata = getPageMetadata('dashboard');
@@ -196,13 +196,7 @@ const SuperAdminDashboard = () => {
   };
 
   const adminName = profile?.display_name || profile?.username || profile?.email || 'Super Admin';
-  const adminRole = profile?.role ? profile.role.replace('_', ' ').toUpperCase() : 'SUPER ADMIN';
-  const adminInitials = adminName
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(name => name[0]?.toUpperCase())
-    .join('') || 'SA';
+  const adminRole = profile?.user_type ? profile.user_type.replace('_', ' ').toUpperCase() : 'SUPER ADMIN';
   const glassPanelClass = 'relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[rgba(26,28,46,0.78)] shadow-[0_24px_60px_-38px_rgba(2,6,23,0.98)] backdrop-blur-2xl';
   const glassCardClass = 'group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[rgba(30,32,55,0.62)] p-6 shadow-[0_22px_44px_-36px_rgba(2,6,23,0.98)] backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1 hover:border-indigo-300/35 hover:bg-[rgba(30,32,55,0.78)]';
   const glassInsetClass = 'rounded-xl border border-white/[0.08] bg-[rgba(15,17,26,0.62)] p-4 backdrop-blur-xl';
@@ -378,49 +372,25 @@ const SuperAdminDashboard = () => {
       </div>
 
       <div className="relative z-10 flex min-h-screen flex-col">
-        <header className="sticky top-0 z-50 border-b border-white/10 bg-[rgba(15,17,26,0.72)] backdrop-blur-2xl">
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-indigo-300/45 to-transparent" />
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-            <div className="flex min-w-0 items-center gap-4">
-              <div className="rounded-xl border border-indigo-300/40 bg-indigo-500/16 p-2.5 shadow-[0_0_28px_rgba(79,70,229,0.28)]">
-                <Calendar className="h-5 w-5 text-indigo-100" />
-              </div>
-              <div className="min-w-0">
-                <h1 className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">MinaTid Super Admin</h1>
-                <div className="mt-1 flex items-center gap-2 text-xs text-slate-400">
-                  <Badge className="border-0 bg-indigo-500/90 text-white">Executive Control Center</Badge>
-                  <span className="hidden sm:inline">Live operations, governance and role control</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="hidden md:flex w-80 max-w-[36vw] items-center">
-              <div className="group relative w-full">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-200" />
-                <input
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Search users, orgs, logs..."
-                  className="h-10 w-full rounded-xl border border-white/[0.1] bg-[rgba(15,17,26,0.62)] pl-10 pr-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition-colors focus:border-indigo-300/60 focus:ring-1 focus:ring-indigo-300/60"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="hidden lg:flex items-center gap-3 rounded-xl border border-white/10 bg-slate-900/52 px-3 py-2 backdrop-blur-xl">
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-white">{adminName}</p>
-                  <p className="text-xs text-slate-400">{adminRole}</p>
-                </div>
-                <div className="relative">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-blue-500 text-sm font-semibold text-white">
-                    {adminInitials}
-                  </div>
-                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-900" />
-                </div>
-              </div>
-              <HistoryButton variant="outline" size="sm" showBadge={true} />
-              <NotificationDropdown />
+        <RoleDashboardHeader
+          icon={<Calendar className="h-5 w-5" />}
+          title="MinaTid Super Admin"
+          subtitle="Global operations, governance, and access control"
+          roleLabel="SUPER ADMIN"
+          accent="indigo"
+          userName={adminName}
+          userRoleLabel={adminRole}
+          metaItems={[
+            { label: liveStats.systemStatus === 'Optimal' ? 'System healthy' : 'System warning', tone: liveStats.systemStatus === 'Optimal' ? 'success' : 'warning' },
+            ...(profile?.tracking_id ? [{ label: `ID: ${profile.tracking_id}`, tone: 'accent' as const }] : []),
+          ]}
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder="Search users, organisations, and logs..."
+          actions={
+            <>
+              <HistoryButton variant="outline" size="sm" showBadge={false} className="h-9 w-9 p-0" />
+              <NotificationDropdown compact={true} />
               <ThemeToggle />
               <Button
                 variant="destructive"
@@ -431,9 +401,9 @@ const SuperAdminDashboard = () => {
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout
               </Button>
-            </div>
-          </div>
-        </header>
+            </>
+          }
+        />
 
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
