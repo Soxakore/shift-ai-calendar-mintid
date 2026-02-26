@@ -203,10 +203,107 @@ const SuperAdminDashboard = () => {
     .slice(0, 2)
     .map(name => name[0]?.toUpperCase())
     .join('') || 'SA';
-  const glassPanelClass = 'relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/52 shadow-[0_24px_60px_-38px_rgba(15,23,42,0.95)] backdrop-blur-2xl';
-  const glassCardClass = 'group relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50 p-5 shadow-[0_22px_44px_-36px_rgba(8,47,73,0.95)] backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1 hover:border-cyan-300/35 hover:bg-slate-900/64';
-  const glassInsetClass = 'rounded-xl border border-white/10 bg-slate-950/45 p-4 backdrop-blur-xl';
-  const tabTriggerClass = 'rounded-none border-b-2 border-transparent px-3 pb-4 pt-2 text-sm font-semibold text-slate-400 transition-all data-[state=active]:border-cyan-300 data-[state=active]:bg-transparent data-[state=active]:text-cyan-100';
+  const glassPanelClass = 'relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[rgba(26,28,46,0.78)] shadow-[0_24px_60px_-38px_rgba(2,6,23,0.98)] backdrop-blur-2xl';
+  const glassCardClass = 'group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[rgba(30,32,55,0.62)] p-6 shadow-[0_22px_44px_-36px_rgba(2,6,23,0.98)] backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1 hover:border-indigo-300/35 hover:bg-[rgba(30,32,55,0.78)]';
+  const glassInsetClass = 'rounded-xl border border-white/[0.08] bg-[rgba(15,17,26,0.62)] p-4 backdrop-blur-xl';
+  const tabTriggerClass = 'rounded-none border-b-2 border-transparent px-3 pb-4 pt-2 text-sm font-semibold text-slate-400 transition-all data-[state=active]:border-indigo-300 data-[state=active]:bg-transparent data-[state=active]:text-slate-100';
+
+  const failedLoginNote = liveStats.failedLogins === 0
+    ? 'No suspicious sign-in activity in the last 24h.'
+    : `${liveStats.failedLogins} failed sign-in attempts in the last 24h.`;
+  const userActivityNote = liveStats.recentLogins === 0
+    ? 'No successful sign-ins recorded in the last 24h.'
+    : `${liveStats.recentLogins} successful sign-ins recorded in the last 24h.`;
+  const organisationNote = liveStats.totalOrganisations > 0
+    ? `${Math.round(liveStats.activeUsers / Math.max(liveStats.totalOrganisations, 1))} average active users per organisation.`
+    : 'No organisations are configured yet.';
+  const securityNote = liveStats.securityScore >= 90
+    ? 'Security posture is stable and within target.'
+    : liveStats.securityScore >= 70
+      ? 'Security posture is acceptable but should be monitored.'
+      : 'Security posture needs immediate review.';
+
+  const summaryCards = [
+    {
+      key: 'health',
+      label: 'Platform Health',
+      value: liveStats.systemStatus,
+      note: failedLoginNote,
+      dotClass: liveStats.systemStatus === 'Optimal' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-pulse',
+      iconClass: 'text-indigo-200',
+      glowClass: 'bg-indigo-400/18',
+      Icon: Shield,
+    },
+    {
+      key: 'users',
+      label: 'Active Users',
+      value: liveStats.activeUsers,
+      note: userActivityNote,
+      dotClass: 'bg-emerald-500 animate-pulse',
+      iconClass: 'text-blue-200',
+      glowClass: 'bg-blue-400/16',
+      Icon: Users,
+    },
+    {
+      key: 'orgs',
+      label: 'Organisations',
+      value: liveStats.totalOrganisations,
+      note: organisationNote,
+      dotClass: 'bg-indigo-300 animate-pulse',
+      iconClass: 'text-indigo-200',
+      glowClass: 'bg-violet-400/14',
+      Icon: Building2,
+    },
+    {
+      key: 'security',
+      label: 'Security Score',
+      value: `${liveStats.securityScore}%`,
+      note: securityNote,
+      dotClass: liveStats.securityScore >= 90 ? 'bg-emerald-500 animate-pulse' : liveStats.securityScore >= 70 ? 'bg-amber-500 animate-pulse' : 'bg-rose-500 animate-pulse',
+      iconClass: 'text-emerald-200',
+      glowClass: 'bg-emerald-400/16',
+      Icon: Shield,
+    },
+  ] as const;
+
+  const quickActions = [
+    {
+      key: 'users',
+      title: 'Manage User Directory',
+      subtitle: 'Create, edit, and deactivate accounts',
+      onClick: () => setActiveTab('users'),
+    },
+    {
+      key: 'roles',
+      title: 'Review Role Assignments',
+      subtitle: 'Validate role scope for new and existing users',
+      onClick: () => setActiveTab('user-roles'),
+    },
+    {
+      key: 'orgs',
+      title: 'Organisation Settings',
+      subtitle: 'Update organisation profiles and ownership',
+      onClick: () => setActiveTab('organisations'),
+    },
+    {
+      key: 'analytics',
+      title: 'Analytics Workspace',
+      subtitle: 'Open performance and workforce reporting',
+      onClick: () => setActiveTab('analytics'),
+    },
+    {
+      key: 'security',
+      title: 'Security Monitoring',
+      subtitle: 'Review authentication, policies, and alerts',
+      onClick: () => setActiveTab('security'),
+    },
+    {
+      key: 'history',
+      title: 'Audit History',
+      subtitle: 'Inspect recent administrative changes',
+      onClick: () => navigate('/history'),
+    },
+  ] as const;
 
   // Note: Mock data and placeholder functions have been removed for production
   // All user management is now handled by the proper components:
@@ -215,7 +312,7 @@ const SuperAdminDashboard = () => {
   // These components fetch real data from your live database
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_12%_6%,#0d1f3a_0%,#0a152a_38%,#070d18_100%)] text-slate-100">
+    <div className="relative min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_12%_6%,#111c34_0%,#0f172a_36%,#0f111a_100%)] text-slate-100">
       <SEOHead
         title={pageMetadata.title}
         description={pageMetadata.description}
@@ -225,20 +322,20 @@ const SuperAdminDashboard = () => {
       />
 
       <div className="pointer-events-none fixed inset-0 -z-0 overflow-hidden">
-        <svg className="absolute inset-0 h-full w-full opacity-45" viewBox="0 0 1600 900" fill="none">
+        <svg className="absolute inset-0 h-full w-full opacity-40" viewBox="0 0 1600 900" fill="none">
           <defs>
             <linearGradient id="admin-wave" x1="0" y1="0" x2="1600" y2="900">
-              <stop offset="0%" stopColor="#0ea5e9" />
-              <stop offset="42%" stopColor="#2563eb" />
-              <stop offset="100%" stopColor="#0f172a" />
+              <stop offset="0%" stopColor="#1919e6" />
+              <stop offset="42%" stopColor="#4f4ff0" />
+              <stop offset="100%" stopColor="#0f111a" />
             </linearGradient>
             <linearGradient id="admin-accent" x1="0" y1="0" x2="1600" y2="0">
-              <stop offset="0%" stopColor="#67e8f9" />
-              <stop offset="50%" stopColor="#22d3ee" />
-              <stop offset="100%" stopColor="#93c5fd" />
+              <stop offset="0%" stopColor="#c7d2fe" />
+              <stop offset="50%" stopColor="#818cf8" />
+              <stop offset="100%" stopColor="#a5b4fc" />
             </linearGradient>
             <radialGradient id="admin-spot" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1180 140) rotate(130) scale(680 480)">
-              <stop stopColor="#7dd3fc" stopOpacity="0.42" />
+              <stop stopColor="#818cf8" stopOpacity="0.36" />
               <stop offset="1" stopColor="#0f172a" stopOpacity="0" />
             </radialGradient>
             <filter id="glass-noise">
@@ -253,21 +350,21 @@ const SuperAdminDashboard = () => {
           <path d="M0 180C210 258 460 84 706 152C948 222 1190 410 1600 248V0H0V180Z" fill="url(#admin-wave)" fillOpacity="0.22" />
           <path d="M0 772C270 680 442 820 710 776C980 730 1254 526 1600 604V900H0V772Z" fill="url(#admin-wave)" fillOpacity="0.18" />
           <path d="M110 612C332 542 612 560 902 502C1118 458 1320 374 1510 298" stroke="url(#admin-accent)" strokeOpacity="0.22" strokeWidth="2" />
-          <path d="M84 684C312 626 550 652 786 620C1018 588 1238 498 1468 420" stroke="#38bdf8" strokeOpacity="0.18" strokeWidth="1.5" />
+          <path d="M84 684C312 626 550 652 786 620C1018 588 1238 498 1468 420" stroke="#818cf8" strokeOpacity="0.18" strokeWidth="1.5" />
           <rect width="1600" height="900" filter="url(#glass-noise)" opacity="0.65" />
         </svg>
         <motion.div
-          className="absolute -top-24 left-[22%] h-[26rem] w-[26rem] rounded-full bg-cyan-400/20 blur-[120px]"
+          className="absolute -top-24 left-[22%] h-[26rem] w-[26rem] rounded-full bg-indigo-400/20 blur-[120px]"
           animate={{ x: [0, 26, 0], y: [0, 20, 0], scale: [1, 1.06, 1] }}
           transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
         />
         <motion.div
-          className="absolute -bottom-24 right-[18%] h-[30rem] w-[30rem] rounded-full bg-blue-500/16 blur-[128px]"
+          className="absolute -bottom-24 right-[18%] h-[30rem] w-[30rem] rounded-full bg-violet-500/16 blur-[128px]"
           animate={{ x: [0, -30, 0], y: [0, -24, 0], scale: [1, 0.96, 1] }}
           transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
         />
         <motion.svg
-          className="absolute -right-36 top-14 h-[28rem] w-[28rem] text-cyan-200/25"
+          className="absolute -right-36 top-14 h-[28rem] w-[28rem] text-indigo-200/25"
           viewBox="0 0 400 400"
           fill="none"
           animate={{ rotate: [0, 10, 0] }}
@@ -281,17 +378,17 @@ const SuperAdminDashboard = () => {
       </div>
 
       <div className="relative z-10 flex min-h-screen flex-col">
-        <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950/48 backdrop-blur-2xl">
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-300/45 to-transparent" />
+        <header className="sticky top-0 z-50 border-b border-white/10 bg-[rgba(15,17,26,0.72)] backdrop-blur-2xl">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-indigo-300/45 to-transparent" />
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-4">
-              <div className="rounded-xl border border-cyan-300/40 bg-cyan-500/16 p-2.5 shadow-[0_0_28px_rgba(34,211,238,0.28)]">
-                <Calendar className="h-5 w-5 text-cyan-100" />
+              <div className="rounded-xl border border-indigo-300/40 bg-indigo-500/16 p-2.5 shadow-[0_0_28px_rgba(79,70,229,0.28)]">
+                <Calendar className="h-5 w-5 text-indigo-100" />
               </div>
               <div className="min-w-0">
                 <h1 className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">MinaTid Super Admin</h1>
                 <div className="mt-1 flex items-center gap-2 text-xs text-slate-400">
-                  <Badge className="border-0 bg-cyan-500/90 text-slate-950">Executive Control Center</Badge>
+                  <Badge className="border-0 bg-indigo-500/90 text-white">Executive Control Center</Badge>
                   <span className="hidden sm:inline">Live operations, governance and role control</span>
                 </div>
               </div>
@@ -299,12 +396,12 @@ const SuperAdminDashboard = () => {
 
             <div className="hidden md:flex w-80 max-w-[36vw] items-center">
               <div className="group relative w-full">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan-200" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-200" />
                 <input
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="Search users, orgs, logs..."
-                  className="h-10 w-full rounded-xl border border-white/10 bg-slate-950/55 pl-10 pr-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition-colors focus:border-cyan-300/60 focus:ring-1 focus:ring-cyan-300/60"
+                  className="h-10 w-full rounded-xl border border-white/[0.1] bg-[rgba(15,17,26,0.62)] pl-10 pr-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition-colors focus:border-indigo-300/60 focus:ring-1 focus:ring-indigo-300/60"
                 />
               </div>
             </div>
@@ -316,7 +413,7 @@ const SuperAdminDashboard = () => {
                   <p className="text-xs text-slate-400">{adminRole}</p>
                 </div>
                 <div className="relative">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 text-sm font-semibold text-slate-950">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-blue-500 text-sm font-semibold text-white">
                     {adminInitials}
                   </div>
                   <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-900" />
@@ -386,108 +483,41 @@ const SuperAdminDashboard = () => {
             </div>
 
             {searchTerm && (
-              <div className="rounded-xl border border-cyan-300/30 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100 backdrop-blur-xl">
-                Search filter active: "{searchTerm}". Tabs and widgets remain fully functional.
+              <div className="rounded-xl border border-indigo-300/30 bg-indigo-500/10 px-3 py-2 text-xs text-indigo-100 backdrop-blur-xl">
+                Active filter: "{searchTerm}". Dashboard actions remain available.
               </div>
             )}
 
             <TabsContent value="overview" className="space-y-8">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.42, delay: 0.02, ease: 'easeOut' }}
-                  whileHover={{ y: -5, scale: 1.01 }}
-                >
-                  <section className={glassCardClass}>
-                    <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-cyan-400/20 blur-2xl transition-opacity group-hover:opacity-100" />
-                    <header className="relative z-10 flex items-center justify-between pb-2">
-                      <h3 className="text-sm font-medium text-slate-300">System Health</h3>
-                      <div className="flex items-center gap-2">
-                        <div className={`h-2 w-2 rounded-full ${liveStats.systemStatus === 'Optimal' ? 'bg-green-500 animate-pulse' : 'bg-yellow-500 animate-pulse'}`} />
-                        <Shield className="h-4 w-4 text-cyan-200" />
-                      </div>
-                    </header>
-                    <div className="relative z-10">
-                      <div className="text-3xl font-bold tracking-tight text-white">{liveStats.systemStatus}</div>
-                      <p className="text-xs text-slate-300/90">
-                        {liveStats.failedLogins > 0 ? `${liveStats.failedLogins} failed logins today` : 'All systems operational'}
-                      </p>
-                    </div>
-                  </section>
-                </motion.div>
+                {summaryCards.map((card, index) => {
+                  const CardIcon = card.Icon;
 
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.42, delay: 0.08, ease: 'easeOut' }}
-                  whileHover={{ y: -5, scale: 1.01 }}
-                >
-                  <section className={glassCardClass}>
-                    <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-blue-400/18 blur-2xl transition-opacity group-hover:opacity-100" />
-                    <header className="relative z-10 flex items-center justify-between pb-2">
-                      <h3 className="text-sm font-medium text-slate-300">Active Users</h3>
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                        <Users className="h-4 w-4 text-blue-200" />
-                      </div>
-                    </header>
-                    <div className="relative z-10">
-                      <div className="text-3xl font-bold tracking-tight text-white">{liveStats.activeUsers}</div>
-                      <p className="text-xs text-slate-300/90">
-                        {liveStats.recentLogins > 0 ? `${liveStats.recentLogins} logins today` : 'No recent activity'}
-                      </p>
-                    </div>
-                  </section>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.42, delay: 0.14, ease: 'easeOut' }}
-                  whileHover={{ y: -5, scale: 1.01 }}
-                >
-                  <section className={glassCardClass}>
-                    <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-sky-300/14 blur-2xl transition-opacity group-hover:opacity-100" />
-                    <header className="relative z-10 flex items-center justify-between pb-2">
-                      <h3 className="text-sm font-medium text-slate-300">Organisations</h3>
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-                        <Building2 className="h-4 w-4 text-cyan-100" />
-                      </div>
-                    </header>
-                    <div className="relative z-10">
-                      <div className="text-3xl font-bold tracking-tight text-white">{liveStats.totalOrganisations}</div>
-                      <p className="text-xs text-slate-300/90">
-                        {liveStats.totalOrganisations > 0 ? `${Math.round(liveStats.activeUsers / Math.max(liveStats.totalOrganisations, 1))} avg users/org` : 'No organisations yet'}
-                      </p>
-                    </div>
-                  </section>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.42, delay: 0.2, ease: 'easeOut' }}
-                  whileHover={{ y: -5, scale: 1.01 }}
-                >
-                  <section className={glassCardClass}>
-                    <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-emerald-400/20 blur-2xl transition-opacity group-hover:opacity-100" />
-                    <header className="relative z-10 flex items-center justify-between pb-2">
-                      <h3 className="text-sm font-medium text-slate-300">Security Score</h3>
-                      <div className="flex items-center gap-2">
-                        <div className={`h-2 w-2 rounded-full ${liveStats.securityScore >= 90 ? 'bg-green-500' : liveStats.securityScore >= 70 ? 'bg-yellow-500' : 'bg-red-500'} animate-pulse`} />
-                        <Shield className="h-4 w-4 text-emerald-200" />
-                      </div>
-                    </header>
-                    <div className="relative z-10">
-                      <div className="text-3xl font-bold tracking-tight text-white">{liveStats.securityScore}%</div>
-                      <p className="text-xs text-slate-300/90">
-                        {liveStats.securityScore >= 90 ? 'Excellent security' : liveStats.securityScore >= 70 ? 'Good security' : 'Needs attention'}
-                      </p>
-                    </div>
-                  </section>
-                </motion.div>
+                  return (
+                    <motion.div
+                      key={card.key}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.42, delay: 0.02 + index * 0.06, ease: 'easeOut' }}
+                      whileHover={{ y: -5, scale: 1.01 }}
+                    >
+                      <section className={glassCardClass}>
+                        <div className={`absolute -right-10 -top-10 h-24 w-24 rounded-full blur-2xl transition-opacity group-hover:opacity-100 ${card.glowClass}`} />
+                        <header className="relative z-10 flex items-center justify-between pb-2">
+                          <h3 className="text-sm font-medium text-slate-300">{card.label}</h3>
+                          <div className="flex items-center gap-2">
+                            <div className={`h-2 w-2 rounded-full ${card.dotClass}`} />
+                            <CardIcon className={`h-4 w-4 ${card.iconClass}`} />
+                          </div>
+                        </header>
+                        <div className="relative z-10">
+                          <div className="text-3xl font-bold tracking-tight text-white">{card.value}</div>
+                          <p className="text-xs leading-relaxed text-slate-300/90">{card.note}</p>
+                        </div>
+                      </section>
+                    </motion.div>
+                  );
+                })}
               </div>
 
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -500,14 +530,14 @@ const SuperAdminDashboard = () => {
                   <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/45 to-transparent" />
                   <div className="mb-5 flex items-center justify-between">
                     <div>
-                      <h3 className="text-lg font-bold text-white">Super Admin Overview</h3>
-                      <p className="text-sm text-slate-300/90">Use tabs to manage users, role assignments, organisations, security, analytics and system settings.</p>
+                      <h3 className="text-lg font-bold text-white">Operations Snapshot</h3>
+                      <p className="text-sm leading-relaxed text-slate-300/90">Use this section for immediate context, then continue in tabs for full administrative workflows.</p>
                     </div>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={fetchLiveStats}
-                      className="border-white/20 bg-slate-950/55 text-slate-100 hover:bg-slate-800"
+                      className="border-white/20 bg-[rgba(15,17,26,0.62)] text-slate-100 hover:bg-slate-800"
                     >
                       Refresh
                     </Button>
@@ -521,27 +551,27 @@ const SuperAdminDashboard = () => {
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className={glassInsetClass}>
-                      <p className="text-xs text-slate-400">Live User Activity</p>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Authentication Throughput</p>
                       <p className="mt-1 text-2xl font-bold text-white">{liveStats.recentLogins}</p>
-                      <p className="text-xs text-slate-400">Successful logins in the last 24h</p>
+                      <p className="text-xs text-slate-400">Successful logins over the last 24 hours.</p>
                     </div>
                     <div className={glassInsetClass}>
-                      <p className="text-xs text-slate-400">Failed Login Attempts</p>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Risk Events</p>
                       <p className="mt-1 text-2xl font-bold text-white">{liveStats.failedLogins}</p>
-                      <p className="text-xs text-slate-400">Security-relevant authentication events</p>
+                      <p className="text-xs text-slate-400">Failed authentication attempts in the same period.</p>
                     </div>
                     <div className={glassInsetClass}>
-                      <p className="text-xs text-slate-400">Active Organisations</p>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Organisation Coverage</p>
                       <p className="mt-1 text-2xl font-bold text-white">{liveStats.totalOrganisations}</p>
-                      <p className="text-xs text-slate-400">Total managed organisations</p>
+                      <p className="text-xs text-slate-400">Organisations currently managed in this tenant.</p>
                     </div>
                     <div className={glassInsetClass}>
                       <div className="flex items-center justify-between">
-                        <p className="text-xs text-slate-400">Operational State</p>
-                        <Activity className="h-4 w-4 text-cyan-200" />
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Operational State</p>
+                        <Activity className="h-4 w-4 text-indigo-200" />
                       </div>
                       <p className="mt-1 text-2xl font-bold text-white">{liveStats.systemStatus}</p>
-                      <p className="text-xs text-slate-400">Calculated from current security and activity data</p>
+                      <p className="text-xs text-slate-400">Derived from authentication and platform activity signals.</p>
                     </div>
                   </div>
                 </motion.section>
@@ -552,51 +582,20 @@ const SuperAdminDashboard = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.48, delay: 0.22, ease: 'easeOut' }}
                 >
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/40 to-transparent" />
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-200/40 to-transparent" />
                   <h3 className="mb-4 text-base font-bold text-white">Quick Actions</h3>
                   <div className="space-y-3">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('users')}
-                      className="w-full rounded-xl border border-white/10 bg-slate-950/45 px-3 py-2 text-left text-xs font-medium text-slate-200 transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-300/40 hover:bg-cyan-500/12 hover:text-white"
-                    >
-                      Add or Manage Users
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('user-roles')}
-                      className="w-full rounded-xl border border-white/10 bg-slate-950/45 px-3 py-2 text-left text-xs font-medium text-slate-200 transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-300/40 hover:bg-cyan-500/12 hover:text-white"
-                    >
-                      Review Role Assignments
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('organisations')}
-                      className="w-full rounded-xl border border-white/10 bg-slate-950/45 px-3 py-2 text-left text-xs font-medium text-slate-200 transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-300/40 hover:bg-cyan-500/12 hover:text-white"
-                    >
-                      Organisation Management
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('analytics')}
-                      className="w-full rounded-xl border border-white/10 bg-slate-950/45 px-3 py-2 text-left text-xs font-medium text-slate-200 transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-300/40 hover:bg-cyan-500/12 hover:text-white"
-                    >
-                      Open Analytics
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('security')}
-                      className="w-full rounded-xl border border-white/10 bg-slate-950/45 px-3 py-2 text-left text-xs font-medium text-slate-200 transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-300/40 hover:bg-cyan-500/12 hover:text-white"
-                    >
-                      Security Monitoring
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => navigate('/history')}
-                      className="w-full rounded-xl border border-white/10 bg-slate-950/45 px-3 py-2 text-left text-xs font-medium text-slate-200 transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-300/40 hover:bg-cyan-500/12 hover:text-white"
-                    >
-                      View Audit History
-                    </button>
+                    {quickActions.map((action) => (
+                      <button
+                        key={action.key}
+                        type="button"
+                        onClick={action.onClick}
+                        className="w-full rounded-xl border border-white/[0.08] bg-[rgba(15,17,26,0.62)] px-3 py-2.5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300/40 hover:bg-indigo-500/12"
+                      >
+                        <p className="text-xs font-semibold text-slate-100">{action.title}</p>
+                        <p className="mt-0.5 text-[11px] leading-relaxed text-slate-400">{action.subtitle}</p>
+                      </button>
+                    ))}
                   </div>
                 </motion.section>
               </div>
